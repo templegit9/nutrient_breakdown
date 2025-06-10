@@ -221,10 +221,11 @@ export class DatabaseService {
 
   // Foods Database
   static async searchFoods(query: string) {
+    const searchTerm = query.toLowerCase()
     const { data, error } = await supabase
       .from('foods')
       .select('*')
-      .ilike('name', `%${query}%`)
+      .or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
       .limit(20)
 
     if (error) throw error

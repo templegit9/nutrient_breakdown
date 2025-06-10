@@ -14,9 +14,11 @@
 ### 2. Configure Database Schema
 1. Wait for project to be fully provisioned
 2. Go to SQL Editor in Supabase dashboard
-3. Copy and paste the contents of `schema.sql`
+3. Copy and paste the contents of `schema-fixed.sql` (use this instead of schema.sql to avoid function immutability issues)
 4. Click "Run" to execute the schema
 5. Verify tables were created successfully
+
+**Note:** If you encounter the error "functions in index expression must be marked IMMUTABLE", use `schema-fixed.sql` which removes the problematic full-text search index.
 
 ### 3. Seed Database with Foods
 1. In SQL Editor, copy and paste contents of `seed-foods.sql`

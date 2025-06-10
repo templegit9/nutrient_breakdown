@@ -62,4 +62,7 @@ INSERT INTO foods (name, brand, category, serving_size, serving_unit, calories_p
 ('Clif Bar Chocolate Chip', 'Clif Bar', 'Energy Bars', 68, 'g', 412, 9, 67, 7, 5, 24, 180);
 
 -- Create indexes for better search performance
-CREATE INDEX IF NOT EXISTS idx_foods_search ON foods USING gin(to_tsvector('english', name || ' ' || COALESCE(brand, '') || ' ' || COALESCE(category, '')));
+-- Using standard B-tree indexes for text search to avoid function immutability issues
+CREATE INDEX IF NOT EXISTS idx_foods_name_lower ON foods (LOWER(name));
+CREATE INDEX IF NOT EXISTS idx_foods_brand_lower ON foods (LOWER(brand));
+CREATE INDEX IF NOT EXISTS idx_foods_category_lower ON foods (LOWER(category));
