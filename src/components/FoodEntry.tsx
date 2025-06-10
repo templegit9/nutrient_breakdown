@@ -251,8 +251,9 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     // Store database food data if available
     if (food.databaseFood) {
       setSelectedDatabaseFood(food.databaseFood);
-      // Use database category and cooking state
-      setCategory(food.databaseFood.category.toLowerCase());
+      // Use database category mapping and cooking state
+      const mappedCategory = categorizeFoodByName(food.name, food.databaseFood.category);
+      setCategory(mappedCategory);
       setCookingState(food.databaseFood.preparation_state as any);
     } else {
       setSelectedDatabaseFood(null);
