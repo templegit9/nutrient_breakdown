@@ -43,11 +43,29 @@ Choose the appropriate option based on your situation:
 - **Warning:** Migration options will delete existing data
 
 ### 3. Seed Database with Foods
-1. In SQL Editor, copy and paste contents of `seed-foods-clean.sql` (this version has no indexes to avoid immutability errors)
-2. Click "Run" to populate the foods table
-3. Verify data was inserted by checking the Table Editor
 
-**Note:** Use `seed-foods-clean.sql` instead of `seed-foods.sql` to avoid any PostgreSQL function immutability issues.
+Choose one of the food seeding options:
+
+#### Option A: Complete Food Database (Recommended)
+**Includes both international and Nigerian foods**
+1. In SQL Editor, copy and paste contents of `seed-all-foods.sql`
+2. Click "Run" to populate the foods table
+3. This adds ~130+ foods including Nigerian staples like Ugu, Plantain, Yam, etc.
+
+#### Option B: Basic International Foods Only
+**If you prefer a smaller dataset**
+1. In SQL Editor, copy and paste contents of `seed-foods-clean.sql`
+2. Click "Run" to populate the foods table
+3. This adds ~45 common international foods
+
+#### Option C: Nigerian Foods Only
+**For Nigerian-focused nutrition tracking**
+1. In SQL Editor, copy and paste contents of `nigerian_foods_sql.sql`
+2. Click "Run" to populate the foods table
+3. This adds ~85 Nigerian foods with local names
+
+4. **Verify data:** Go to Database → Tables → foods to see the imported foods
+5. **Test search:** In your app, try searching for foods like "Ugu", "Plantain", or "Apple"
 
 ### 4. Configure Row Level Security
 The schema includes RLS policies, but verify they're enabled:
