@@ -14,11 +14,11 @@
 ### 2. Configure Database Schema
 1. Wait for project to be fully provisioned
 2. Go to SQL Editor in Supabase dashboard
-3. Copy and paste the contents of `schema-clean.sql` (guaranteed to work without any function immutability errors)
+3. Copy and paste the contents of `schema-fixed-auth.sql` (references auth.users directly, no foreign key issues)
 4. Click "Run" to execute the schema
 5. Verify tables were created successfully
 
-**Important:** Use `schema-clean.sql` which has NO function-based indexes (no DATE(), LOWER(), or other functions) to completely avoid PostgreSQL 42P17 errors.
+**Important:** Use `schema-fixed-auth.sql` which references Supabase's built-in `auth.users` table directly instead of creating a separate users table. This fixes foreign key constraint errors.
 
 ### 3. Seed Database with Foods
 1. In SQL Editor, copy and paste contents of `seed-foods-clean.sql` (this version has no indexes to avoid immutability errors)

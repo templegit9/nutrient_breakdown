@@ -69,6 +69,24 @@ SELECT * FROM foods WHERE name ILIKE '%apple%';
 - ILIKE queries with `%pattern%` may be slower but will work correctly
 - For production with large datasets, consider implementing proper full-text search later
 
+## Foreign Key Constraint Error
+
+### Error Message
+```
+insert or update on table "food_entries" violates foreign key constraint "food_entries_user_id_fkey"
+Key is not present in table "users"
+```
+
+### Cause
+This occurs when the schema has a separate `users` table but tries to reference user IDs from Supabase's `auth.users` table.
+
+### Solution
+Use `schema-fixed-auth.sql` which references `auth.users` directly:
+```sql
+-- Instead of separate users table, reference auth.users directly
+user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE
+```
+
 ## Other Common Issues
 
 ### RLS Policy Issues
