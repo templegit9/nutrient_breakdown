@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { FoodItem } from './types'
 import { useFoodData } from './hooks/useFoodData'
+import { useConnectionStatus } from './hooks/useConnectionStatus'
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -41,6 +42,7 @@ function AppContent() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOut } = useAuth();
   const { foods, loading, addFood, updateFood, deleteFood } = useFoodData();
+  const { isConnected, isChecking } = useConnectionStatus();
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -108,10 +110,68 @@ function AppContent() {
             color="primary"
             sx={{
               mb: { xs: 2, sm: 3, md: 4 },
-              fontSize: { xs: '1.75rem', sm: '2.125rem', md: '3rem' }
+              fontSize: { xs: '1.75rem', sm: '2.125rem', md: '3rem' },
+              // Connection status glow effect
+              textShadow: isConnected 
+                ? '0 0 10px rgba(76, 175, 80, 0.6), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 30px rgba(76, 175, 80, 0.2)'
+                : isChecking 
+                ? '0 0 10px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4)'
+                : '0 0 10px rgba(244, 67, 54, 0.6), 0 0 20px rgba(244, 67, 54, 0.4)',
+              transition: 'text-shadow 0.3s ease-in-out',
+              position: 'relative',
+              '&::after': isConnected ? {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(45deg, transparent 30%, rgba(76, 175, 80, 0.1) 50%, transparent 70%)',
+                animation: 'shimmer 2s infinite',
+                pointerEvents: 'none'
+              } : {},
+              '@keyframes shimmer': {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' }
+              }
             }}
           >
             Nutrient Breakdown Tracker
+            {/* Connection status indicator */}
+            {user && (
+              <Box
+                component="span"
+                sx={{
+                  ml: 2,
+                  display: 'inline-block',
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  backgroundColor: isConnected 
+                    ? 'success.main' 
+                    : isChecking 
+                    ? 'warning.main' 
+                    : 'error.main',
+                  boxShadow: isConnected 
+                    ? '0 0 8px rgba(76, 175, 80, 0.8)' 
+                    : isChecking 
+                    ? '0 0 8px rgba(255, 193, 7, 0.8)'
+                    : '0 0 8px rgba(244, 67, 54, 0.8)',
+                  animation: isChecking ? 'pulse 1.5s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                    '50%': { opacity: 0.7, transform: 'scale(1.1)' }
+                  }
+                }}
+                title={
+                  isChecking 
+                    ? 'Checking database connection...' 
+                    : isConnected 
+                    ? 'Connected to Supabase' 
+                    : 'Database connection failed'
+                }
+              />
+            )}
           </Typography>
         
         <Box sx={{ 
