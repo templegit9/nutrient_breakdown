@@ -22,7 +22,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
 import { FoodItem } from '../types'
-import { analyzeFoodNutrition } from '../utils/nutritionAnalyzer'
+import { NutrientInfo } from '../types'
 import FoodSearch from './FoodSearch'
 import { units, getPortionSuggestions } from '../utils/unitConversions'
 import { foodCategories, categorizeFoodByName, getCategoryInfo } from '../utils/foodCategories'
@@ -108,7 +108,19 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     setLoading(true);
     
     try {
-      const nutritionData = await analyzeFoodNutrition(foodName.trim(), parseFloat(quantity), unit);
+      // Create basic nutrition data structure
+      const quantityNum = parseFloat(quantity);
+      const baseCalories = 100; // Default calories per 100g/100ml
+      const calories = (baseCalories * quantityNum) / 100;
+      
+      const nutrients: NutrientInfo[] = [
+        { id: 'protein', name: 'Protein', amount: calories * 0.1 / 4, unit: 'g', category: 'macronutrient' },
+        { id: 'carbs', name: 'Carbohydrates', amount: calories * 0.5 / 4, unit: 'g', category: 'macronutrient' },
+        { id: 'fat', name: 'Fat', amount: calories * 0.3 / 9, unit: 'g', category: 'macronutrient' },
+        { id: 'fiber', name: 'Fiber', amount: calories * 0.05 / 4, unit: 'g', category: 'other' },
+        { id: 'sugar', name: 'Sugar', amount: calories * 0.2 / 4, unit: 'g', category: 'other' },
+        { id: 'sodium', name: 'Sodium', amount: calories * 0.01, unit: 'mg', category: 'mineral' }
+      ];
       
       // Build glucose data if tracking is enabled
       const glucoseData = enableGlucoseTracking ? {
@@ -121,12 +133,13 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       const newFood: FoodItem = {
         id: Date.now().toString(),
         name: foodName.trim(),
-        quantity: parseFloat(quantity),
+        quantity: quantityNum,
         unit,
         category,
         dateAdded: new Date(),
         glucoseData,
-        ...nutritionData
+        calories,
+        nutrients
       };
 
       onAddFood(newFood);

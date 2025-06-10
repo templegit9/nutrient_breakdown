@@ -157,11 +157,7 @@ function AppContent() {
                     : isChecking 
                     ? '0 0 8px rgba(255, 193, 7, 0.8)'
                     : '0 0 8px rgba(244, 67, 54, 0.8)',
-                  animation: isChecking ? 'pulse 1.5s infinite' : 'none',
-                  '@keyframes pulse': {
-                    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
-                    '50%': { opacity: 0.7, transform: 'scale(1.1)' }
-                  }
+                  animation: 'none'
                 }}
                 title={
                   isChecking 

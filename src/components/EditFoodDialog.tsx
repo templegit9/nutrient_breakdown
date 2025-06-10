@@ -15,7 +15,7 @@ import {
 import { FoodItem } from '../types'
 import { foodCategories } from '../utils/foodCategories'
 import { units } from '../utils/unitConversions'
-import { analyzeFoodNutrition } from '../utils/nutritionAnalyzer'
+import { NutrientInfo } from '../types'
 
 interface EditFoodDialogProps {
   open: boolean;
@@ -89,10 +89,24 @@ export default function EditFoodDialog({ open, food, onClose, onSave }: EditFood
       };
 
       if (nameChanged || quantityChanged || unitChanged) {
-        const nutritionData = await analyzeFoodNutrition(foodName.trim(), parseFloat(quantity), unit);
+        // Create updated nutrition data
+        const quantityNum = parseFloat(quantity);
+        const baseCalories = 100; // Default calories per 100g/100ml
+        const calories = (baseCalories * quantityNum) / 100;
+        
+        const nutrients: NutrientInfo[] = [
+          { id: 'protein', name: 'Protein', amount: calories * 0.1 / 4, unit: 'g', category: 'macronutrient' },
+          { id: 'carbs', name: 'Carbohydrates', amount: calories * 0.5 / 4, unit: 'g', category: 'macronutrient' },
+          { id: 'fat', name: 'Fat', amount: calories * 0.3 / 9, unit: 'g', category: 'macronutrient' },
+          { id: 'fiber', name: 'Fiber', amount: calories * 0.05 / 4, unit: 'g', category: 'other' },
+          { id: 'sugar', name: 'Sugar', amount: calories * 0.2 / 4, unit: 'g', category: 'other' },
+          { id: 'sodium', name: 'Sodium', amount: calories * 0.01, unit: 'mg', category: 'mineral' }
+        ];
+        
         updates = {
           ...updates,
-          ...nutritionData
+          calories,
+          nutrients
         };
       }
 

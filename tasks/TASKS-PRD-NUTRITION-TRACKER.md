@@ -42,9 +42,9 @@
 ## Phase 2: Production Deployment & Database Integration
 
 - [ ] 6.0 Deploy application to Netlify for production hosting
-  - [ ] 6.1 Configure Netlify deployment settings and build commands
+  - [x] 6.1 Configure Netlify deployment settings and build commands
   - [ ] 6.2 Set up custom domain and SSL certificate
-  - [ ] 6.3 Configure environment variables and build optimization
+  - [x] 6.3 Configure environment variables and build optimization
   - [ ] 6.4 Test production deployment and mobile responsiveness
   - [ ] 6.5 Set up Netlify Forms for user feedback (optional)
 
