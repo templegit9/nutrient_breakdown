@@ -47,6 +47,7 @@ export default function FoodDatabase() {
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [totalCount, setTotalCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [isFallbackData, setIsFallbackData] = useState(false)
   
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -55,21 +56,28 @@ export default function FoodDatabase() {
     try {
       setLoading(true)
       setError(null)
+      console.log('Loading foods...', { searchTerm, page, rowsPerPage })
       
       if (searchTerm.trim()) {
         // Use search if there's a search term
+        console.log('Searching for:', searchTerm)
         const searchResults = await DatabaseService.searchFoods(searchTerm)
+        console.log('Search results:', searchResults)
         setFoods(searchResults)
         setTotalCount(searchResults.length)
       } else {
         // Load all foods with pagination
+        console.log('Loading all foods with pagination...')
         const result = await DatabaseService.getAllFoods(page, rowsPerPage)
+        console.log('Loaded foods:', result)
         setFoods(result.data)
         setTotalCount(result.count)
+        setIsFallbackData(result.isFallback || false)
       }
     } catch (err) {
       console.error('Error loading foods:', err)
-      setError('Failed to load foods. Please check your database connection.')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(`Failed to load foods: ${errorMessage}. The 'foods' table might not exist or be empty.`)
       setFoods([])
       setTotalCount(0)
     } finally {
@@ -151,6 +159,13 @@ export default function FoodDatabase() {
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
+        </Alert>
+      )}
+
+      {isFallbackData && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Showing sample food data. The main food database appears to be empty or unavailable. 
+          This includes common foods and Nigerian cuisine options for demonstration.
         </Alert>
       )}
 

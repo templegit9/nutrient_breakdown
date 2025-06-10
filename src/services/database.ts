@@ -234,14 +234,87 @@ export class DatabaseService {
 
   static async getAllFoods(page: number = 0, limit: number = 50) {
     const offset = page * limit
-    const { data, error, count } = await supabase
-      .from('foods')
-      .select('*', { count: 'exact' })
-      .order('name')
-      .range(offset, offset + limit - 1)
+    
+    try {
+      // Try to get foods from the main foods table
+      const { data: foodsData, error: foodsError, count: foodsCount } = await supabase
+        .from('foods')
+        .select('*', { count: 'exact' })
+        .order('name')
+        .range(offset, offset + limit - 1)
 
-    if (error) throw error
-    return { data: data || [], count: count || 0 }
+      if (foodsError) {
+        console.warn('Foods table error:', foodsError)
+        // If foods table doesn't exist or has errors, try custom_foods
+        const { data: customData, error: customError, count: customCount } = await supabase
+          .from('custom_foods')
+          .select('*', { count: 'exact' })
+          .order('name')
+          .range(offset, offset + limit - 1)
+
+        if (customError) {
+          console.warn('Custom foods table error:', customError)
+          // If both tables fail, return fallback data
+          return this.getFallbackFoods(page, limit)
+        }
+
+        // Map custom foods to foods format
+        const mappedCustomFoods = (customData || []).map(food => ({
+          id: food.id,
+          name: food.name,
+          brand: food.brand,
+          category: food.category,
+          calories_per_100g: food.calories_per_serving,
+          protein_per_100g: food.protein_per_serving,
+          carbs_per_100g: food.carbs_per_serving,
+          fat_per_100g: food.fat_per_serving,
+          fiber_per_100g: food.fiber_per_serving,
+          sugar_per_100g: food.sugar_per_serving,
+          sodium_per_100g: food.sodium_per_serving
+        }))
+
+        return { data: mappedCustomFoods, count: customCount || 0 }
+      }
+
+      // If foods table is empty, show fallback foods
+      if ((foodsData || []).length === 0 && page === 0) {
+        return this.getFallbackFoods(page, limit)
+      }
+
+      return { data: foodsData || [], count: foodsCount || 0 }
+    } catch (error) {
+      console.error('Error in getAllFoods:', error)
+      return this.getFallbackFoods(page, limit)
+    }
+  }
+
+  static getFallbackFoods(page: number = 0, limit: number = 50) {
+    const fallbackFoods = [
+      { id: 'fb1', name: 'Apple', brand: null, category: 'Fruits', calories_per_100g: 52, protein_per_100g: 0.3, carbs_per_100g: 14, fat_per_100g: 0.2, fiber_per_100g: 2.4, sugar_per_100g: 10, sodium_per_100g: 1 },
+      { id: 'fb2', name: 'Banana', brand: null, category: 'Fruits', calories_per_100g: 89, protein_per_100g: 1.1, carbs_per_100g: 23, fat_per_100g: 0.3, fiber_per_100g: 2.6, sugar_per_100g: 12, sodium_per_100g: 1 },
+      { id: 'fb3', name: 'Rice (White)', brand: null, category: 'Grains', calories_per_100g: 130, protein_per_100g: 2.7, carbs_per_100g: 28, fat_per_100g: 0.3, fiber_per_100g: 0.4, sugar_per_100g: 0.1, sodium_per_100g: 5 },
+      { id: 'fb4', name: 'Chicken Breast', brand: null, category: 'Proteins', calories_per_100g: 165, protein_per_100g: 31, carbs_per_100g: 0, fat_per_100g: 3.6, fiber_per_100g: 0, sugar_per_100g: 0, sodium_per_100g: 74 },
+      { id: 'fb5', name: 'Yam', brand: null, category: 'Starches', calories_per_100g: 118, protein_per_100g: 1.5, carbs_per_100g: 27.9, fat_per_100g: 0.2, fiber_per_100g: 4.1, sugar_per_100g: 0.5, sodium_per_100g: 9 },
+      { id: 'fb6', name: 'Plantain', brand: null, category: 'Starches', calories_per_100g: 122, protein_per_100g: 1.3, carbs_per_100g: 31.9, fat_per_100g: 0.4, fiber_per_100g: 2.3, sugar_per_100g: 15, sodium_per_100g: 4 },
+      { id: 'fb7', name: 'Cassava', brand: null, category: 'Starches', calories_per_100g: 160, protein_per_100g: 1.4, carbs_per_100g: 38.1, fat_per_100g: 0.3, fiber_per_100g: 1.8, sugar_per_100g: 1.7, sodium_per_100g: 14 },
+      { id: 'fb8', name: 'Ugu (Fluted Pumpkin)', brand: null, category: 'Vegetables', calories_per_100g: 35, protein_per_100g: 5.0, carbs_per_100g: 5.8, fat_per_100g: 0.8, fiber_per_100g: 2.5, sugar_per_100g: 2.2, sodium_per_100g: 15 },
+      { id: 'fb9', name: 'Waterleaf', brand: null, category: 'Vegetables', calories_per_100g: 22, protein_per_100g: 2.5, carbs_per_100g: 4.0, fat_per_100g: 0.3, fiber_per_100g: 2.1, sugar_per_100g: 1.5, sodium_per_100g: 8 },
+      { id: 'fb10', name: 'Okra', brand: null, category: 'Vegetables', calories_per_100g: 33, protein_per_100g: 1.9, carbs_per_100g: 7.5, fat_per_100g: 0.2, fiber_per_100g: 3.2, sugar_per_100g: 1.5, sodium_per_100g: 7 },
+      { id: 'fb11', name: 'Sweet Potato', brand: null, category: 'Starches', calories_per_100g: 86, protein_per_100g: 1.6, carbs_per_100g: 20.1, fat_per_100g: 0.1, fiber_per_100g: 3.0, sugar_per_100g: 4.2, sodium_per_100g: 5 },
+      { id: 'fb12', name: 'Palm Oil', brand: null, category: 'Fats', calories_per_100g: 884, protein_per_100g: 0, carbs_per_100g: 0, fat_per_100g: 100, fiber_per_100g: 0, sugar_per_100g: 0, sodium_per_100g: 0 },
+      { id: 'fb13', name: 'Groundnut (Peanuts)', brand: null, category: 'Nuts', calories_per_100g: 567, protein_per_100g: 25.8, carbs_per_100g: 16.1, fat_per_100g: 49.2, fiber_per_100g: 8.5, sugar_per_100g: 4.7, sodium_per_100g: 18 },
+      { id: 'fb14', name: 'Beans (Black-eyed Peas)', brand: null, category: 'Legumes', calories_per_100g: 336, protein_per_100g: 23.5, carbs_per_100g: 60.0, fat_per_100g: 1.3, fiber_per_100g: 11.0, sugar_per_100g: 6.9, sodium_per_100g: 6 },
+      { id: 'fb15', name: 'Jollof Rice', brand: null, category: 'Dishes', calories_per_100g: 150, protein_per_100g: 3.5, carbs_per_100g: 28.0, fat_per_100g: 3.0, fiber_per_100g: 1.0, sugar_per_100g: 2.0, sodium_per_100g: 400 }
+    ]
+
+    const offset = page * limit
+    const paginatedFoods = fallbackFoods.slice(offset, offset + limit)
+    
+    return { 
+      data: paginatedFoods, 
+      count: fallbackFoods.length,
+      isFallback: true 
+    }
   }
 
   static async addCustomFood(food: {
