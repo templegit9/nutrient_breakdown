@@ -268,7 +268,6 @@ export default function FoodDatabase() {
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Food Name</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Brand</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Category</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Source</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Calories</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Protein (g)</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Carbs (g)</TableCell>
@@ -311,11 +310,6 @@ export default function FoodDatabase() {
                     ) : (
                       <Typography variant="body2" color="text.secondary">N/A</Typography>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                      {food.source || 'Unknown'}
-                    </Typography>
                   </TableCell>
                   <TableCell align="right">{formatNumber(food.calories_per_100g)}</TableCell>
                   <TableCell align="right">{formatNumber(food.protein_per_100g)}</TableCell>

@@ -222,117 +222,36 @@ export class DatabaseService {
   // Foods Database
   static async searchFoods(query: string) {
     const searchTerm = query.toLowerCase()
-    console.log('Searching foods with query:', searchTerm)
+    console.log('Searching foods table with query:', searchTerm)
     
-    try {
-      // Search in general foods table
-      const { data: generalFoods, error: generalError } = await supabase
-        .from('foods')
-        .select('*')
-        .or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
-        .limit(10)
+    const { data, error } = await supabase
+      .from('foods')
+      .select('*')
+      .or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
+      .order('name')
+      .limit(20)
 
-      console.log('General foods search results:', { data: generalFoods, error: generalError })
+    console.log('Foods search results:', { data, error })
 
-      // Search in custom foods
-      const { data: customFoods, error: customError } = await supabase
-        .from('custom_foods')
-        .select('*')
-        .or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
-        .limit(10)
-
-      console.log('Custom foods search results:', { data: customFoods, error: customError })
-
-      // Search in food entries
-      const { data: loggedFoods, error: loggedError } = await supabase
-        .from('food_entries')
-        .select('custom_food_name, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg')
-        .ilike('custom_food_name', `%${searchTerm}%`)
-        .limit(10)
-
-      console.log('Logged foods search results:', { data: loggedFoods, error: loggedError })
-
-      // Combine search results
-      let allResults: any[] = []
-
-      // Add general foods
-      if (generalFoods && !generalError) {
-        allResults.push(...generalFoods.map(food => ({
-          id: food.id,
-          name: food.name,
-          brand: food.brand,
-          category: food.category,
-          calories_per_100g: food.calories_per_100g,
-          protein_per_100g: food.protein_per_100g,
-          carbs_per_100g: food.carbs_per_100g,
-          fat_per_100g: food.fat_per_100g,
-          fiber_per_100g: food.fiber_per_100g,
-          sugar_per_100g: food.sugar_per_100g,
-          sodium_per_100g: food.sodium_per_100g,
-          source: 'database'
-        })))
-      }
-
-      // Add custom foods
-      if (customFoods && !customError) {
-        allResults.push(...customFoods.map(food => ({
-          id: food.id,
-          name: food.name,
-          brand: food.brand,
-          category: food.category,
-          calories_per_100g: food.calories_per_serving,
-          protein_per_100g: food.protein_per_serving,
-          carbs_per_100g: food.carbs_per_serving,
-          fat_per_100g: food.fat_per_serving,
-          fiber_per_100g: food.fiber_per_serving,
-          sugar_per_100g: food.sugar_per_serving,
-          sodium_per_100g: food.sodium_per_serving,
-          source: 'custom'
-        })))
-      }
-
-      // Add unique logged foods
-      if (loggedFoods && !loggedError) {
-        const uniqueLoggedFoods = new Map()
-        loggedFoods.forEach(entry => {
-          if (entry.custom_food_name && !uniqueLoggedFoods.has(entry.custom_food_name)) {
-            uniqueLoggedFoods.set(entry.custom_food_name, {
-              id: `logged_${entry.custom_food_name}`,
-              name: entry.custom_food_name,
-              brand: null,
-              category: 'User Entries',
-              calories_per_100g: entry.calories || 0,
-              protein_per_100g: entry.protein_g || 0,
-              carbs_per_100g: entry.carbs_g || 0,
-              fat_per_100g: entry.fat_g || 0,
-              fiber_per_100g: entry.fiber_g || 0,
-              sugar_per_100g: entry.sugar_g || 0,
-              sodium_per_100g: entry.sodium_mg || 0,
-              source: 'logged'
-            })
-          }
-        })
-        allResults.push(...Array.from(uniqueLoggedFoods.values()))
-      }
-
-      // Remove duplicates and limit results
-      const uniqueResults = new Map()
-      allResults.forEach(food => {
-        const key = food.name.toLowerCase()
-        if (!uniqueResults.has(key)) {
-          uniqueResults.set(key, food)
-        }
-      })
-
-      const finalResults = Array.from(uniqueResults.values()).slice(0, 20)
-      console.log('Combined search results:', finalResults.length, 'unique foods found')
-
-      return finalResults
-
-    } catch (error) {
-      console.error('Search error:', error)
-      throw new Error(`Search error: ${error}`)
+    if (error) {
+      console.error('Foods search error:', error)
+      throw new Error(`Search error: ${error.message}`)
     }
+    
+    return (data || []).map(food => ({
+      id: food.id,
+      name: food.name || 'Unknown Food',
+      brand: food.brand,
+      category: food.category,
+      calories_per_100g: food.calories_per_100g || 0,
+      protein_per_100g: food.protein_per_100g || 0,
+      carbs_per_100g: food.carbs_per_100g || 0,
+      fat_per_100g: food.fat_per_100g || 0,
+      fiber_per_100g: food.fiber_per_100g || 0,
+      sugar_per_100g: food.sugar_per_100g || 0,
+      sodium_per_100g: food.sodium_per_100g || 0,
+      source: 'database'
+    }))
   }
 
   // Debug method to check database schema
@@ -364,121 +283,44 @@ export class DatabaseService {
   static async getAllFoods(page: number = 0, limit: number = 50) {
     const offset = page * limit
     
-    console.log('Fetching foods from all sources, page:', page, 'limit:', limit)
+    console.log('Fetching foods from foods table, page:', page, 'limit:', limit)
     
-    try {
-      // First, try to get foods from the general foods table
-      const { data: generalFoods, error: generalError } = await supabase
-        .from('foods')
-        .select('*')
-        .order('name')
-      
-      console.log('General foods table:', { data: generalFoods, error: generalError })
-      
-      // Get custom foods from users
-      const { data: customFoods, error: customError } = await supabase
-        .from('custom_foods')
-        .select('*')
-        .order('name')
-      
-      console.log('Custom foods table:', { data: customFoods, error: customError })
-      
-      // Get unique foods from food entries (this is where actual logged foods are)
-      const { data: loggedFoods, error: loggedError } = await supabase
-        .from('food_entries')
-        .select('custom_food_name, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg')
-        .order('custom_food_name')
-      
-      console.log('Logged foods from entries:', { data: loggedFoods, error: loggedError })
-      
-      // Combine all food sources
-      let allFoods: any[] = []
-      
-      // Add general foods (if they exist)
-      if (generalFoods && !generalError) {
-        allFoods.push(...generalFoods.map(food => ({
-          id: food.id,
-          name: food.name,
-          brand: food.brand,
-          category: food.category,
-          calories_per_100g: food.calories_per_100g,
-          protein_per_100g: food.protein_per_100g,
-          carbs_per_100g: food.carbs_per_100g,
-          fat_per_100g: food.fat_per_100g,
-          fiber_per_100g: food.fiber_per_100g,
-          sugar_per_100g: food.sugar_per_100g,
-          sodium_per_100g: food.sodium_per_100g,
-          source: 'database'
-        })))
-      }
-      
-      // Add custom foods
-      if (customFoods && !customError) {
-        allFoods.push(...customFoods.map(food => ({
-          id: food.id,
-          name: food.name,
-          brand: food.brand,
-          category: food.category,
-          calories_per_100g: food.calories_per_serving,
-          protein_per_100g: food.protein_per_serving,
-          carbs_per_100g: food.carbs_per_serving,
-          fat_per_100g: food.fat_per_serving,
-          fiber_per_100g: food.fiber_per_serving,
-          sugar_per_100g: food.sugar_per_serving,
-          sodium_per_100g: food.sodium_per_serving,
-          source: 'custom'
-        })))
-      }
-      
-      // Add unique foods from food entries
-      if (loggedFoods && !loggedError) {
-        const uniqueLoggedFoods = new Map()
-        loggedFoods.forEach(entry => {
-          if (entry.custom_food_name && !uniqueLoggedFoods.has(entry.custom_food_name)) {
-            uniqueLoggedFoods.set(entry.custom_food_name, {
-              id: `logged_${entry.custom_food_name}`,
-              name: entry.custom_food_name,
-              brand: null,
-              category: 'User Entries',
-              calories_per_100g: entry.calories || 0,
-              protein_per_100g: entry.protein_g || 0,
-              carbs_per_100g: entry.carbs_g || 0,
-              fat_per_100g: entry.fat_g || 0,
-              fiber_per_100g: entry.fiber_g || 0,
-              sugar_per_100g: entry.sugar_g || 0,
-              sodium_per_100g: entry.sodium_mg || 0,
-              source: 'logged'
-            })
-          }
-        })
-        allFoods.push(...Array.from(uniqueLoggedFoods.values()))
-      }
-      
-      // Remove duplicates by name (case insensitive)
-      const uniqueFoods = new Map()
-      allFoods.forEach(food => {
-        const key = food.name.toLowerCase()
-        if (!uniqueFoods.has(key)) {
-          uniqueFoods.set(key, food)
-        }
-      })
-      
-      const finalFoods = Array.from(uniqueFoods.values())
-      finalFoods.sort((a, b) => a.name.localeCompare(b.name))
-      
-      console.log('Combined unique foods:', finalFoods.length, 'total foods')
-      
-      // Apply pagination
-      const paginatedFoods = finalFoods.slice(offset, offset + limit)
-      
-      return { 
-        data: paginatedFoods, 
-        count: finalFoods.length 
-      }
-      
-    } catch (error) {
-      console.error('Error fetching foods:', error)
-      throw new Error(`Failed to fetch foods: ${error}`)
+    let query = supabase
+      .from('foods')
+      .select('*', { count: 'exact' })
+      .order('name', { ascending: true })
+
+    if (page > 0 || limit < 1000) {
+      query = query.range(offset, offset + limit - 1)
+    }
+
+    const { data, error, count } = await query
+
+    console.log('Foods table response:', { data, error, count, offset, limit })
+
+    if (error) {
+      console.error('Foods table error:', error)
+      throw new Error(`Database error: ${error.message}`)
+    }
+
+    const mappedFoods = (data || []).map(food => ({
+      id: food.id,
+      name: food.name || 'Unknown Food',
+      brand: food.brand,
+      category: food.category,
+      calories_per_100g: food.calories_per_100g || 0,
+      protein_per_100g: food.protein_per_100g || 0,
+      carbs_per_100g: food.carbs_per_100g || 0,
+      fat_per_100g: food.fat_per_100g || 0,
+      fiber_per_100g: food.fiber_per_100g || 0,
+      sugar_per_100g: food.sugar_per_100g || 0,
+      sodium_per_100g: food.sodium_per_100g || 0,
+      source: 'database'
+    }))
+
+    return {
+      data: mappedFoods,
+      count: count || 0
     }
   }
 
