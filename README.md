@@ -5,10 +5,11 @@ A comprehensive nutrition tracking web application built with React, TypeScript,
 ## Features
 
 🥗 **Comprehensive Food Logging**
-- Search and add foods from extensive nutrition database
+- Search and add foods with intelligent fallback suggestions
 - Support for multiple measurement units and portion sizes
 - Food categorization and validation
-- Local storage persistence
+- Nigerian food options (Yam, Plantain, Cassava, Ugu)
+- Supabase database integration with offline fallback
 
 📊 **Advanced Nutrition Analysis**
 - 20+ tracked nutrients (macronutrients, vitamins, minerals)
@@ -23,10 +24,11 @@ A comprehensive nutrition tracking web application built with React, TypeScript,
 - Condition-specific food recommendations
 
 📱 **Responsive Dashboard**
-- Mobile-first design
+- Mobile-first design with Material-UI styling
 - Interactive charts (radial, bar, area charts)
 - Export functionality (CSV/JSON)
 - Professional health insights
+- User authentication and personalized data
 
 ## Quick Start
 
@@ -63,7 +65,9 @@ start.bat
 - **UI Framework:** Material UI v5
 - **Build Tool:** Vite
 - **Charts:** Recharts
-- **Storage:** Local Storage API
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth
+- **Deployment:** Netlify
 
 ## Project Structure
 
@@ -71,18 +75,29 @@ start.bat
 src/
 ├── components/          # React components
 │   ├── FoodEntry.tsx           # Food logging interface
+│   ├── FoodSearch.tsx          # Enhanced food search with fallback suggestions
 │   ├── NutritionDashboard.tsx  # Main dashboard with charts
 │   ├── HealthConditionDashboard.tsx  # PCOS/diabetes insights
 │   └── FoodHistory.tsx         # Food history management
 ├── utils/              # Utility functions
-│   ├── nutritionAnalyzer.ts   # Core nutrition calculations
-│   ├── healthConditions.ts    # Health condition algorithms
-│   └── localStorage.ts        # Data persistence
-├── data/               # Static data
-│   └── nutritionDatabase.ts   # Food nutrition database
+│   ├── advancedNutritionAnalysis.ts  # Core nutrition calculations
+│   ├── healthConditions.ts           # Health condition algorithms
+│   └── nutritionCalculator.ts        # Nutrition aggregation
+├── services/           # External service integrations
+│   └── database.ts            # Supabase database operations
 └── types/              # TypeScript interfaces
     └── index.ts               # Type definitions
 ```
+
+## Recent Updates
+
+### v2.0 - Enhanced Food Search & Database Integration
+- ✨ Added intelligent fallback suggestions when database is empty
+- 🍠 Nigerian food options included (Yam, Plantain, Cassava, Ugu)
+- 🎨 Complete Material-UI redesign of login interface
+- 🗃️ Full Supabase database integration replacing local storage
+- ⚡ Optimized production build with vendor chunk splitting
+- 🔍 Enhanced search feedback with result counts and better error messages
 
 ## Health Insights
 
