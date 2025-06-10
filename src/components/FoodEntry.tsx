@@ -26,6 +26,7 @@ import { NutrientInfo } from '../types'
 import FoodSearch from './FoodSearch'
 import { units, getPortionSuggestions } from '../utils/unitConversions'
 import { foodCategories, categorizeFoodByName, getCategoryInfo } from '../utils/foodCategories'
+import { adjustNutritionForCooking, getCookingStateDescription } from '../utils/cookingAdjustments'
 
 interface FoodEntryProps {
   onAddFood: (food: FoodItem) => void;
@@ -38,6 +39,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('grams');
   const [category, setCategory] = useState('grains');
+  const [cookingState, setCookingState] = useState<'raw' | 'cooked' | 'boiled' | 'steamed' | 'fried' | 'baked' | 'grilled' | 'roasted'>('raw');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -45,6 +47,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
   const [suggestedUnit, setSuggestedUnit] = useState('');
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const [portionSuggestions, setPortionSuggestions] = useState<Array<{unit: string, amount: number, description: string}>>([]);
+  const [selectedDatabaseFood, setSelectedDatabaseFood] = useState<any>(null);
   
   // Glucose tracking states
   const [enableGlucoseTracking, setEnableGlucoseTracking] = useState(false);
@@ -108,19 +111,74 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     setLoading(true);
     
     try {
-      // Create basic nutrition data structure
+      // Create nutrition data structure
       const quantityNum = parseFloat(quantity);
-      const baseCalories = 100; // Default calories per 100g/100ml
-      const calories = (baseCalories * quantityNum) / 100;
+      let adjustedNutrition;
+      let nutrients: NutrientInfo[] = [];
       
-      const nutrients: NutrientInfo[] = [
-        { id: 'protein', name: 'Protein', amount: calories * 0.1 / 4, unit: 'g', category: 'macronutrient' },
-        { id: 'carbs', name: 'Carbohydrates', amount: calories * 0.5 / 4, unit: 'g', category: 'macronutrient' },
-        { id: 'fat', name: 'Fat', amount: calories * 0.3 / 9, unit: 'g', category: 'macronutrient' },
-        { id: 'fiber', name: 'Fiber', amount: calories * 0.05 / 4, unit: 'g', category: 'other' },
-        { id: 'sugar', name: 'Sugar', amount: calories * 0.2 / 4, unit: 'g', category: 'other' },
-        { id: 'sodium', name: 'Sodium', amount: calories * 0.01, unit: 'mg', category: 'mineral' }
-      ];
+      if (selectedDatabaseFood) {
+        // Use database food data
+        const dbFood = selectedDatabaseFood;
+        const scaleFactor = quantityNum / 100; // Scale from per-100g to actual amount
+        
+        const rawNutrition = {
+          calories: dbFood.calories_per_100g * scaleFactor,
+          protein: dbFood.protein_per_100g * scaleFactor,
+          carbs: dbFood.carbs_per_100g * scaleFactor,
+          fat: dbFood.fat_per_100g * scaleFactor,
+          fiber: (dbFood.fiber_per_100g || 0) * scaleFactor,
+          sugar: (dbFood.sugar_per_100g || 0) * scaleFactor,
+          sodium: (dbFood.sodium_per_100g || 0) * scaleFactor
+        };
+        
+        // Apply cooking state adjustments only if cooking state differs from database
+        if (cookingState === dbFood.preparation_state) {
+          adjustedNutrition = rawNutrition;
+        } else {
+          adjustedNutrition = adjustNutritionForCooking(rawNutrition, cookingState);
+        }
+        
+        // Create comprehensive nutrient array from database
+        nutrients = [
+          { id: 'protein', name: 'Protein', amount: adjustedNutrition.protein, unit: 'g', category: 'macronutrient' },
+          { id: 'carbs', name: 'Carbohydrates', amount: adjustedNutrition.carbs, unit: 'g', category: 'macronutrient' },
+          { id: 'fat', name: 'Fat', amount: adjustedNutrition.fat, unit: 'g', category: 'macronutrient' },
+          { id: 'fiber', name: 'Fiber', amount: adjustedNutrition.fiber, unit: 'g', category: 'other' },
+          { id: 'sugar', name: 'Sugar', amount: adjustedNutrition.sugar, unit: 'g', category: 'other' },
+          { id: 'sodium', name: 'Sodium', amount: adjustedNutrition.sodium, unit: 'mg', category: 'mineral' },
+          { id: 'cholesterol', name: 'Cholesterol', amount: (dbFood.cholesterol_per_100g || 0) * scaleFactor, unit: 'mg', category: 'other' },
+          { id: 'potassium', name: 'Potassium', amount: (dbFood.potassium_per_100g || 0) * scaleFactor, unit: 'mg', category: 'mineral' },
+          { id: 'iron', name: 'Iron', amount: (dbFood.iron_per_100g || 0) * scaleFactor, unit: 'mg', category: 'mineral' },
+          { id: 'calcium', name: 'Calcium', amount: (dbFood.calcium_per_100g || 0) * scaleFactor, unit: 'mg', category: 'mineral' },
+          { id: 'vitamin_c', name: 'Vitamin C', amount: (dbFood.vitamin_c_per_100g || 0) * scaleFactor, unit: 'mg', category: 'vitamin' },
+          { id: 'vitamin_d', name: 'Vitamin D', amount: (dbFood.vitamin_d_per_100g || 0) * scaleFactor, unit: 'IU', category: 'vitamin' }
+        ];
+      } else {
+        // Fall back to estimated nutrition values
+        const baseCalories = 100; // Default calories per 100g/100ml
+        const rawCalories = (baseCalories * quantityNum) / 100;
+        
+        const rawNutrition = {
+          calories: rawCalories,
+          protein: rawCalories * 0.1 / 4,
+          carbs: rawCalories * 0.5 / 4,
+          fat: rawCalories * 0.3 / 9,
+          fiber: rawCalories * 0.05 / 4,
+          sugar: rawCalories * 0.2 / 4,
+          sodium: rawCalories * 0.01
+        };
+        
+        adjustedNutrition = adjustNutritionForCooking(rawNutrition, cookingState);
+        
+        nutrients = [
+          { id: 'protein', name: 'Protein', amount: adjustedNutrition.protein, unit: 'g', category: 'macronutrient' },
+          { id: 'carbs', name: 'Carbohydrates', amount: adjustedNutrition.carbs, unit: 'g', category: 'macronutrient' },
+          { id: 'fat', name: 'Fat', amount: adjustedNutrition.fat, unit: 'g', category: 'macronutrient' },
+          { id: 'fiber', name: 'Fiber', amount: adjustedNutrition.fiber, unit: 'g', category: 'other' },
+          { id: 'sugar', name: 'Sugar', amount: adjustedNutrition.sugar, unit: 'g', category: 'other' },
+          { id: 'sodium', name: 'Sodium', amount: adjustedNutrition.sodium, unit: 'mg', category: 'mineral' }
+        ];
+      }
       
       // Build glucose data if tracking is enabled
       const glucoseData = enableGlucoseTracking ? {
@@ -138,7 +196,8 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         category,
         dateAdded: new Date(),
         glucoseData,
-        calories,
+        cookingState,
+        calories: adjustedNutrition.calories,
         nutrients
       };
 
@@ -150,6 +209,8 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       setQuantity('');
       setUnit('grams');
       setCategory('grains');
+      setCookingState('raw');
+      setSelectedDatabaseFood(null);
       setValidationErrors({});
       setSuggestedUnit('');
       setSuggestedCategory('');
@@ -174,6 +235,8 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     setQuantity('');
     setUnit('grams');
     setCategory('grains');
+    setCookingState('raw');
+    setSelectedDatabaseFood(null);
     setError('');
     setSuccess('');
     setValidationErrors({});
@@ -185,10 +248,20 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
   const handleFoodSelect = (food: any) => {
     setFoodName(food.name);
     
-    // Auto-categorize food
-    const autoCategory = categorizeFoodByName(food.name);
-    setCategory(autoCategory);
-    setSuggestedCategory(foodCategories[autoCategory]?.name || '');
+    // Store database food data if available
+    if (food.databaseFood) {
+      setSelectedDatabaseFood(food.databaseFood);
+      // Use database category and cooking state
+      setCategory(food.databaseFood.category.toLowerCase());
+      setCookingState(food.databaseFood.preparation_state as any);
+    } else {
+      setSelectedDatabaseFood(null);
+      // Auto-categorize food
+      const autoCategory = categorizeFoodByName(food.name);
+      setCategory(autoCategory);
+    }
+    
+    setSuggestedCategory(foodCategories[category]?.name || '');
     
     // Auto-suggest unit based on food type
     if (food.commonUnits && food.commonUnits.length > 0) {
@@ -207,6 +280,11 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
 
   const handleFoodNameChange = (value: string) => {
     setFoodName(value);
+    
+    // Clear selected database food when manually typing
+    if (selectedDatabaseFood && value !== selectedDatabaseFood.name) {
+      setSelectedDatabaseFood(null);
+    }
     
     // Auto-categorize as user types
     if (value.length > 2) {
@@ -324,7 +402,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
               </Box>
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={6} md={6}>
               <Box>
                 <TextField
                   fullWidth
@@ -370,6 +448,32 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
                     )}
                   </Box>
                 )}
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={6}>
+              <TextField
+                fullWidth
+                select
+                label="Cooking State"
+                value={cookingState}
+                onChange={(e) => setCookingState(e.target.value as any)}
+                helperText="Affects nutritional values"
+              >
+                <MenuItem value="raw">🥗 Raw</MenuItem>
+                <MenuItem value="cooked">🍳 Cooked (general)</MenuItem>
+                <MenuItem value="boiled">🫕 Boiled</MenuItem>
+                <MenuItem value="steamed">🥄 Steamed</MenuItem>
+                <MenuItem value="fried">🍳 Fried</MenuItem>
+                <MenuItem value="baked">🔥 Baked</MenuItem>
+                <MenuItem value="grilled">🔥 Grilled</MenuItem>
+                <MenuItem value="roasted">🔥 Roasted</MenuItem>
+              </TextField>
+              
+              <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {getCookingStateDescription(cookingState)}
+                </Typography>
               </Box>
             </Grid>
             

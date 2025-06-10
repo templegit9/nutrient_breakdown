@@ -24,6 +24,35 @@ export interface FoodItem {
   category: string;
   dateAdded: Date;
   glucoseData?: GlucoseReading; // optional glucose tracking
+  cookingState?: 'raw' | 'cooked' | 'boiled' | 'steamed' | 'fried' | 'baked' | 'grilled' | 'roasted';
+}
+
+// Database food item from the foods table
+export interface DatabaseFood {
+  id: string;
+  name: string;
+  brand?: string;
+  category: string;
+  preparation_state: string; // This maps to our cookingState
+  serving_size: number;
+  serving_unit: string;
+  calories_per_100g: number;
+  protein_per_100g: number;
+  carbs_per_100g: number;
+  fat_per_100g: number;
+  fiber_per_100g?: number;
+  sugar_per_100g?: number;
+  sodium_per_100g?: number;
+  cholesterol_per_100g?: number;
+  potassium_per_100g?: number;
+  iron_per_100g?: number;
+  calcium_per_100g?: number;
+  vitamin_c_per_100g?: number;
+  vitamin_d_per_100g?: number;
+  glycemic_index?: number;
+  glycemic_load?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Database-compatible food entry type
@@ -39,8 +68,17 @@ export interface FoodEntry {
   fiber?: number;
   sugar?: number;
   sodium?: number;
+  cholesterol?: number;
+  potassium?: number;
+  iron?: number;
+  calcium?: number;
+  vitamin_c?: number;
+  vitamin_d?: number;
+  glycemic_index?: number;
+  glycemic_load?: number;
   date: string;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  cookingState?: 'raw' | 'cooked' | 'boiled' | 'steamed' | 'fried' | 'baked' | 'grilled' | 'roasted';
 }
 
 // Blood glucose reading type

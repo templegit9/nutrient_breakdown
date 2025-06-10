@@ -21,10 +21,17 @@ export function useFoodData() {
       { id: '3', name: 'Fat', amount: entry.fat, unit: 'g', category: 'macronutrient' },
       { id: '4', name: 'Fiber', amount: entry.fiber || 0, unit: 'g', category: 'other' },
       { id: '5', name: 'Sugar', amount: entry.sugar || 0, unit: 'g', category: 'other' },
-      { id: '6', name: 'Sodium', amount: entry.sodium || 0, unit: 'mg', category: 'mineral' }
+      { id: '6', name: 'Sodium', amount: entry.sodium || 0, unit: 'mg', category: 'mineral' },
+      { id: '7', name: 'Cholesterol', amount: entry.cholesterol || 0, unit: 'mg', category: 'other' },
+      { id: '8', name: 'Potassium', amount: entry.potassium || 0, unit: 'mg', category: 'mineral' },
+      { id: '9', name: 'Iron', amount: entry.iron || 0, unit: 'mg', category: 'mineral' },
+      { id: '10', name: 'Calcium', amount: entry.calcium || 0, unit: 'mg', category: 'mineral' },
+      { id: '11', name: 'Vitamin C', amount: entry.vitamin_c || 0, unit: 'mg', category: 'vitamin' },
+      { id: '12', name: 'Vitamin D', amount: entry.vitamin_d || 0, unit: 'IU', category: 'vitamin' }
     ],
     category: entry.mealType || 'other',
-    dateAdded: new Date(entry.date)
+    dateAdded: new Date(entry.date),
+    cookingState: entry.cookingState
   })
 
   // Convert FoodItem to FoodEntry for database storage
@@ -35,6 +42,12 @@ export function useFoodData() {
     const fiberNutrient = item.nutrients.find(n => n.name === 'Fiber')
     const sugarNutrient = item.nutrients.find(n => n.name === 'Sugar')
     const sodiumNutrient = item.nutrients.find(n => n.name === 'Sodium')
+    const cholesterolNutrient = item.nutrients.find(n => n.name === 'Cholesterol')
+    const potassiumNutrient = item.nutrients.find(n => n.name === 'Potassium')
+    const ironNutrient = item.nutrients.find(n => n.name === 'Iron')
+    const calciumNutrient = item.nutrients.find(n => n.name === 'Calcium')
+    const vitaminCNutrient = item.nutrients.find(n => n.name === 'Vitamin C')
+    const vitaminDNutrient = item.nutrients.find(n => n.name === 'Vitamin D')
 
     return {
       name: item.name,
@@ -47,8 +60,15 @@ export function useFoodData() {
       fiber: fiberNutrient?.amount || 0,
       sugar: sugarNutrient?.amount || 0,
       sodium: sodiumNutrient?.amount || 0,
+      cholesterol: cholesterolNutrient?.amount || 0,
+      potassium: potassiumNutrient?.amount || 0,
+      iron: ironNutrient?.amount || 0,
+      calcium: calciumNutrient?.amount || 0,
+      vitamin_c: vitaminCNutrient?.amount || 0,
+      vitamin_d: vitaminDNutrient?.amount || 0,
       date: item.dateAdded.toISOString(),
-      mealType: (item.category as FoodEntry['mealType']) || 'snack'
+      mealType: (item.category as FoodEntry['mealType']) || 'snack',
+      cookingState: item.cookingState
     }
   }
 

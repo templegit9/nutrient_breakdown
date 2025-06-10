@@ -38,6 +38,7 @@ interface Food {
   sugar_per_100g?: number
   sodium_per_100g?: number
   source?: string
+  cooking_state?: string
 }
 
 export default function FoodDatabase() {
@@ -135,6 +136,20 @@ export default function FoodDatabase() {
     return colorMap[category] || colorMap['Other']
   }
 
+  const getCookingStateColor = (cookingState: string): string => {
+    const colorMap: { [key: string]: string } = {
+      'raw': '#4CAF50',      // Green
+      'cooked': '#FF9800',   // Orange
+      'boiled': '#2196F3',   // Blue
+      'steamed': '#9C27B0',  // Purple
+      'fried': '#F44336',    // Red
+      'baked': '#795548',    // Brown
+      'grilled': '#607D8B',  // Blue Grey
+      'roasted': '#FF5722'   // Deep Orange
+    };
+    return colorMap[cookingState] || colorMap['raw'];
+  }
+
   const formatNumber = (value: number | null | undefined): string => {
     if (value === null || value === undefined) return 'N/A'
     return value.toFixed(1)
@@ -204,17 +219,28 @@ export default function FoodDatabase() {
                   <Typography variant="h6" component="h3">
                     {food.name}
                   </Typography>
-                  {food.category && (
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {food.category && (
+                      <Chip
+                        label={food.category}
+                        size="small"
+                        sx={{
+                          backgroundColor: getCategoryColor(food.category),
+                          color: 'white',
+                          fontSize: '0.75rem'
+                        }}
+                      />
+                    )}
                     <Chip
-                      label={food.category}
+                      label={food.cooking_state ? food.cooking_state.charAt(0).toUpperCase() + food.cooking_state.slice(1) : 'Raw'}
                       size="small"
                       sx={{
-                        backgroundColor: getCategoryColor(food.category),
+                        backgroundColor: getCookingStateColor(food.cooking_state || 'raw'),
                         color: 'white',
                         fontSize: '0.75rem'
                       }}
                     />
-                  )}
+                  </Box>
                 </Box>
                 
                 {food.brand && (
@@ -268,6 +294,7 @@ export default function FoodDatabase() {
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Food Name</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Brand</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Category</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Cooking State</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Calories</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Protein (g)</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Carbs (g)</TableCell>
@@ -310,6 +337,17 @@ export default function FoodDatabase() {
                     ) : (
                       <Typography variant="body2" color="text.secondary">N/A</Typography>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={food.cooking_state ? food.cooking_state.charAt(0).toUpperCase() + food.cooking_state.slice(1) : 'Raw'}
+                      size="small"
+                      sx={{
+                        backgroundColor: getCookingStateColor(food.cooking_state || 'raw'),
+                        color: 'white',
+                        fontSize: '0.75rem'
+                      }}
+                    />
                   </TableCell>
                   <TableCell align="right">{formatNumber(food.calories_per_100g)}</TableCell>
                   <TableCell align="right">{formatNumber(food.protein_per_100g)}</TableCell>

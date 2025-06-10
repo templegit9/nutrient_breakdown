@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase'
-import type { FoodEntry, BloodGlucoseReading, UserProfile } from '../types'
+import type { FoodEntry, BloodGlucoseReading, UserProfile, DatabaseFood } from '../types'
 
 export class DatabaseService {
   // Food Entries
@@ -19,7 +19,16 @@ export class DatabaseService {
         fiber_g: entry.fiber || 0,
         sugar_g: entry.sugar || 0,
         sodium_mg: entry.sodium || 0,
+        cholesterol_mg: entry.cholesterol || 0,
+        potassium_mg: entry.potassium || 0,
+        iron_mg: entry.iron || 0,
+        calcium_mg: entry.calcium || 0,
+        vitamin_c_mg: entry.vitamin_c || 0,
+        vitamin_d_iu: entry.vitamin_d || 0,
+        glycemic_index: entry.glycemic_index || null,
+        glycemic_load: entry.glycemic_load || null,
         meal_type: entry.mealType,
+        cooking_state: entry.cookingState || 'raw',
         consumed_at: entry.date
       })
       .select()
@@ -63,7 +72,8 @@ export class DatabaseService {
       sugar: entry.sugar_g || 0,
       sodium: entry.sodium_mg || 0,
       date: entry.consumed_at,
-      mealType: entry.meal_type as FoodEntry['mealType']
+      mealType: entry.meal_type as FoodEntry['mealType'],
+      cookingState: entry.cooking_state as FoodEntry['cookingState'] || 'raw'
     }))
   }
 
@@ -82,6 +92,7 @@ export class DatabaseService {
         sugar_g: updates.sugar,
         sodium_mg: updates.sodium,
         meal_type: updates.mealType,
+        cooking_state: updates.cookingState,
         consumed_at: updates.date
       })
       .eq('id', id)
@@ -243,6 +254,9 @@ export class DatabaseService {
       name: food.name || 'Unknown Food',
       brand: food.brand,
       category: food.category,
+      preparation_state: food.preparation_state || 'raw',
+      serving_size: food.serving_size || 100,
+      serving_unit: food.serving_unit || 'g',
       calories_per_100g: food.calories_per_100g || 0,
       protein_per_100g: food.protein_per_100g || 0,
       carbs_per_100g: food.carbs_per_100g || 0,
@@ -250,7 +264,16 @@ export class DatabaseService {
       fiber_per_100g: food.fiber_per_100g || 0,
       sugar_per_100g: food.sugar_per_100g || 0,
       sodium_per_100g: food.sodium_per_100g || 0,
-      source: 'database'
+      cholesterol_per_100g: food.cholesterol_per_100g || 0,
+      potassium_per_100g: food.potassium_per_100g || 0,
+      iron_per_100g: food.iron_per_100g || 0,
+      calcium_per_100g: food.calcium_per_100g || 0,
+      vitamin_c_per_100g: food.vitamin_c_per_100g || 0,
+      vitamin_d_per_100g: food.vitamin_d_per_100g || 0,
+      glycemic_index: food.glycemic_index || null,
+      glycemic_load: food.glycemic_load || null,
+      created_at: food.created_at,
+      updated_at: food.updated_at
     }))
   }
 
@@ -303,11 +326,14 @@ export class DatabaseService {
       throw new Error(`Database error: ${error.message}`)
     }
 
-    const mappedFoods = (data || []).map(food => ({
+    const mappedFoods: DatabaseFood[] = (data || []).map(food => ({
       id: food.id,
       name: food.name || 'Unknown Food',
       brand: food.brand,
       category: food.category,
+      preparation_state: food.preparation_state || 'raw',
+      serving_size: food.serving_size || 100,
+      serving_unit: food.serving_unit || 'g',
       calories_per_100g: food.calories_per_100g || 0,
       protein_per_100g: food.protein_per_100g || 0,
       carbs_per_100g: food.carbs_per_100g || 0,
@@ -315,7 +341,16 @@ export class DatabaseService {
       fiber_per_100g: food.fiber_per_100g || 0,
       sugar_per_100g: food.sugar_per_100g || 0,
       sodium_per_100g: food.sodium_per_100g || 0,
-      source: 'database'
+      cholesterol_per_100g: food.cholesterol_per_100g || 0,
+      potassium_per_100g: food.potassium_per_100g || 0,
+      iron_per_100g: food.iron_per_100g || 0,
+      calcium_per_100g: food.calcium_per_100g || 0,
+      vitamin_c_per_100g: food.vitamin_c_per_100g || 0,
+      vitamin_d_per_100g: food.vitamin_d_per_100g || 0,
+      glycemic_index: food.glycemic_index || null,
+      glycemic_load: food.glycemic_load || null,
+      created_at: food.created_at,
+      updated_at: food.updated_at
     }))
 
     return {

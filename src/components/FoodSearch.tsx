@@ -17,12 +17,15 @@ import SearchIcon from '@mui/icons-material/Search'
 import FoodBankIcon from '@mui/icons-material/FoodBank'
 import { DatabaseService } from '../services/database'
 import { getUnitsForFood } from '../utils/unitConversions'
+import type { DatabaseFood } from '../types'
 
 interface FoodOption {
   name: string;
   category: string;
   calories: number;
   commonUnits: string[];
+  cookingState?: string;
+  databaseFood?: DatabaseFood; // Include full database food info
 }
 
 interface FoodSearchProps {
@@ -62,7 +65,9 @@ export default function FoodSearch({
         name: food.name,
         category: food.category || 'Other',
         calories: food.calories_per_100g || 0,
-        commonUnits: getUnitsForFood(food.name)
+        commonUnits: getUnitsForFood(food.name),
+        cookingState: food.preparation_state || 'raw',
+        databaseFood: food // Include full database food data
       }));
       
       setOptions(foodOptions);
@@ -180,7 +185,7 @@ export default function FoodSearch({
                   />
                 </Box>
               }
-              secondary={`${option.calories} cal/100g • Units: ${option.commonUnits.join(', ')}`}
+              secondary={`${option.calories} cal/100g • ${option.cookingState || 'Raw'} • Units: ${option.commonUnits.join(', ')}`}
             />
           </Box>
         )}
