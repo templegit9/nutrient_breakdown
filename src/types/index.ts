@@ -22,6 +22,8 @@ export interface GlucoseReading {
   notes?: string;       // additional notes about the reading
 }
 
+export type TimeOfDay = 'early-morning' | 'morning' | 'late-morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
+
 export interface FoodItem {
   id: string;
   name: string;
@@ -31,6 +33,7 @@ export interface FoodItem {
   nutrients: NutrientInfo[];
   category: string;
   dateAdded: Date;
+  timeOfDay?: TimeOfDay; // time of day when food was added
   glucoseData?: GlucoseReading; // optional glucose tracking
   cookingState?: CookingState;
 }
@@ -86,6 +89,7 @@ export interface FoodEntry {
   glycemic_load?: number;
   date: string;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  timeOfDay?: TimeOfDay;
   cookingState?: CookingState;
 }
 

@@ -37,6 +37,7 @@ import FilterListIcon from '@mui/icons-material/FilterList'
 import ClearIcon from '@mui/icons-material/Clear'
 import { FoodItem } from '../types'
 import { foodCategories } from '../utils/foodCategories'
+import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay'
 import { useState } from 'react'
 import EditFoodDialog from './EditFoodDialog'
 
@@ -294,6 +295,7 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
                 <TableCell align="right">Fat (g)</TableCell>
                 <TableCell align="center">Pre-Glucose</TableCell>
                 <TableCell align="center">Post-Glucose</TableCell>
+                <TableCell align="center">Time of Day</TableCell>
                 <TableCell>
                   <TableSortLabel
                     active={sortBy === 'date'}
@@ -370,6 +372,24 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
                         }
                         variant="outlined"
                       />
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">-</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    {food.timeOfDay ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Typography component="span">{getTimeOfDayIcon(food.timeOfDay)}</Typography>
+                        <Chip
+                          label={getTimeOfDayLabel(food.timeOfDay)}
+                          size="small"
+                          sx={{
+                            backgroundColor: getTimeOfDayColor(food.timeOfDay),
+                            color: 'white',
+                            fontSize: '0.75rem'
+                          }}
+                        />
+                      </Box>
                     ) : (
                       <Typography variant="body2" color="text.secondary">-</Typography>
                     )}

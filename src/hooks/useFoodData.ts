@@ -31,6 +31,7 @@ export function useFoodData() {
     ],
     category: entry.mealType || 'other',
     dateAdded: new Date(entry.date),
+    timeOfDay: entry.timeOfDay,
     cookingState: entry.cookingState
   })
 
@@ -68,6 +69,7 @@ export function useFoodData() {
       vitamin_d: vitaminDNutrient?.amount || 0,
       date: item.dateAdded.toISOString(),
       mealType: (item.category as FoodEntry['mealType']) || 'snack',
+      timeOfDay: item.timeOfDay,
       cookingState: item.cookingState
     }
   }

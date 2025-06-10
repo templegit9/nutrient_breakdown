@@ -27,9 +27,10 @@ import FoodSearch from './FoodSearch'
 import { units, getPortionSuggestions } from '../utils/unitConversions'
 import { foodCategories, categorizeFoodByName, getCategoryInfo } from '../utils/foodCategories'
 import { adjustNutritionForCooking, getCookingStateDescription } from '../utils/cookingAdjustments'
+import { getTimeOfDay } from '../utils/timeOfDay'
 
 interface FoodEntryProps {
-  onAddFood: (food: FoodItem) => void;
+  onAddFood: (food: FoodItem) => Promise<void>;
 }
 
 // Remove the old static categories - we'll use the dynamic system
@@ -188,20 +189,22 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         notes: glucoseNotes.trim() || undefined
       } : undefined;
 
+      const currentTime = new Date();
       const newFood: FoodItem = {
         id: Date.now().toString(),
         name: foodName.trim(),
         quantity: quantityNum,
         unit,
         category,
-        dateAdded: new Date(),
+        dateAdded: currentTime,
+        timeOfDay: getTimeOfDay(currentTime),
         glucoseData,
         cookingState,
         calories: adjustedNutrition.calories,
         nutrients
       };
 
-      onAddFood(newFood);
+      await onAddFood(newFood);
       setSuccess(`${foodName} added successfully!`);
       
       // Reset form
