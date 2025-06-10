@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import FoodBankIcon from '@mui/icons-material/FoodBank'
+import PersonIcon from '@mui/icons-material/Person'
 import { DatabaseService } from '../services/database'
 import { getUnitsForFood } from '../utils/unitConversions'
 import type { DatabaseFood } from '../types'
@@ -26,6 +27,7 @@ interface FoodOption {
   commonUnits: string[];
   cookingState?: string;
   databaseFood?: DatabaseFood; // Include full database food info
+  isCustom?: boolean; // Whether this is a user's custom food
 }
 
 interface FoodSearchProps {
@@ -58,8 +60,8 @@ export default function FoodSearch({
     setLoading(true);
     try {
       console.log('Searching for foods with term:', searchTerm);
-      const results = await DatabaseService.searchFoods(searchTerm);
-      console.log('Food search results:', results);
+      const results = await DatabaseService.searchAllFoods(searchTerm);
+      console.log('Combined food search results:', results);
       
       const foodOptions: FoodOption[] = results.map(food => ({
         name: food.name,
@@ -67,7 +69,8 @@ export default function FoodSearch({
         calories: food.calories_per_100g || 0,
         commonUnits: getUnitsForFood(food.name),
         cookingState: food.preparation_state || 'raw',
-        databaseFood: food // Include full database food data
+        databaseFood: food, // Include full database food data
+        isCustom: food.isCustom || false // Mark custom foods
       }));
       
       setOptions(foodOptions);
@@ -168,12 +171,20 @@ export default function FoodSearch({
         renderOption={(props, option) => (
           <Box component="li" {...props}>
             <ListItemIcon>
-              <FoodBankIcon />
+              {option.isCustom ? <PersonIcon color="primary" /> : <FoodBankIcon />}
             </ListItemIcon>
             <ListItemText
               primary={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="body1">{option.name}</Typography>
+                  {option.isCustom && (
+                    <Chip
+                      label="Custom"
+                      size="small"
+                      color="primary"
+                      sx={{ fontSize: '0.75rem' }}
+                    />
+                  )}
                   <Chip
                     label={option.category}
                     size="small"

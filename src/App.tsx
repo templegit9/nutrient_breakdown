@@ -5,6 +5,7 @@ import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
 import FoodDatabase from './components/FoodDatabase'
+import CustomFoodsManager from './components/CustomFoodsManager'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { useFoodData } from './hooks/useFoodData'
@@ -195,6 +196,7 @@ function AppContent() {
             <Tab label={isMobile ? "Health" : "Health Conditions"} />
             <Tab label="History" />
             <Tab label={isMobile ? "Database" : "Food Database"} />
+            <Tab label={isMobile ? "Custom" : "Custom Foods"} />
           </Tabs>
         </Box>
 
@@ -220,6 +222,10 @@ function AppContent() {
         
         <TabPanel value={tabValue} index={4}>
           <FoodDatabase />
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={5}>
+          <CustomFoodsManager />
         </TabPanel>
         </Box>
       </Container>

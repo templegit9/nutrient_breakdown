@@ -251,7 +251,81 @@ export class DatabaseService {
     }
   }
 
-  // Foods Database
+  // Foods Database  
+  static async searchAllFoods(query: string) {
+    const searchTerm = query.toLowerCase()
+    console.log('Searching all foods (database + custom) with query:', searchTerm)
+    
+    try {
+      // Search database foods and custom foods in parallel
+      const [databaseFoodsResult, customFoodsResult] = await Promise.all([
+        this.searchFoods(searchTerm),
+        this.searchCustomFoods(searchTerm)
+      ])
+      
+      // Combine and sort results
+      const combinedResults = [
+        ...databaseFoodsResult.map(food => ({ ...food, isCustom: false })),
+        ...customFoodsResult.map(food => ({ ...food, isCustom: true }))
+      ].sort((a, b) => a.name.localeCompare(b.name))
+      
+      console.log('Combined search results:', combinedResults.length, 'foods found')
+      return combinedResults
+    } catch (error) {
+      console.error('Error searching all foods:', error)
+      throw error
+    }
+  }
+
+  static async searchCustomFoods(query: string) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+    
+    const searchTerm = query.toLowerCase()
+    console.log('Searching custom foods with query:', searchTerm)
+    
+    const { data, error } = await supabase
+      .from('custom_foods')
+      .select('*')
+      .eq('user_id', user.data.user.id)
+      .or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
+      .order('name')
+      .limit(20)
+
+    if (error) {
+      console.error('Custom foods search error:', error)
+      throw new Error(`Custom foods search error: ${error.message}`)
+    }
+    
+    return (data || []).map(food => ({
+      id: food.id.toString(),
+      name: food.name || 'Unknown Food',
+      brand: food.brand,
+      category: food.category,
+      preparation_state: 'raw', // Custom foods default to raw
+      serving_size: food.serving_size || 100,
+      serving_unit: food.serving_unit || 'g',
+      // Convert per-serving to per-100g for consistency with database foods
+      calories_per_100g: (food.calories_per_serving || 0) * 100 / (food.serving_size || 100),
+      protein_per_100g: (food.protein_per_serving || 0) * 100 / (food.serving_size || 100),
+      carbs_per_100g: (food.carbs_per_serving || 0) * 100 / (food.serving_size || 100),
+      fat_per_100g: (food.fat_per_serving || 0) * 100 / (food.serving_size || 100),
+      fiber_per_100g: (food.fiber_per_serving || 0) * 100 / (food.serving_size || 100),
+      sugar_per_100g: (food.sugar_per_serving || 0) * 100 / (food.serving_size || 100),
+      sodium_per_100g: (food.sodium_per_serving || 0) * 100 / (food.serving_size || 100),
+      cholesterol_per_100g: 0, // Not tracked in custom foods
+      potassium_per_100g: 0, // Not tracked in custom foods
+      iron_per_100g: 0, // Not tracked in custom foods
+      calcium_per_100g: 0, // Not tracked in custom foods
+      vitamin_c_per_100g: 0, // Not tracked in custom foods
+      vitamin_d_per_100g: 0, // Not tracked in custom foods
+      glycemic_index: null,
+      glycemic_load: null,
+      created_at: food.created_at,
+      updated_at: food.updated_at
+    }))
+  }
+
   static async searchFoods(query: string) {
     const searchTerm = query.toLowerCase()
     console.log('Searching foods table with query:', searchTerm)
@@ -433,6 +507,48 @@ export class DatabaseService {
 
     if (error) throw error
     return data
+  }
+
+  static async updateCustomFood(id: string, updates: {
+    name?: string
+    brand?: string
+    category?: string
+    serving_size?: number
+    serving_unit?: string
+    calories_per_serving?: number
+    protein_per_serving?: number
+    carbs_per_serving?: number
+    fat_per_serving?: number
+    fiber_per_serving?: number
+    sugar_per_serving?: number
+    sodium_per_serving?: number
+  }) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { data, error } = await supabase
+      .from('custom_foods')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.data.user.id) // Ensure user can only update their own foods
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  static async deleteCustomFood(id: string) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { error } = await supabase
+      .from('custom_foods')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.data.user.id) // Ensure user can only delete their own foods
+
+    if (error) throw error
   }
 
   // Nutrition Goals
