@@ -69,6 +69,23 @@ SELECT * FROM foods WHERE name ILIKE '%apple%';
 - ILIKE queries with `%pattern%` may be slower but will work correctly
 - For production with large datasets, consider implementing proper full-text search later
 
+## Relation Already Exists Error
+
+### Error Message
+```
+ERROR: 42P07: relation "user_profiles" already exists
+```
+
+### Cause
+You're trying to run the schema on a database that already has tables from a previous schema run.
+
+### Solution
+Use the migration script instead:
+1. Run `migration-fix-auth.sql` instead of `schema-fixed-auth.sql`
+2. This safely drops all existing tables and recreates them with the correct foreign key references
+
+**Warning:** This will delete all existing data in the tables.
+
 ## Foreign Key Constraint Error
 
 ### Error Message

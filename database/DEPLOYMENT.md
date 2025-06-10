@@ -12,13 +12,25 @@
 7. Click "Create new project"
 
 ### 2. Configure Database Schema
+
+#### Option A: Fresh Installation
 1. Wait for project to be fully provisioned
 2. Go to SQL Editor in Supabase dashboard
 3. Copy and paste the contents of `schema-fixed-auth.sql` (references auth.users directly, no foreign key issues)
 4. Click "Run" to execute the schema
 5. Verify tables were created successfully
 
-**Important:** Use `schema-fixed-auth.sql` which references Supabase's built-in `auth.users` table directly instead of creating a separate users table. This fixes foreign key constraint errors.
+#### Option B: Migrate from Existing Schema (if you get "relation already exists" errors)
+1. Go to SQL Editor in Supabase dashboard
+2. Copy and paste the contents of `migration-fix-auth.sql` (safely drops and recreates all tables)
+3. Click "Run" to execute the migration
+4. Verify tables were recreated successfully
+
+**Important:** 
+- For fresh installs, use `schema-fixed-auth.sql`
+- If you already ran a previous schema and get "relation already exists" errors, use `migration-fix-auth.sql`
+- Both files reference Supabase's built-in `auth.users` table directly to fix foreign key constraint errors
+- **Warning:** `migration-fix-auth.sql` will delete all existing data in the tables
 
 ### 3. Seed Database with Foods
 1. In SQL Editor, copy and paste contents of `seed-foods-clean.sql` (this version has no indexes to avoid immutability errors)
