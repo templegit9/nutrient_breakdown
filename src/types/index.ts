@@ -1,3 +1,11 @@
+export type CookingState = 
+  | 'raw' | 'cooked' | 'boiled' | 'steamed' | 'fried' | 'baked' | 'grilled' | 'roasted'
+  | 'pan-fried' | 'dried' | 'smoked' | 'fermented' | 'fresh' | 'processed' 
+  | 'canned in oil' | 'fermented paste' | 'ground' | 'toasted' | 'aged' 
+  | 'pasteurized' | 'strained' | 'frozen' | 'juice' | 'brewed' | 'traditional'
+  | 'air-popped' | 'oil-popped' | 'raw seeds' | 'raw pulp' | 'dried powder' 
+  | 'fresh grilled' | '100% juice' | 'cooked porridge';
+
 export interface NutrientInfo {
   id: string;
   name: string;
@@ -24,33 +32,33 @@ export interface FoodItem {
   category: string;
   dateAdded: Date;
   glucoseData?: GlucoseReading; // optional glucose tracking
-  cookingState?: 'raw' | 'cooked' | 'boiled' | 'steamed' | 'fried' | 'baked' | 'grilled' | 'roasted';
+  cookingState?: CookingState;
 }
 
-// Database food item from the foods table
+// Database food item from the foods table  
 export interface DatabaseFood {
   id: string;
   name: string;
-  brand?: string;
+  brand?: string | null;
   category: string;
   preparation_state: string; // This maps to our cookingState
   serving_size: number;
-  serving_unit: string;
+  serving_unit: string; // 'g' or 'ml'
   calories_per_100g: number;
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
-  fiber_per_100g?: number;
-  sugar_per_100g?: number;
-  sodium_per_100g?: number;
-  cholesterol_per_100g?: number;
-  potassium_per_100g?: number;
-  iron_per_100g?: number;
-  calcium_per_100g?: number;
-  vitamin_c_per_100g?: number;
-  vitamin_d_per_100g?: number;
-  glycemic_index?: number;
-  glycemic_load?: number;
+  fiber_per_100g: number;
+  sugar_per_100g: number;
+  sodium_per_100g: number;
+  cholesterol_per_100g: number;
+  potassium_per_100g: number;
+  iron_per_100g: number;
+  calcium_per_100g: number;
+  vitamin_c_per_100g: number;
+  vitamin_d_per_100g: number;
+  glycemic_index: number;
+  glycemic_load: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -78,7 +86,7 @@ export interface FoodEntry {
   glycemic_load?: number;
   date: string;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  cookingState?: 'raw' | 'cooked' | 'boiled' | 'steamed' | 'fried' | 'baked' | 'grilled' | 'roasted';
+  cookingState?: CookingState;
 }
 
 // Blood glucose reading type

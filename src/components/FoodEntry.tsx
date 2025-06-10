@@ -465,9 +465,15 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
                 <MenuItem value="boiled">🫕 Boiled</MenuItem>
                 <MenuItem value="steamed">🥄 Steamed</MenuItem>
                 <MenuItem value="fried">🍳 Fried</MenuItem>
+                <MenuItem value="pan-fried">🍳 Pan-fried</MenuItem>
                 <MenuItem value="baked">🔥 Baked</MenuItem>
                 <MenuItem value="grilled">🔥 Grilled</MenuItem>
                 <MenuItem value="roasted">🔥 Roasted</MenuItem>
+                <MenuItem value="dried">🌞 Dried</MenuItem>
+                <MenuItem value="smoked">💨 Smoked</MenuItem>
+                <MenuItem value="fermented">🧄 Fermented</MenuItem>
+                <MenuItem value="fresh">🌿 Fresh</MenuItem>
+                <MenuItem value="processed">📦 Processed</MenuItem>
               </TextField>
               
               <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>

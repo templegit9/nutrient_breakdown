@@ -83,6 +83,60 @@ export const COOKING_ADJUSTMENTS: { [key: string]: CookingAdjustment } = {
     fiber: 0.85,
     vitamins: 0.8,
     minerals: 0.9
+  },
+  'pan-fried': {
+    calories: 1.25, // Similar to fried but slightly less oil
+    protein: 0.95,
+    carbs: 1.0,
+    fat: 1.4,
+    fiber: 0.85,
+    vitamins: 0.8,
+    minerals: 0.9
+  },
+  dried: {
+    calories: 3.5, // Concentrated by water removal
+    protein: 3.5,
+    carbs: 3.5,
+    fat: 3.5,
+    fiber: 3.0,
+    vitamins: 0.6, // Some vitamin loss
+    minerals: 3.5
+  },
+  smoked: {
+    calories: 1.1,
+    protein: 0.95,
+    carbs: 1.0,
+    fat: 0.9,
+    fiber: 0.9,
+    vitamins: 0.7,
+    minerals: 0.85
+  },
+  fermented: {
+    calories: 1.0,
+    protein: 1.0,
+    carbs: 0.9, // Some carbs converted
+    fat: 1.0,
+    fiber: 0.9,
+    vitamins: 1.1, // Some B vitamins increase
+    minerals: 1.0
+  },
+  fresh: {
+    calories: 1.0,
+    protein: 1.0,
+    carbs: 1.0,
+    fat: 1.0,
+    fiber: 1.0,
+    vitamins: 1.0,
+    minerals: 1.0
+  },
+  processed: {
+    calories: 1.1,
+    protein: 0.9,
+    carbs: 1.0,
+    fat: 1.1,
+    fiber: 0.8,
+    vitamins: 0.7,
+    minerals: 0.8
   }
 };
 
@@ -118,9 +172,15 @@ export function getCookingStateDescription(cookingState: string): string {
     boiled: 'Boiled in water',
     steamed: 'Steamed with water vapor',
     fried: 'Fried in oil/fat',
+    'pan-fried': 'Pan-fried with minimal oil',
     baked: 'Baked in oven',
     grilled: 'Grilled over heat',
-    roasted: 'Roasted in oven'
+    roasted: 'Roasted in oven',
+    dried: 'Dried or dehydrated',
+    smoked: 'Smoked for preservation',
+    fermented: 'Fermented or cultured',
+    fresh: 'Fresh, ready to eat',
+    processed: 'Commercially processed'
   };
   
   return descriptions[cookingState] || descriptions.raw;
@@ -133,9 +193,15 @@ export function getCookingStateIcon(cookingState: string): string {
     boiled: '🫕',
     steamed: '🥄',
     fried: '🍳',
+    'pan-fried': '🍳',
     baked: '🔥',
     grilled: '🔥',
-    roasted: '🔥'
+    roasted: '🔥',
+    dried: '🌞',
+    smoked: '💨',
+    fermented: '🧄',
+    fresh: '🌿',
+    processed: '📦'
   };
   
   return icons[cookingState] || icons.raw;

@@ -16,7 +16,9 @@
       "Bash(timeout 10s npm run dev)",
       "Bash(true)",
       "Bash(npx tsc:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

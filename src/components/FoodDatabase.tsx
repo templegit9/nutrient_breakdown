@@ -24,21 +24,10 @@ import {
 import SearchIcon from '@mui/icons-material/Search'
 import FoodBankIcon from '@mui/icons-material/FoodBank'
 import { DatabaseService } from '../services/database'
+import type { DatabaseFood } from '../types'
 
-interface Food {
-  id: string
-  name: string
-  brand?: string
-  category?: string
-  calories_per_100g?: number
-  protein_per_100g?: number
-  carbs_per_100g?: number
-  fat_per_100g?: number
-  fiber_per_100g?: number
-  sugar_per_100g?: number
-  sodium_per_100g?: number
-  source?: string
-  cooking_state?: string
+interface Food extends DatabaseFood {
+  source?: string // For backward compatibility
 }
 
 export default function FoodDatabase() {
@@ -232,10 +221,10 @@ export default function FoodDatabase() {
                       />
                     )}
                     <Chip
-                      label={food.cooking_state ? food.cooking_state.charAt(0).toUpperCase() + food.cooking_state.slice(1) : 'Raw'}
+                      label={food.preparation_state ? food.preparation_state.charAt(0).toUpperCase() + food.preparation_state.slice(1) : 'Raw'}
                       size="small"
                       sx={{
-                        backgroundColor: getCookingStateColor(food.cooking_state || 'raw'),
+                        backgroundColor: getCookingStateColor(food.preparation_state || 'raw'),
                         color: 'white',
                         fontSize: '0.75rem'
                       }}
@@ -250,6 +239,7 @@ export default function FoodDatabase() {
                 )}
                 
                 <Grid container spacing={1}>
+                  {/* Macronutrients */}
                   <Grid item xs={6}>
                     <Typography variant="body2">
                       <strong>Calories:</strong> {formatNumber(food.calories_per_100g)}
@@ -270,6 +260,8 @@ export default function FoodDatabase() {
                       <strong>Fat:</strong> {formatNumber(food.fat_per_100g)}g
                     </Typography>
                   </Grid>
+                  
+                  {/* Fiber and Sugar */}
                   <Grid item xs={6}>
                     <Typography variant="body2">
                       <strong>Fiber:</strong> {formatNumber(food.fiber_per_100g)}g
@@ -280,6 +272,49 @@ export default function FoodDatabase() {
                       <strong>Sugar:</strong> {formatNumber(food.sugar_per_100g)}g
                     </Typography>
                   </Grid>
+                  
+                  {/* Key Micronutrients */}
+                  {food.vitamin_c_per_100g > 0 && (
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="success.main">
+                        <strong>Vitamin C:</strong> {formatNumber(food.vitamin_c_per_100g)}mg
+                      </Typography>
+                    </Grid>
+                  )}
+                  {food.iron_per_100g > 0 && (
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="success.main">
+                        <strong>Iron:</strong> {formatNumber(food.iron_per_100g)}mg
+                      </Typography>
+                    </Grid>
+                  )}
+                  {food.calcium_per_100g > 0 && (
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="success.main">
+                        <strong>Calcium:</strong> {formatNumber(food.calcium_per_100g)}mg
+                      </Typography>
+                    </Grid>
+                  )}
+                  {food.potassium_per_100g > 0 && (
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="success.main">
+                        <strong>Potassium:</strong> {formatNumber(food.potassium_per_100g)}mg
+                      </Typography>
+                    </Grid>
+                  )}
+                  
+                  {/* Glycemic Data for Diabetes Support */}
+                  {food.glycemic_index > 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="info.main">
+                        <strong>Glycemic Index:</strong> {food.glycemic_index} 
+                        {food.glycemic_load > 0 && ` | Load: ${food.glycemic_load}`}
+                        <Typography component="span" variant="caption" sx={{ ml: 1 }}>
+                          ({food.glycemic_index <= 55 ? 'Low' : food.glycemic_index <= 70 ? 'Medium' : 'High'} GI)
+                        </Typography>
+                      </Typography>
+                    </Grid>
+                  )}
                 </Grid>
               </CardContent>
             </Card>
@@ -302,6 +337,10 @@ export default function FoodDatabase() {
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Fiber (g)</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Sugar (g)</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Sodium (mg)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Vit C (mg)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Iron (mg)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Calcium (mg)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">GI</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -340,10 +379,10 @@ export default function FoodDatabase() {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={food.cooking_state ? food.cooking_state.charAt(0).toUpperCase() + food.cooking_state.slice(1) : 'Raw'}
+                      label={food.preparation_state ? food.preparation_state.charAt(0).toUpperCase() + food.preparation_state.slice(1) : 'Raw'}
                       size="small"
                       sx={{
-                        backgroundColor: getCookingStateColor(food.cooking_state || 'raw'),
+                        backgroundColor: getCookingStateColor(food.preparation_state || 'raw'),
                         color: 'white',
                         fontSize: '0.75rem'
                       }}
@@ -356,6 +395,49 @@ export default function FoodDatabase() {
                   <TableCell align="right">{formatNumber(food.fiber_per_100g)}</TableCell>
                   <TableCell align="right">{formatNumber(food.sugar_per_100g)}</TableCell>
                   <TableCell align="right">{formatNumber(food.sodium_per_100g)}</TableCell>
+                  <TableCell align="right">
+                    <Typography 
+                      variant="body2" 
+                      color={food.vitamin_c_per_100g > 10 ? 'success.main' : 'text.primary'}
+                      fontWeight={food.vitamin_c_per_100g > 10 ? 'bold' : 'normal'}
+                    >
+                      {formatNumber(food.vitamin_c_per_100g)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography 
+                      variant="body2" 
+                      color={food.iron_per_100g > 2 ? 'success.main' : 'text.primary'}
+                      fontWeight={food.iron_per_100g > 2 ? 'bold' : 'normal'}
+                    >
+                      {formatNumber(food.iron_per_100g)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography 
+                      variant="body2" 
+                      color={food.calcium_per_100g > 100 ? 'success.main' : 'text.primary'}
+                      fontWeight={food.calcium_per_100g > 100 ? 'bold' : 'normal'}
+                    >
+                      {formatNumber(food.calcium_per_100g)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    {food.glycemic_index > 0 ? (
+                      <Typography 
+                        variant="body2" 
+                        color={
+                          food.glycemic_index <= 55 ? 'success.main' : 
+                          food.glycemic_index <= 70 ? 'warning.main' : 'error.main'
+                        }
+                        fontWeight="bold"
+                      >
+                        {food.glycemic_index}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">-</Typography>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
