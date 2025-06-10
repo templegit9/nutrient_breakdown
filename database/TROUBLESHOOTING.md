@@ -13,8 +13,10 @@ This error occurs when trying to create indexes that use functions (like `LOWER(
 ### Solutions
 
 #### 1. Use Clean Schema Files
-- **Schema:** Use `schema-fixed.sql` (no problematic indexes)
+- **Schema:** Use `schema-clean.sql` (absolutely NO function-based indexes)
 - **Seed Data:** Use `seed-foods-clean.sql` (no additional indexes)
+
+**Note:** `schema-clean.sql` removes ALL function calls from indexes including DATE(), LOWER(), etc.
 
 #### 2. Step-by-Step Fix
 1. **Drop problematic indexes** (if they exist):

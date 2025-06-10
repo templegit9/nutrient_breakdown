@@ -1,5 +1,5 @@
--- Supabase Database Schema for Nutrition Tracker (Fixed Version)
--- This schema supports comprehensive nutrition tracking with PCOS/diabetes management
+-- Supabase Database Schema for Nutrition Tracker (Ultra Clean Version)
+-- This schema has NO function-based indexes to avoid ALL immutability errors
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -129,14 +129,18 @@ CREATE TABLE custom_foods (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexes for better query performance
-CREATE INDEX idx_food_entries_user_id_date ON food_entries(user_id, DATE(consumed_at));
+-- Simple indexes without any functions
+CREATE INDEX idx_food_entries_user_id ON food_entries(user_id);
 CREATE INDEX idx_food_entries_consumed_at ON food_entries(consumed_at);
-CREATE INDEX idx_blood_glucose_user_id_date ON blood_glucose_readings(user_id, DATE(measured_at));
+CREATE INDEX idx_blood_glucose_user_id ON blood_glucose_readings(user_id);
+CREATE INDEX idx_blood_glucose_measured_at ON blood_glucose_readings(measured_at);
 CREATE INDEX idx_foods_name ON foods(name);
 CREATE INDEX idx_foods_category ON foods(category);
 CREATE INDEX idx_foods_brand ON foods(brand);
 CREATE INDEX idx_custom_foods_user_id ON custom_foods(user_id);
+CREATE INDEX idx_nutrition_goals_user_id ON nutrition_goals(user_id);
+CREATE INDEX idx_nutrition_goals_date ON nutrition_goals(goal_date);
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
 
 -- Row Level Security (RLS) policies
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
