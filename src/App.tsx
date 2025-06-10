@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Container, Typography, Box, Tab, Tabs, useTheme, useMediaQuery, AppBar, Toolbar, Button } from '@mui/material'
 import FoodEntry from './components/FoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
+import FoodDatabase from './components/FoodDatabase'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
-import { FoodItem } from './types'
 import { useFoodData } from './hooks/useFoodData'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 
@@ -194,6 +194,7 @@ function AppContent() {
             <Tab label="Dashboard" />
             <Tab label={isMobile ? "Health" : "Health Conditions"} />
             <Tab label="History" />
+            <Tab label={isMobile ? "Database" : "Food Database"} />
           </Tabs>
         </Box>
 
@@ -215,6 +216,10 @@ function AppContent() {
             onUpdateFood={updateFood}
             onDeleteFood={deleteFood}
           />
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={4}>
+          <FoodDatabase />
         </TabPanel>
         </Box>
       </Container>

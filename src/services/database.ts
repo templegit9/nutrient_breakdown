@@ -232,6 +232,18 @@ export class DatabaseService {
     return data
   }
 
+  static async getAllFoods(page: number = 0, limit: number = 50) {
+    const offset = page * limit
+    const { data, error, count } = await supabase
+      .from('foods')
+      .select('*', { count: 'exact' })
+      .order('name')
+      .range(offset, offset + limit - 1)
+
+    if (error) throw error
+    return { data: data || [], count: count || 0 }
+  }
+
   static async addCustomFood(food: {
     name: string
     brand?: string

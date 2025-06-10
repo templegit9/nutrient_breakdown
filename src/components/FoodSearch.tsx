@@ -47,6 +47,7 @@ export default function FoodSearch({
   // Fallback suggestions when database is not available or empty
   const getFallbackSuggestions = (searchTerm: string): FoodOption[] => {
     const commonFoods: FoodOption[] = [
+      // Common international foods
       { name: 'Apple', category: 'Fruits', calories: 52, commonUnits: ['medium', 'grams', 'cups'] },
       { name: 'Banana', category: 'Fruits', calories: 89, commonUnits: ['medium', 'grams', 'cups'] },
       { name: 'Orange', category: 'Fruits', calories: 47, commonUnits: ['medium', 'grams', 'cups'] },
@@ -57,11 +58,23 @@ export default function FoodSearch({
       { name: 'Bread (White)', category: 'Grains', calories: 265, commonUnits: ['slices', 'grams'] },
       { name: 'Bread (Whole Wheat)', category: 'Grains', calories: 247, commonUnits: ['slices', 'grams'] },
       { name: 'Milk', category: 'Dairy', calories: 50, commonUnits: ['cups', 'ml'] },
+      { name: 'Spinach', category: 'Vegetables', calories: 23, commonUnits: ['cups', 'grams'] },
+      
+      // Nigerian/African foods
       { name: 'Yam', category: 'Starches', calories: 118, commonUnits: ['medium', 'grams', 'cups'] },
       { name: 'Plantain', category: 'Starches', calories: 122, commonUnits: ['medium', 'grams', 'cups'] },
       { name: 'Cassava', category: 'Starches', calories: 160, commonUnits: ['cups', 'grams'] },
       { name: 'Ugu (Fluted Pumpkin)', category: 'Vegetables', calories: 35, commonUnits: ['cups', 'grams'] },
-      { name: 'Spinach', category: 'Vegetables', calories: 23, commonUnits: ['cups', 'grams'] },
+      { name: 'Waterleaf', category: 'Vegetables', calories: 22, commonUnits: ['cups', 'grams'] },
+      { name: 'Bitter Leaf', category: 'Vegetables', calories: 30, commonUnits: ['cups', 'grams'] },
+      { name: 'Cocoyam', category: 'Starches', calories: 112, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Sweet Potato', category: 'Starches', calories: 86, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Okra', category: 'Vegetables', calories: 33, commonUnits: ['cups', 'grams'] },
+      { name: 'Palm Oil', category: 'Fats', calories: 884, commonUnits: ['tablespoons', 'ml'] },
+      { name: 'Groundnut (Peanuts)', category: 'Nuts', calories: 567, commonUnits: ['grams', 'cups'] },
+      { name: 'Beans (Black-eyed Peas)', category: 'Legumes', calories: 336, commonUnits: ['cups', 'grams'] },
+      { name: 'Jollof Rice', category: 'Dishes', calories: 150, commonUnits: ['cups', 'grams'] },
+      { name: 'Fufu', category: 'Starches', calories: 267, commonUnits: ['cups', 'grams'] },
     ];
 
     return commonFoods.filter(food => 
@@ -86,13 +99,22 @@ export default function FoodSearch({
         commonUnits: getUnitsForFood(food.name)
       }));
       
-      // If no results from database, show fallback suggestions
-      if (foodOptions.length === 0) {
-        const fallbackOptions = getFallbackSuggestions(searchTerm);
-        setOptions(fallbackOptions);
-      } else {
-        setOptions(foodOptions);
-      }
+      // Always include fallback suggestions alongside database results
+      const fallbackOptions = getFallbackSuggestions(searchTerm);
+      
+      // Combine database results with fallback suggestions, removing duplicates
+      const combinedOptions = [...foodOptions];
+      
+      fallbackOptions.forEach(fallback => {
+        const isDuplicate = foodOptions.some(dbFood => 
+          dbFood.name.toLowerCase() === fallback.name.toLowerCase()
+        );
+        if (!isDuplicate) {
+          combinedOptions.push(fallback);
+        }
+      });
+      
+      setOptions(combinedOptions);
     } catch (error) {
       console.error('Error searching foods:', error);
       // Show fallback suggestions on error
