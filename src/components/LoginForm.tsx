@@ -1,4 +1,21 @@
 import React, { useState } from 'react'
+import {
+  Box,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Container,
+  CircularProgress,
+  Divider,
+  Link,
+  Stack,
+  useTheme,
+  alpha
+} from '@mui/material'
+import { FoodBank, Lock, Email } from '@mui/icons-material'
 import { useAuth } from './AuthProvider'
 
 export function LoginForm() {
@@ -7,6 +24,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const theme = useTheme()
   
   const { signIn, signUp } = useAuth()
 
@@ -29,81 +47,202 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {isSignUp ? 'Create your account' : 'Sign in to your account'}
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {isSignUp ? 'Start tracking your nutrition today' : 'Continue your nutrition journey'}
-          </p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Loading...' : (isSignUp ? 'Sign up' : 'Sign in')}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              className="text-green-600 hover:text-green-500 text-sm font-medium"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
-              {isSignUp 
-                ? 'Already have an account? Sign in' 
-                : "Don't have an account? Sign up"
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.1)} 0%, ${alpha(theme.palette.secondary.light, 0.1)} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 3,
+        px: 2
+      }}
+    >
+      <Container maxWidth="sm">
+        <Card
+          elevation={8}
+          sx={{
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <Box
+            sx={{
+              bgcolor: 'primary.main',
+              color: 'white',
+              py: 4,
+              textAlign: 'center',
+              position: 'relative',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                opacity: 0.9
               }
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <FoodBank sx={{ fontSize: 48, mb: 2 }} />
+              <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+                Nutrient Tracker
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                {isSignUp 
+                  ? 'Join thousands tracking their nutrition journey' 
+                  : 'Welcome back to your nutrition journey'
+                }
+              </Typography>
+            </Box>
+          </Box>
+
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ mb: 3, textAlign: 'center' }}>
+              <Typography variant="h5" component="h2" gutterBottom color="text.primary">
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {isSignUp 
+                  ? 'Start tracking your nutrition with personalized insights' 
+                  : 'Continue your nutrition tracking and achieve your health goals'
+                }
+              </Typography>
+            </Box>
+
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 3 }}
+                onClose={() => setError('')}
+              >
+                {error}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} />
+                  }}
+                  disabled={loading}
+                />
+
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: <Lock sx={{ mr: 1, color: 'action.active' }} />
+                  }}
+                  disabled={loading}
+                  helperText={
+                    isSignUp 
+                      ? 'Password should be at least 6 characters long'
+                      : ''
+                  }
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  disabled={loading || !email || !password}
+                  sx={{
+                    mt: 3,
+                    py: 1.5,
+                    fontWeight: 'bold',
+                    textTransform: 'none',
+                    fontSize: '1.1rem',
+                    borderRadius: 2,
+                    boxShadow: theme.shadows[4],
+                    '&:hover': {
+                      boxShadow: theme.shadows[8]
+                    }
+                  }}
+                >
+                  {loading ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={20} color="inherit" />
+                      {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                    </Box>
+                  ) : (
+                    isSignUp ? 'Create Account' : 'Sign In'
+                  )}
+                </Button>
+              </Stack>
+            </Box>
+
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                or
+              </Typography>
+            </Divider>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {isSignUp 
+                  ? 'Already have an account?' 
+                  : "Don't have an account?"
+                }
+              </Typography>
+              <Link
+                component="button"
+                type="button"
+                variant="body2"
+                onClick={() => {
+                  setIsSignUp(!isSignUp)
+                  setError('')
+                }}
+                sx={{
+                  fontWeight: 'medium',
+                  textDecorationColor: 'transparent',
+                  '&:hover': {
+                    textDecorationColor: 'currentColor'
+                  }
+                }}
+              >
+                {isSignUp ? 'Sign in instead' : 'Create account'}
+              </Link>
+            </Box>
+
+            {isSignUp && (
+              <Box sx={{ mt: 3 }}>
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  <Typography variant="body2">
+                    🇳🇬 <strong>Nigerian Foods Included!</strong> Track traditional foods like Ugu, Plantain, Yam, and 80+ other local foods with accurate nutritional data.
+                  </Typography>
+                </Alert>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Secure authentication powered by Supabase
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
   )
 }
