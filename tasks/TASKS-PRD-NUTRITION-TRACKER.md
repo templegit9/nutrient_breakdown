@@ -39,8 +39,53 @@
   - [x] 5.5 Implement responsive design for mobile optimization
   - [x] 5.6 Add data export functionality for nutritional reports (CSV/JSON)
 
-### Relevant Files
+## Phase 2: Production Deployment & Database Integration
 
+- [ ] 6.0 Deploy application to Netlify for production hosting
+  - [ ] 6.1 Configure Netlify deployment settings and build commands
+  - [ ] 6.2 Set up custom domain and SSL certificate
+  - [ ] 6.3 Configure environment variables and build optimization
+  - [ ] 6.4 Test production deployment and mobile responsiveness
+  - [ ] 6.5 Set up Netlify Forms for user feedback (optional)
+
+- [ ] 7.0 Integrate Supabase database for persistent data storage
+  - [ ] 7.1 Set up Supabase project and configure database schema
+  - [ ] 7.2 Create tables for users, food_items, nutrition_logs, and health_profiles
+  - [ ] 7.3 Implement Supabase authentication (email/password, social login)
+  - [ ] 7.4 Replace localStorage with Supabase database operations
+  - [ ] 7.5 Add user profile management and data privacy controls
+  - [ ] 7.6 Implement real-time data synchronization across devices
+
+- [ ] 8.0 Enhanced user experience and data management
+  - [ ] 8.1 Add user registration and login functionality
+  - [ ] 8.2 Implement user-specific food history and preferences
+  - [ ] 8.3 Create data backup and export features
+  - [ ] 8.4 Add sharing capabilities for nutritional reports
+  - [ ] 8.5 Implement progressive web app (PWA) features
+  - [ ] 8.6 Add offline functionality with service workers
+
+### Phase 2 Relevant Files
+
+**Deployment & Configuration:**
+- `netlify.toml` - Netlify deployment configuration
+- `.env.production` - Production environment variables
+- `vite.config.ts` - Updated build configuration for production
+
+**Database Integration:**
+- `src/lib/supabase.ts` - Supabase client configuration
+- `src/utils/database.ts` - Database operations and queries
+- `src/hooks/useAuth.ts` - Authentication hooks and user management
+- `src/contexts/AuthContext.tsx` - Authentication context provider
+- `database/schema.sql` - Supabase database schema definitions
+
+**Enhanced Components:**
+- `src/components/Auth/` - Login, signup, and profile management components
+- `src/components/UserProfile.tsx` - User settings and preferences
+- `src/utils/sync.ts` - Data synchronization utilities
+- `public/manifest.json` - PWA configuration
+- `src/sw.ts` - Service worker for offline functionality
+
+### Original Files (Phase 1)
 - `package.json` - Project dependencies including Material UI, React, TypeScript, recharts
 - `vite.config.ts` - Vite build configuration
 - `tsconfig.json` - TypeScript configuration

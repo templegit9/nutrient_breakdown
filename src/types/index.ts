@@ -7,6 +7,13 @@ export interface NutrientInfo {
   category: 'macronutrient' | 'vitamin' | 'mineral' | 'other';
 }
 
+export interface GlucoseReading {
+  preGlucose?: number;  // mg/dL before eating
+  postGlucose?: number; // mg/dL 2 hours after eating
+  testingTime?: Date;   // when glucose was measured
+  notes?: string;       // additional notes about the reading
+}
+
 export interface FoodItem {
   id: string;
   name: string;
@@ -16,6 +23,7 @@ export interface FoodItem {
   nutrients: NutrientInfo[];
   category: string;
   dateAdded: Date;
+  glucoseData?: GlucoseReading; // optional glucose tracking
 }
 
 export interface NutritionAnalysis {

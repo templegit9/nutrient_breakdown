@@ -13,7 +13,11 @@ import {
   useTheme,
   useMediaQuery,
   InputAdornment,
-  IconButton
+  IconButton,
+  FormControlLabel,
+  Switch,
+  Divider,
+  Chip
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
@@ -41,6 +45,12 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
   const [suggestedUnit, setSuggestedUnit] = useState('');
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const [portionSuggestions, setPortionSuggestions] = useState<Array<{unit: string, amount: number, description: string}>>([]);
+  
+  // Glucose tracking states
+  const [enableGlucoseTracking, setEnableGlucoseTracking] = useState(false);
+  const [preGlucose, setPreGlucose] = useState('');
+  const [postGlucose, setPostGlucose] = useState('');
+  const [glucoseNotes, setGlucoseNotes] = useState('');
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -65,6 +75,23 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       }
     }
     
+    // Validate glucose readings if tracking is enabled
+    if (enableGlucoseTracking) {
+      if (preGlucose) {
+        const preGlucoseNum = parseFloat(preGlucose);
+        if (isNaN(preGlucoseNum) || preGlucoseNum < 50 || preGlucoseNum > 500) {
+          errors.preGlucose = 'Pre-meal glucose must be between 50-500 mg/dL';
+        }
+      }
+      
+      if (postGlucose) {
+        const postGlucoseNum = parseFloat(postGlucose);
+        if (isNaN(postGlucoseNum) || postGlucoseNum < 50 || postGlucoseNum > 500) {
+          errors.postGlucose = 'Post-meal glucose must be between 50-500 mg/dL';
+        }
+      }
+    }
+    
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -83,6 +110,14 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     try {
       const nutritionData = await analyzeFoodNutrition(foodName.trim(), parseFloat(quantity), unit);
       
+      // Build glucose data if tracking is enabled
+      const glucoseData = enableGlucoseTracking ? {
+        preGlucose: preGlucose ? parseFloat(preGlucose) : undefined,
+        postGlucose: postGlucose ? parseFloat(postGlucose) : undefined,
+        testingTime: new Date(),
+        notes: glucoseNotes.trim() || undefined
+      } : undefined;
+
       const newFood: FoodItem = {
         id: Date.now().toString(),
         name: foodName.trim(),
@@ -90,6 +125,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         unit,
         category,
         dateAdded: new Date(),
+        glucoseData,
         ...nutritionData
       };
 
@@ -105,6 +141,11 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       setSuggestedUnit('');
       setSuggestedCategory('');
       setPortionSuggestions([]);
+      
+      // Reset glucose tracking fields
+      setPreGlucose('');
+      setPostGlucose('');
+      setGlucoseNotes('');
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
@@ -347,6 +388,95 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
                   </Box>
                 </Box>
               </Grid>
+            )}
+
+            {/* Glucose Tracking Section */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={enableGlucoseTracking}
+                    onChange={(e) => setEnableGlucoseTracking(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body1">Track Blood Glucose</Typography>
+                    <Chip 
+                      label="PCOS/Diabetes" 
+                      size="small" 
+                      color="secondary" 
+                      variant="outlined"
+                    />
+                  </Box>
+                }
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Optional: Track pre and post-meal glucose levels for better health insights
+              </Typography>
+            </Grid>
+
+            {enableGlucoseTracking && (
+              <>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Pre-meal Glucose"
+                    value={preGlucose}
+                    onChange={(e) => setPreGlucose(e.target.value)}
+                    error={!!validationErrors.preGlucose}
+                    helperText={validationErrors.preGlucose || "Blood sugar before eating (mg/dL)"}
+                    type="number"
+                    inputProps={{ min: 50, max: 500, step: 1 }}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">mg/dL</InputAdornment>
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Post-meal Glucose (2hrs)"
+                    value={postGlucose}
+                    onChange={(e) => setPostGlucose(e.target.value)}
+                    error={!!validationErrors.postGlucose}
+                    helperText={validationErrors.postGlucose || "Blood sugar 2 hours after eating (mg/dL)"}
+                    type="number"
+                    inputProps={{ min: 50, max: 500, step: 1 }}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">mg/dL</InputAdornment>
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Glucose Notes (Optional)"
+                    value={glucoseNotes}
+                    onChange={(e) => setGlucoseNotes(e.target.value)}
+                    placeholder="e.g., feeling tired, activity level, medication timing..."
+                    multiline
+                    rows={2}
+                    helperText="Add any relevant notes about your glucose readings"
+                  />
+                </Grid>
+
+                {(preGlucose || postGlucose) && (
+                  <Grid item xs={12}>
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Normal ranges:</strong> Pre-meal: 80-130 mg/dL | Post-meal: &lt;180 mg/dL
+                        <br />
+                        <em>Consult your healthcare provider for personalized target ranges.</em>
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                )}
+              </>
             )}
 
             <Grid item xs={12}>

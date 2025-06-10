@@ -292,6 +292,8 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
                 <TableCell align="right">Protein (g)</TableCell>
                 <TableCell align="right">Carbs (g)</TableCell>
                 <TableCell align="right">Fat (g)</TableCell>
+                <TableCell align="center">Pre-Glucose</TableCell>
+                <TableCell align="center">Post-Glucose</TableCell>
                 <TableCell>
                   <TableSortLabel
                     active={sortBy === 'date'}
@@ -341,6 +343,36 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
                   </TableCell>
                   <TableCell align="right">
                     {Math.round(food.nutrients.find(n => n.name === 'Fat')?.amount || 0)}
+                  </TableCell>
+                  <TableCell align="center">
+                    {food.glucoseData?.preGlucose ? (
+                      <Chip 
+                        label={`${food.glucoseData.preGlucose} mg/dL`}
+                        size="small"
+                        color={
+                          food.glucoseData.preGlucose <= 100 ? 'success' :
+                          food.glucoseData.preGlucose <= 125 ? 'warning' : 'error'
+                        }
+                        variant="outlined"
+                      />
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">-</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    {food.glucoseData?.postGlucose ? (
+                      <Chip 
+                        label={`${food.glucoseData.postGlucose} mg/dL`}
+                        size="small"
+                        color={
+                          food.glucoseData.postGlucose <= 140 ? 'success' :
+                          food.glucoseData.postGlucose <= 199 ? 'warning' : 'error'
+                        }
+                        variant="outlined"
+                      />
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">-</Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
