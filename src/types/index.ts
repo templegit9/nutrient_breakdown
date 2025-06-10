@@ -26,6 +26,50 @@ export interface FoodItem {
   glucoseData?: GlucoseReading; // optional glucose tracking
 }
 
+// Database-compatible food entry type
+export interface FoodEntry {
+  id: string;
+  name: string;
+  amount: number;
+  unit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  date: string;
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+}
+
+// Blood glucose reading type
+export interface BloodGlucoseReading {
+  id: string;
+  level: number;
+  type: 'fasting' | 'post_meal' | 'random' | 'bedtime';
+  notes: string;
+  timestamp: string;
+}
+
+// User profile type
+export interface UserProfile {
+  id: string;
+  name: string;
+  age: number;
+  gender: 'male' | 'female' | 'other';
+  height: number;
+  weight: number;
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+  healthConditions: string[];
+  dietaryRestrictions: string[];
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFat: number;
+  targetFiber: number;
+}
+
 export interface NutritionAnalysis {
   totalCalories: number;
   macronutrients: {

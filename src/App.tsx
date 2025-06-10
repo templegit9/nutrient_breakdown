@@ -7,7 +7,7 @@ import HealthConditionDashboard from './components/HealthConditionDashboard'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { FoodItem } from './types'
-import { storageManager } from './utils/localStorage'
+import { useFoodData } from './hooks/useFoodData'
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -36,62 +36,11 @@ function TabPanel(props: TabPanelProps) {
 }
 
 function AppContent() {
-  const [foods, setFoods] = useState<FoodItem[]>([]);
   const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOut } = useAuth();
-
-  // Load food history from localStorage on component mount
-  useEffect(() => {
-    try {
-      const storedFoods = storageManager.getFoodHistory();
-      setFoods(storedFoods);
-    } catch (error) {
-      console.error('Error loading food history:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleAddFood = (food: FoodItem) => {
-    // Add to state
-    setFoods(prev => [...prev, food]);
-    
-    // Persist to localStorage
-    try {
-      storageManager.addFoodItem(food);
-    } catch (error) {
-      console.error('Error saving food to localStorage:', error);
-    }
-  };
-
-  const handleUpdateFood = (id: string, updates: Partial<FoodItem>) => {
-    // Update state
-    setFoods(prev => prev.map(food => 
-      food.id === id ? { ...food, ...updates } : food
-    ));
-    
-    // Persist to localStorage
-    try {
-      storageManager.updateFoodItem(id, updates);
-    } catch (error) {
-      console.error('Error updating food in localStorage:', error);
-    }
-  };
-
-  const handleDeleteFood = (id: string) => {
-    // Update state
-    setFoods(prev => prev.filter(food => food.id !== id));
-    
-    // Remove from localStorage
-    try {
-      storageManager.deleteFoodItem(id);
-    } catch (error) {
-      console.error('Error deleting food from localStorage:', error);
-    }
-  };
+  const { foods, loading, addFood, updateFood, deleteFood } = useFoodData();
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -193,7 +142,7 @@ function AppContent() {
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <FoodEntry onAddFood={handleAddFood} />
+          <FoodEntry onAddFood={addFood} />
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>
@@ -207,8 +156,8 @@ function AppContent() {
         <TabPanel value={tabValue} index={3}>
           <FoodHistory 
             foods={foods} 
-            onUpdateFood={handleUpdateFood}
-            onDeleteFood={handleDeleteFood}
+            onUpdateFood={updateFood}
+            onDeleteFood={deleteFood}
           />
         </TabPanel>
         </Box>
