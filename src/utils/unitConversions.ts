@@ -187,14 +187,23 @@ export function convertToBaseUnit(
     }
   }
 
-  // Use standard conversions
+  // Use standard conversions with reasonable fallbacks for count units
   switch (unit.category) {
     case 'weight':
       return { grams: amount * unit.conversionFactor };
     case 'volume':
       return { milliliters: amount * unit.conversionFactor };
     case 'count':
-      return { pieces: amount * unit.conversionFactor };
+      // For count units without specific food conversions, use reasonable defaults
+      if (fromUnit === 'pieces') {
+        // Default to 100g per piece for unknown foods (reasonable for medium-sized items)
+        return { grams: amount * 100 };
+      } else if (fromUnit === 'slices') {
+        // Default to 25g per slice for unknown foods
+        return { grams: amount * 25 };
+      } else {
+        return { grams: amount * unit.conversionFactor };
+      }
     default:
       return { grams: amount };
   }

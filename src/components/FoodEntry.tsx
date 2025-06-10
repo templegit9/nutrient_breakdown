@@ -123,11 +123,26 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         
         // Convert units to grams for proper nutrition calculation
         const convertedAmount = safeConvertToBaseUnit(quantityNum, unit, selectedDatabaseFood.name.toLowerCase());
-        const gramsAmount = convertedAmount.grams || quantityNum; // fallback to quantityNum if no conversion
         
-        // Warn user if unit conversion failed
+        // Use converted amount or apply reasonable fallback based on unit type
+        let gramsAmount = convertedAmount.grams;
+        
         if (!convertedAmount.isValid) {
           console.warn(`Unit conversion failed for ${unit}. Using fallback calculation which may be inaccurate.`);
+          // Apply reasonable fallbacks based on unit type instead of raw quantityNum
+          if (unit === 'pieces') {
+            gramsAmount = quantityNum * 100; // Default: 100g per piece
+          } else if (unit === 'slices') {
+            gramsAmount = quantityNum * 25; // Default: 25g per slice  
+          } else if (unit === 'cups') {
+            gramsAmount = quantityNum * 240; // Default: 240g per cup
+          } else if (unit === 'tablespoons' || unit === 'tbsp') {
+            gramsAmount = quantityNum * 15; // Default: 15g per tablespoon
+          } else if (unit === 'teaspoons' || unit === 'tsp') {
+            gramsAmount = quantityNum * 5; // Default: 5g per teaspoon
+          } else {
+            gramsAmount = quantityNum; // Last resort for weight units
+          }
         }
         
         const scaleFactor = gramsAmount / 100; // Scale from per-100g to actual amount
