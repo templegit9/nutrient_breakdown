@@ -60,9 +60,3 @@ INSERT INTO foods (name, brand, category, serving_size, serving_unit, calories_p
 ('Cheerios', 'General Mills', 'Cereals', 28, 'g', 375, 11, 74, 3.8, 10, 1.2, 590),
 ('Nature Valley Granola Bar', 'Nature Valley', 'Snacks', 42, 'g', 471, 10, 64, 18, 4, 29, 160),
 ('Clif Bar Chocolate Chip', 'Clif Bar', 'Energy Bars', 68, 'g', 412, 9, 67, 7, 5, 24, 180);
-
--- Create indexes for better search performance
--- Using simple column indexes to avoid any function immutability issues
-CREATE INDEX IF NOT EXISTS idx_foods_name_text ON foods (name);
-CREATE INDEX IF NOT EXISTS idx_foods_brand_text ON foods (brand);
-CREATE INDEX IF NOT EXISTS idx_foods_category_text ON foods (category);

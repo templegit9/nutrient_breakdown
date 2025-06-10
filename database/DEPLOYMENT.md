@@ -21,9 +21,11 @@
 **Note:** If you encounter the error "functions in index expression must be marked IMMUTABLE", use `schema-fixed.sql` which removes the problematic full-text search index.
 
 ### 3. Seed Database with Foods
-1. In SQL Editor, copy and paste contents of `seed-foods.sql`
+1. In SQL Editor, copy and paste contents of `seed-foods-clean.sql` (this version has no indexes to avoid immutability errors)
 2. Click "Run" to populate the foods table
 3. Verify data was inserted by checking the Table Editor
+
+**Note:** Use `seed-foods-clean.sql` instead of `seed-foods.sql` to avoid any PostgreSQL function immutability issues.
 
 ### 4. Configure Row Level Security
 The schema includes RLS policies, but verify they're enabled:
