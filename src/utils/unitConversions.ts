@@ -173,9 +173,13 @@ export function convertToBaseUnit(
   // Check for food-specific conversions first
   if (foodName) {
     const normalizedFood = foodName.toLowerCase();
-    const foodConversions = Object.keys(foodSpecificConversions).find(food => 
-      normalizedFood.includes(food)
-    );
+    // Sort food keys by length (longest first) to prefer more specific matches
+    const sortedFoodKeys = Object.keys(foodSpecificConversions).sort((a, b) => b.length - a.length);
+    const foodConversions = sortedFoodKeys.find(food => {
+      // Use word boundary regex to ensure we match whole words only
+      const regex = new RegExp('\\b' + food.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+      return regex.test(normalizedFood);
+    });
     
     if (foodConversions && foodSpecificConversions[foodConversions][fromUnit]) {
       const conversionFactor = foodSpecificConversions[foodConversions][fromUnit];
@@ -220,9 +224,13 @@ export function getUnitsForFood(foodName: string): string[] {
   const normalizedFood = foodName.toLowerCase();
   
   // Get food-specific units
-  const foodSpecificUnits = Object.keys(foodSpecificConversions).find(food => 
-    normalizedFood.includes(food)
-  );
+  // Sort food keys by length (longest first) to prefer more specific matches
+  const sortedFoodKeys = Object.keys(foodSpecificConversions).sort((a, b) => b.length - a.length);
+  const foodSpecificUnits = sortedFoodKeys.find(food => {
+    // Use word boundary regex to ensure we match whole words only
+    const regex = new RegExp('\\b' + food.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+    return regex.test(normalizedFood);
+  });
   
   let recommendedUnits: string[] = [];
   
@@ -233,28 +241,34 @@ export function getUnitsForFood(foodName: string): string[] {
   // Add common units based on food type
   const commonUnits = ['grams', 'ounces'];
   
-  if (normalizedFood.includes('liquid') || normalizedFood.includes('milk') || 
-      normalizedFood.includes('juice') || normalizedFood.includes('water')) {
+  // Helper function to check for word boundary matches
+  const containsWord = (text: string, word: string): boolean => {
+    const regex = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+    return regex.test(text);
+  };
+  
+  if (containsWord(normalizedFood, 'liquid') || containsWord(normalizedFood, 'milk') || 
+      containsWord(normalizedFood, 'juice') || containsWord(normalizedFood, 'water')) {
     commonUnits.push('cups', 'milliliters', 'fluidOunces');
   }
   
-  if (normalizedFood.includes('fruit') || normalizedFood.includes('apple') || 
-      normalizedFood.includes('banana') || normalizedFood.includes('egg')) {
+  if (containsWord(normalizedFood, 'fruit') || containsWord(normalizedFood, 'apple') || 
+      containsWord(normalizedFood, 'banana') || containsWord(normalizedFood, 'egg')) {
     commonUnits.push('pieces');
   }
   
-  if (normalizedFood.includes('bread') || normalizedFood.includes('cheese') || 
-      normalizedFood.includes('meat')) {
+  if (containsWord(normalizedFood, 'bread') || containsWord(normalizedFood, 'cheese') || 
+      containsWord(normalizedFood, 'meat')) {
     commonUnits.push('slices');
   }
   
-  if (normalizedFood.includes('rice') || normalizedFood.includes('pasta') || 
-      normalizedFood.includes('cereal')) {
+  if (containsWord(normalizedFood, 'rice') || containsWord(normalizedFood, 'pasta') || 
+      containsWord(normalizedFood, 'cereal')) {
     commonUnits.push('cups');
   }
   
-  if (normalizedFood.includes('oil') || normalizedFood.includes('sauce') || 
-      normalizedFood.includes('dressing')) {
+  if (containsWord(normalizedFood, 'oil') || containsWord(normalizedFood, 'sauce') || 
+      containsWord(normalizedFood, 'dressing')) {
     commonUnits.push('tablespoons', 'teaspoons');
   }
   
@@ -278,31 +292,37 @@ export function getPortionSuggestions(foodName: string): Array<{unit: string, am
   
   const suggestions: Array<{unit: string, amount: number, description: string}> = [];
   
+  // Helper function to check for word boundary matches
+  const containsWord = (text: string, word: string): boolean => {
+    const regex = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+    return regex.test(text);
+  };
+  
   // Common portion suggestions based on food type
-  if (normalizedFood.includes('apple')) {
+  if (containsWord(normalizedFood, 'apple')) {
     suggestions.push(
       { unit: 'pieces', amount: 1, description: 'Medium apple' },
       { unit: 'slices', amount: 8, description: 'Sliced apple' },
       { unit: 'grams', amount: 182, description: 'Medium apple' }
     );
-  } else if (normalizedFood.includes('banana')) {
+  } else if (containsWord(normalizedFood, 'banana')) {
     suggestions.push(
       { unit: 'pieces', amount: 1, description: 'Medium banana' },
       { unit: 'grams', amount: 118, description: 'Medium banana' }
     );
-  } else if (normalizedFood.includes('bread')) {
+  } else if (containsWord(normalizedFood, 'bread')) {
     suggestions.push(
       { unit: 'slices', amount: 1, description: 'Single slice' },
       { unit: 'slices', amount: 2, description: 'Sandwich serving' },
       { unit: 'grams', amount: 28, description: 'Single slice' }
     );
-  } else if (normalizedFood.includes('rice')) {
+  } else if (containsWord(normalizedFood, 'rice')) {
     suggestions.push(
       { unit: 'cups', amount: 0.5, description: 'Side portion' },
       { unit: 'cups', amount: 1, description: 'Main portion' },
       { unit: 'grams', amount: 185, description: '1 cup cooked' }
     );
-  } else if (normalizedFood.includes('chicken')) {
+  } else if (containsWord(normalizedFood, 'chicken')) {
     suggestions.push(
       { unit: 'ounces', amount: 3, description: 'Small serving' },
       { unit: 'ounces', amount: 6, description: 'Large serving' },

@@ -92,7 +92,8 @@ export class DatabaseService {
       sodium: entry.sodium_mg || 0,
       date: entry.consumed_at,
       mealType: entry.meal_type as FoodEntry['mealType'],
-      cookingState: entry.cooking_state as FoodEntry['cookingState'] || 'raw'
+      cookingState: entry.cooking_state as FoodEntry['cookingState'] || 'raw',
+      timeOfDay: entry.time_of_day as FoodEntry['timeOfDay'] || null
     }))
   }
 
@@ -112,6 +113,7 @@ export class DatabaseService {
         sodium_mg: updates.sodium,
         meal_type: updates.mealType,
         cooking_state: updates.cookingState,
+        time_of_day: updates.timeOfDay,
         consumed_at: updates.date
       })
       .eq('id', id)
