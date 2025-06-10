@@ -13,24 +13,34 @@
 
 ### 2. Configure Database Schema
 
-#### Option A: Fresh Installation
+Choose the appropriate option based on your situation:
+
+#### Option A: Fresh/New Supabase Project
+**Use this if:** You just created a new Supabase project or have no existing tables
 1. Wait for project to be fully provisioned
 2. Go to SQL Editor in Supabase dashboard
-3. Copy and paste the contents of `schema-fixed-auth.sql` (references auth.users directly, no foreign key issues)
+3. Copy and paste the contents of `clean-install.sql`
 4. Click "Run" to execute the schema
 5. Verify tables were created successfully
 
-#### Option B: Migrate from Existing Schema (if you get "relation already exists" errors)
+#### Option B: Have Existing Tables with Issues
+**Use this if:** You get "relation already exists" or foreign key constraint errors
 1. Go to SQL Editor in Supabase dashboard
-2. Copy and paste the contents of `migration-fix-auth.sql` (safely drops and recreates all tables)
+2. Copy and paste the contents of `migration-safe.sql` (handles all error cases)
 3. Click "Run" to execute the migration
 4. Verify tables were recreated successfully
 
+#### Option C: Manual Reset (Alternative)
+**Use this if:** You want to start completely fresh
+1. Go to Database → Tables in Supabase dashboard
+2. Manually delete all existing tables (food_entries, user_profiles, foods, etc.)
+3. Then use Option A (`clean-install.sql`)
+
 **Important:** 
-- For fresh installs, use `schema-fixed-auth.sql`
-- If you already ran a previous schema and get "relation already exists" errors, use `migration-fix-auth.sql`
-- Both files reference Supabase's built-in `auth.users` table directly to fix foreign key constraint errors
-- **Warning:** `migration-fix-auth.sql` will delete all existing data in the tables
+- `clean-install.sql` - For fresh installations, cleanest approach
+- `migration-safe.sql` - Handles all migration scenarios safely
+- Both reference Supabase's `auth.users` table directly (no foreign key issues)
+- **Warning:** Migration options will delete existing data
 
 ### 3. Seed Database with Foods
 1. In SQL Editor, copy and paste contents of `seed-foods-clean.sql` (this version has no indexes to avoid immutability errors)

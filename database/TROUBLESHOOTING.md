@@ -80,11 +80,12 @@ ERROR: 42P07: relation "user_profiles" already exists
 You're trying to run the schema on a database that already has tables from a previous schema run.
 
 ### Solution
-Use the migration script instead:
-1. Run `migration-fix-auth.sql` instead of `schema-fixed-auth.sql`
-2. This safely drops all existing tables and recreates them with the correct foreign key references
+Use the safe migration script:
+1. Run `migration-safe.sql` instead of the other schema files
+2. This safely handles missing tables and recreates everything correctly
+3. If that doesn't work, manually delete all tables and use `clean-install.sql`
 
-**Warning:** This will delete all existing data in the tables.
+**Warning:** Migration scripts will delete all existing data in the tables.
 
 ## Foreign Key Constraint Error
 
