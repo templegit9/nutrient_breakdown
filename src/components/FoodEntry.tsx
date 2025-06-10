@@ -24,7 +24,7 @@ import ClearIcon from '@mui/icons-material/Clear'
 import { FoodItem } from '../types'
 import { NutrientInfo } from '../types'
 import FoodSearch from './FoodSearch'
-import { units, getPortionSuggestions } from '../utils/unitConversions'
+import { units, getPortionSuggestions, safeConvertToBaseUnit } from '../utils/unitConversions'
 import { foodCategories, categorizeFoodByName, getCategoryInfo } from '../utils/foodCategories'
 import { adjustNutritionForCooking, getCookingStateDescription } from '../utils/cookingAdjustments'
 import { getTimeOfDay } from '../utils/timeOfDay'
@@ -120,7 +120,17 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       if (selectedDatabaseFood) {
         // Use database food data
         const dbFood = selectedDatabaseFood;
-        const scaleFactor = quantityNum / 100; // Scale from per-100g to actual amount
+        
+        // Convert units to grams for proper nutrition calculation
+        const convertedAmount = safeConvertToBaseUnit(quantityNum, unit, selectedDatabaseFood.name.toLowerCase());
+        const gramsAmount = convertedAmount.grams || quantityNum; // fallback to quantityNum if no conversion
+        
+        // Warn user if unit conversion failed
+        if (!convertedAmount.isValid) {
+          console.warn(`Unit conversion failed for ${unit}. Using fallback calculation which may be inaccurate.`);
+        }
+        
+        const scaleFactor = gramsAmount / 100; // Scale from per-100g to actual amount
         
         const rawNutrition = {
           calories: dbFood.calories_per_100g * scaleFactor,
@@ -129,7 +139,16 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
           fat: dbFood.fat_per_100g * scaleFactor,
           fiber: (dbFood.fiber_per_100g || 0) * scaleFactor,
           sugar: (dbFood.sugar_per_100g || 0) * scaleFactor,
-          sodium: (dbFood.sodium_per_100g || 0) * scaleFactor
+          sodium: (dbFood.sodium_per_100g || 0) * scaleFactor,
+          // Available micronutrients from database
+          vitamin_c: (dbFood.vitamin_c_per_100g || 0) * scaleFactor,
+          vitamin_d: (dbFood.vitamin_d_per_100g || 0) * scaleFactor,
+          potassium: (dbFood.potassium_per_100g || 0) * scaleFactor,
+          iron: (dbFood.iron_per_100g || 0) * scaleFactor,
+          calcium: (dbFood.calcium_per_100g || 0) * scaleFactor,
+          cholesterol: (dbFood.cholesterol_per_100g || 0) * scaleFactor,
+          // Note: Other vitamins (thiamin, riboflavin, etc.) are not available in current database schema
+          // They will default to 0 in cooking adjustments function
         };
         
         // Apply cooking state adjustments only if cooking state differs from database
@@ -166,7 +185,15 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
           fat: rawCalories * 0.3 / 9,
           fiber: rawCalories * 0.05 / 4,
           sugar: rawCalories * 0.2 / 4,
-          sodium: rawCalories * 0.01
+          sodium: rawCalories * 0.01,
+          // Estimated micronutrients for fallback calculation
+          vitamin_c: rawCalories * 0.0001, // Rough estimate
+          vitamin_d: rawCalories * 0.00001, // Rough estimate
+          potassium: rawCalories * 0.002, // Rough estimate
+          iron: rawCalories * 0.0001, // Rough estimate
+          calcium: rawCalories * 0.001, // Rough estimate
+          cholesterol: rawCalories * 0.0005, // Rough estimate
+          // Other vitamins not in database will default to 0
         };
         
         adjustedNutrition = adjustNutritionForCooking(rawNutrition, cookingState);

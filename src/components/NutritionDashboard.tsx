@@ -43,6 +43,7 @@ import {
 import { FoodItem, NutritionAnalysis } from '../types'
 import { calculateTotalNutrition } from '../utils/nutritionCalculator'
 import DetailedNutritionInsights from './DetailedNutritionInsights'
+import { roundToInteger, calculatePercentage, formatNutritionValue, roundToOneDecimal, roundToPercentage } from '../utils/roundingUtils'
 import { useState } from 'react'
 
 interface NutritionDashboardProps {
@@ -94,10 +95,10 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
       Name: food.name,
       Quantity: food.quantity,
       Unit: food.unit,
-      Calories: Math.round(food.calories),
-      Protein: Math.round(food.nutrients.find(n => n.id === 'protein')?.amount || 0),
-      Carbs: Math.round(food.nutrients.find(n => n.id === 'carbs')?.amount || 0),
-      Fat: Math.round(food.nutrients.find(n => n.id === 'fat')?.amount || 0),
+      Calories: formatNutritionValue(food.calories, 'calorie'),
+      Protein: formatNutritionValue(food.nutrients.find(n => n.id === 'protein')?.amount || 0, 'macro'),
+      Carbs: formatNutritionValue(food.nutrients.find(n => n.id === 'carbs')?.amount || 0, 'macro'),
+      Fat: formatNutritionValue(food.nutrients.find(n => n.id === 'fat')?.amount || 0, 'macro'),
       Category: food.category,
       Date: new Date(food.dateAdded).toLocaleDateString()
     }));
@@ -120,12 +121,12 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
   const handleExportJSON = () => {
     const exportData = {
       summary: {
-        totalCalories: Math.round(analysis.totalCalories),
+        totalCalories: formatNutritionValue(analysis.totalCalories, 'calorie'),
         macronutrients: {
-          protein: Math.round(analysis.macronutrients.protein),
-          carbs: Math.round(analysis.macronutrients.carbs),
-          fat: Math.round(analysis.macronutrients.fat),
-          fiber: Math.round(analysis.macronutrients.fiber)
+          protein: formatNutritionValue(analysis.macronutrients.protein, 'macro'),
+          carbs: formatNutritionValue(analysis.macronutrients.carbs, 'macro'),
+          fat: formatNutritionValue(analysis.macronutrients.fat, 'macro'),
+          fiber: formatNutritionValue(analysis.macronutrients.fiber, 'macro')
         },
         exportDate: new Date().toISOString(),
         foodCount: foods.length
@@ -134,15 +135,15 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
         name: food.name,
         quantity: food.quantity,
         unit: food.unit,
-        calories: Math.round(food.calories),
+        calories: formatNutritionValue(food.calories, 'calorie'),
         category: food.category,
         dateAdded: food.dateAdded,
         nutrients: food.nutrients.map(n => ({
           name: n.name,
-          amount: Number(n.amount.toFixed(2)),
+          amount: formatNutritionValue(n.amount, n.category === 'vitamin' || n.category === 'mineral' ? 'micro' : 'macro'),
           unit: n.unit,
           category: n.category,
-          dailyValuePercentage: n.dailyValue ? Math.round((n.amount / n.dailyValue) * 100) : null
+          dailyValuePercentage: n.dailyValue ? calculatePercentage(n.amount, n.dailyValue) : null
         }))
       }))
     };
@@ -164,12 +165,15 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
   ];
 
   const vitaminData = analysis.vitamins.slice(0, 6).map(vitamin => {
-    const percentage = vitamin.dailyValue ? Math.min((vitamin.amount / vitamin.dailyValue) * 100, 200) : 0;
+    const percentage = vitamin.dailyValue ? calculatePercentage(vitamin.amount, vitamin.dailyValue) : 0;
+    // Remove 200% cap as recommended in verification document, but keep visual cap
+    const visualPercentage = Math.min(percentage, 200);
     return {
       name: vitamin.name.replace('Vitamin ', '').replace(' (B1)', '').replace(' (B2)', '').replace(' (B3)', ''),
-      amount: vitamin.amount,
+      amount: formatNutritionValue(vitamin.amount, 'micro'),
       target: vitamin.dailyValue || 100,
-      percentage,
+      percentage: visualPercentage,
+      actualPercentage: percentage, // Keep raw percentage for monitoring
       color: percentage >= 100 ? theme.palette.success.main : 
              percentage >= 50 ? theme.palette.warning.main : 
              theme.palette.error.main,
@@ -178,12 +182,14 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
   });
 
   const mineralData = analysis.minerals.slice(0, 6).map(mineral => {
-    const percentage = mineral.dailyValue ? Math.min((mineral.amount / mineral.dailyValue) * 100, 200) : 0;
+    const percentage = mineral.dailyValue ? calculatePercentage(mineral.amount, mineral.dailyValue) : 0;
+    const visualPercentage = Math.min(percentage, 200);
     return {
       name: mineral.name,
-      amount: mineral.amount,
+      amount: formatNutritionValue(mineral.amount, 'micro'),
       target: mineral.dailyValue || 100,
-      percentage,
+      percentage: visualPercentage,
+      actualPercentage: percentage, // Keep raw percentage for monitoring
       color: percentage >= 100 ? theme.palette.success.main : 
              percentage >= 50 ? theme.palette.warning.main : 
              theme.palette.error.main,
@@ -195,30 +201,30 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
   const macroRadialData = [
     {
       name: 'Protein',
-      value: analysis.macronutrients.protein,
+      value: formatNutritionValue(analysis.macronutrients.protein, 'macro'),
       target: 50, // example daily target
-      percentage: Math.min((analysis.macronutrients.protein / 50) * 100, 200),
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.protein, 50), 200),
       fill: theme.palette.primary.main
     },
     {
       name: 'Carbs',
-      value: analysis.macronutrients.carbs,
+      value: formatNutritionValue(analysis.macronutrients.carbs, 'macro'),
       target: 225,
-      percentage: Math.min((analysis.macronutrients.carbs / 225) * 100, 200),
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.carbs, 225), 200),
       fill: theme.palette.secondary.main
     },
     {
       name: 'Fat',
-      value: analysis.macronutrients.fat,
+      value: formatNutritionValue(analysis.macronutrients.fat, 'macro'),
       target: 65,
-      percentage: Math.min((analysis.macronutrients.fat / 65) * 100, 200),
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.fat, 65), 200),
       fill: theme.palette.warning.main
     },
     {
       name: 'Fiber',
-      value: analysis.macronutrients.fiber,
+      value: formatNutritionValue(analysis.macronutrients.fiber, 'macro'),
       target: 25,
-      percentage: Math.min((analysis.macronutrients.fiber / 25) * 100, 200),
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.fiber, 25), 200),
       fill: theme.palette.success.main
     }
   ];
@@ -238,9 +244,9 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
           <Typography variant="body2" fontWeight="bold">{label}</Typography>
           {payload.map((entry: any, index: number) => (
             <Typography key={index} variant="caption" sx={{ color: entry.color }}>
-              {entry.name}: {entry.value.toFixed(1)}{entry.payload.unit || 'g'}
+              {entry.name}: {roundToOneDecimal(entry.value)}{entry.payload.unit || 'g'}
               {entry.payload.target && (
-                <span> / {entry.payload.target}{entry.payload.unit || 'g'} ({entry.payload.percentage?.toFixed(0)}%)</span>
+                <span> / {entry.payload.target}{entry.payload.unit || 'g'} ({roundToInteger(entry.payload.percentage || 0)}%)</span>
               )}
             </Typography>
           ))}
@@ -332,7 +338,7 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
               Daily Calories
             </Typography>
             <Typography variant="h3" color="primary">
-              {Math.round(analysis.totalCalories)}
+              {formatNutritionValue(analysis.totalCalories, 'calorie')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               kcal
@@ -359,7 +365,7 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
                   iconSize={10}
                   wrapperStyle={{ fontSize: '12px' }}
                   formatter={(value, entry: any) => 
-                    `${value}: ${entry.payload.value.toFixed(1)}g / ${entry.payload.target}g`
+                    `${value}: ${roundToOneDecimal(entry.payload.value)}g / ${entry.payload.target}g`
                   }
                 />
               </RadialBarChart>
@@ -386,12 +392,12 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
                     <Box display="flex" justifyContent="space-between" mb={1}>
                       <Typography variant="body2">{nutrient.label}</Typography>
                       <Typography variant="body2">
-                        {Math.round(nutrient.value)}{nutrient.unit} / {nutrient.target}{nutrient.unit}
+                        {formatNutritionValue(nutrient.value, 'macro')}{nutrient.unit} / {nutrient.target}{nutrient.unit}
                       </Typography>
                     </Box>
                     <LinearProgress
                       variant="determinate"
-                      value={Math.min((nutrient.value / nutrient.target) * 100, 100)}
+                      value={Math.min(calculatePercentage(nutrient.value, nutrient.target), 100)}
                       sx={{ height: 8, borderRadius: 4 }}
                     />
                   </Box>

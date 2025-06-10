@@ -1,4 +1,5 @@
 import { FoodItem, NutrientInfo, NutritionAnalysis } from '../types';
+import { calculatePercentage, safeDivide } from './roundingUtils';
 
 export interface DetailedNutritionAnalysis extends NutritionAnalysis {
   micronutrients: {
@@ -147,9 +148,9 @@ export class NutritionAnalysisEngine {
     }
 
     return {
-      proteinPercentage: ((protein * 4) / totalMacroCalories) * 100,
-      carbPercentage: ((carbs * 4) / totalMacroCalories) * 100,
-      fatPercentage: ((fat * 9) / totalMacroCalories) * 100
+      proteinPercentage: calculatePercentage(protein * 4, totalMacroCalories),
+      carbPercentage: calculatePercentage(carbs * 4, totalMacroCalories),
+      fatPercentage: calculatePercentage(fat * 9, totalMacroCalories)
     };
   }
 
@@ -235,7 +236,7 @@ export class NutritionAnalysisEngine {
 
     // Hormone support score
     let hormoneSupportScore = 50;
-    const proteinPercentage = analysis.macronutrients.protein / analysis.totalCalories * 100 * 4;
+    const proteinPercentage = calculatePercentage(analysis.macronutrients.protein * 4, analysis.totalCalories);
     const fiberAmount = analysis.macronutrients.fiber;
     
     if (proteinPercentage >= 20) hormoneSupportScore += 15;

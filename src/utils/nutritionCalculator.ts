@@ -1,8 +1,9 @@
 import { FoodItem, NutritionAnalysis, NutrientInfo } from '../types';
 import { nutritionEngine, DetailedNutritionAnalysis } from './advancedNutritionAnalysis';
+import { roundToInteger, roundToOneDecimal, calculatePercentage } from './roundingUtils';
 
 export function calculateTotalNutrition(foods: FoodItem[]): NutritionAnalysis {
-  const totalCalories = foods.reduce((sum, food) => sum + food.calories, 0);
+  const totalCalories = roundToInteger(foods.reduce((sum, food) => sum + food.calories, 0));
   
   const allNutrients: Record<string, number> = {};
   const nutrientInfo: Record<string, NutrientInfo> = {};
@@ -18,31 +19,31 @@ export function calculateTotalNutrition(foods: FoodItem[]): NutritionAnalysis {
   });
 
   const macronutrients = {
-    protein: allNutrients['protein'] || 0,
-    carbs: allNutrients['carbs'] || 0,
-    fat: allNutrients['fat'] || 0,
-    fiber: allNutrients['fiber'] || 0,
+    protein: roundToOneDecimal(allNutrients['protein'] || 0),
+    carbs: roundToOneDecimal(allNutrients['carbs'] || 0),
+    fat: roundToOneDecimal(allNutrients['fat'] || 0),
+    fiber: roundToOneDecimal(allNutrients['fiber'] || 0),
   };
 
   const vitamins: NutrientInfo[] = Object.keys(allNutrients)
     .filter(key => nutrientInfo[key]?.category === 'vitamin')
     .map(key => ({
       ...nutrientInfo[key],
-      amount: allNutrients[key]
+      amount: roundToOneDecimal(allNutrients[key])
     }));
 
   const minerals: NutrientInfo[] = Object.keys(allNutrients)
     .filter(key => nutrientInfo[key]?.category === 'mineral')
     .map(key => ({
       ...nutrientInfo[key],
-      amount: allNutrients[key]
+      amount: roundToOneDecimal(allNutrients[key])
     }));
 
   const dailyValuePercentages: Record<string, number> = {};
   Object.keys(allNutrients).forEach(key => {
     const nutrient = nutrientInfo[key];
     if (nutrient?.dailyValue) {
-      dailyValuePercentages[key] = (allNutrients[key] / nutrient.dailyValue) * 100;
+      dailyValuePercentages[key] = calculatePercentage(allNutrients[key], nutrient.dailyValue);
     }
   });
 

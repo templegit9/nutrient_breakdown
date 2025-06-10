@@ -166,7 +166,8 @@ export function convertToBaseUnit(
 ): { grams?: number; milliliters?: number; pieces?: number } {
   const unit = units[fromUnit];
   if (!unit) {
-    return { grams: amount }; // fallback
+    console.warn(`Unknown unit: ${fromUnit}. Cannot perform conversion - this may result in incorrect nutrition calculations.`);
+    throw new Error(`Unknown unit: ${fromUnit}. Please use a valid unit for accurate nutrition calculations.`);
   }
 
   // Check for food-specific conversions first
@@ -192,6 +193,26 @@ export function convertToBaseUnit(
       return { pieces: amount * unit.conversionFactor };
     default:
       return { grams: amount };
+  }
+}
+
+/**
+ * Validates if a unit is supported for conversion
+ */
+export function validateUnit(unitName: string): boolean {
+  return unitName in units;
+}
+
+/**
+ * Safe unit conversion with validation
+ */
+export function safeConvertToBaseUnit(amount: number, fromUnit: string, foodName?: string): { grams?: number; milliliters?: number; pieces?: number; isValid: boolean } {
+  try {
+    const result = convertToBaseUnit(amount, fromUnit, foodName);
+    return { ...result, isValid: true };
+  } catch (error) {
+    console.error('Unit conversion failed:', error);
+    return { grams: amount, isValid: false }; // fallback to assuming grams
   }
 }
 

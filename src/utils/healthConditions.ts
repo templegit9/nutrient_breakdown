@@ -1,5 +1,6 @@
 import { FoodItem, NutrientInfo } from '../types';
 import { foodCategories } from './foodCategories';
+import { calculatePercentage } from './roundingUtils';
 
 export interface PCOSRecommendations {
   score: number;
@@ -556,7 +557,7 @@ export class HealthConditionAnalyzer {
     const totalProtein = this.getTotalNutrient(foods, 'protein');
     
     if (totalCalories === 0) return 0;
-    return (totalProtein * 4 / totalCalories) * 100;
+    return calculatePercentage(totalProtein * 4, totalCalories);
   }
 }
 

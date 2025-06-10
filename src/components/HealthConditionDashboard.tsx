@@ -35,6 +35,7 @@ import { useState } from 'react'
 import { FoodItem } from '../types'
 import { healthAnalyzer } from '../utils/healthConditions'
 import HealthConditionRecommendations from './HealthConditionRecommendations'
+import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils'
 
 interface HealthConditionDashboardProps {
   foods: FoodItem[];
@@ -140,7 +141,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2">Overall Score</Typography>
                     <Typography variant="h5" sx={{ color: getScoreColor(pcosAnalysis.score), fontWeight: 'bold' }}>
-                      {Math.round(pcosAnalysis.score)}/100
+                      {roundToInteger(pcosAnalysis.score)}/100
                     </Typography>
                   </Box>
                   <LinearProgress
@@ -161,7 +162,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                   <Grid item xs={6}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
                       <Typography variant="h6" color={getImpactColor(pcosAnalysis.insulinImpact)}>
-                        {Math.round(pcosAnalysis.glycemicLoad)}
+                        {roundToOneDecimal(pcosAnalysis.glycemicLoad)}
                       </Typography>
                       <Typography variant="caption">Glycemic Load</Typography>
                       <Chip
@@ -176,7 +177,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                   <Grid item xs={6}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
                       <Typography variant="h6" color="success.main">
-                        {Math.round(pcosAnalysis.antiInflammatoryScore)}
+                        {roundToInteger(pcosAnalysis.antiInflammatoryScore)}
                       </Typography>
                       <Typography variant="caption">Anti-Inflammatory</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -258,7 +259,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2">Diabetes Score</Typography>
                     <Typography variant="h5" sx={{ color: getScoreColor(diabetesAnalysis.score), fontWeight: 'bold' }}>
-                      {Math.round(diabetesAnalysis.score)}/100
+                      {roundToInteger(diabetesAnalysis.score)}/100
                     </Typography>
                   </Box>
                   <LinearProgress
@@ -282,7 +283,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                         diabetesAnalysis.glycemicIndex < 55 ? 'low' :
                         diabetesAnalysis.glycemicIndex < 70 ? 'moderate' : 'high'
                       )}>
-                        {Math.round(diabetesAnalysis.glycemicIndex)}
+                        {roundToInteger(diabetesAnalysis.glycemicIndex)}
                       </Typography>
                       <Typography variant="caption">Glycemic Index</Typography>
                     </Paper>
@@ -290,7 +291,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                   <Grid item xs={4}>
                     <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'grey.50' }}>
                       <Typography variant="h6" color="primary">
-                        {Math.round(diabetesAnalysis.carbLoad)}g
+                        {roundToOneDecimal(diabetesAnalysis.carbLoad)}g
                       </Typography>
                       <Typography variant="caption">Total Carbs</Typography>
                     </Paper>
@@ -403,7 +404,7 @@ export default function HealthConditionDashboard({ foods }: HealthConditionDashb
                 <Grid item xs={12} md={4}>
                   <Box textAlign="center">
                     <Typography variant="h5" sx={{ color: getScoreColor(generalHealth.metabolicHealth) }}>
-                      {Math.round(generalHealth.metabolicHealth)}/100
+                      {roundToInteger(generalHealth.metabolicHealth)}/100
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Metabolic Health
