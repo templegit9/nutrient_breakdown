@@ -156,7 +156,27 @@ export const foodCategories: Record<string, FoodCategory> = {
   }
 };
 
-export function categorizeFoodByName(foodName: string): string {
+// Database category mapping from SQL to our category IDs
+const databaseCategoryMapping: Record<string, string> = {
+  'Proteins': 'protein',
+  'Starches': 'grains',
+  'Vegetables': 'vegetables',
+  'Fruits': 'fruits',
+  'Dairy': 'dairy',
+  'Nuts and Seeds': 'nutsSeeds',
+  'Fats and Oils': 'fatsOils',
+  'Beverages': 'beverages',
+  'Legumes': 'legumes',
+  'Herbs and Spices': 'herbs',
+  'Snacks': 'snacks'
+};
+
+export function categorizeFoodByName(foodName: string, databaseCategory?: string): string {
+  // First, check if we have a database category and map it
+  if (databaseCategory && databaseCategoryMapping[databaseCategory]) {
+    return databaseCategoryMapping[databaseCategory];
+  }
+  
   const name = foodName.toLowerCase();
   
   // Check each category's common foods
@@ -166,50 +186,50 @@ export function categorizeFoodByName(foodName: string): string {
     }
   }
   
-  // Fallback keyword matching
+  // Enhanced keyword matching with Nigerian foods and more comprehensive terms
   if (name.includes('fruit') || name.includes('berry') || 
-      ['apple', 'banana', 'orange', 'grape', 'pear', 'peach', 'plum', 'mango', 'pineapple'].some(fruit => name.includes(fruit))) {
+      ['apple', 'banana', 'orange', 'grape', 'pear', 'peach', 'plum', 'mango', 'pineapple', 'watermelon', 'paw paw', 'coconut'].some(fruit => name.includes(fruit))) {
     return 'fruits';
   }
   
-  if (name.includes('vegetable') || name.includes('green') || 
-      ['lettuce', 'cucumber', 'onion', 'garlic', 'celery', 'kale'].some(veg => name.includes(veg))) {
+  if (name.includes('vegetable') || name.includes('green') || name.includes('leaf') ||
+      ['lettuce', 'cucumber', 'onion', 'garlic', 'celery', 'kale', 'spinach', 'broccoli', 'cabbage', 'tomato', 'pepper', 'okra', 'ugwu', 'bitter leaf'].some(veg => name.includes(veg))) {
     return 'vegetables';
   }
   
-  if (['meat', 'chicken', 'beef', 'pork', 'fish', 'salmon', 'tuna', 'egg', 'tofu'].some(protein => name.includes(protein))) {
+  if (['meat', 'chicken', 'beef', 'pork', 'fish', 'salmon', 'tuna', 'egg', 'tofu', 'turkey', 'goat', 'mutton', 'catfish', 'tilapia', 'mackerel'].some(protein => name.includes(protein))) {
     return 'protein';
   }
   
-  if (['rice', 'bread', 'pasta', 'cereal', 'oat', 'wheat', 'potato'].some(grain => name.includes(grain))) {
+  if (['rice', 'bread', 'pasta', 'cereal', 'oat', 'wheat', 'potato', 'yam', 'cassava', 'plantain', 'fufu', 'garri', 'semolina', 'eba', 'amala'].some(grain => name.includes(grain))) {
     return 'grains';
   }
   
-  if (['milk', 'cheese', 'yogurt', 'cream', 'butter'].some(dairy => name.includes(dairy))) {
+  if (['milk', 'cheese', 'yogurt', 'cream', 'butter', 'wara', 'nono'].some(dairy => name.includes(dairy))) {
     return 'dairy';
   }
   
-  if (['nut', 'seed', 'almond', 'walnut', 'cashew', 'peanut'].some(nut => name.includes(nut))) {
+  if (['nut', 'seed', 'almond', 'walnut', 'cashew', 'peanut', 'groundnut', 'coconut', 'tiger nut'].some(nut => name.includes(nut))) {
     return 'nutsSeeds';
   }
   
-  if (['oil', 'fat', 'butter'].some(fat => name.includes(fat))) {
+  if (['oil', 'fat', 'palm oil', 'olive oil', 'groundnut oil'].some(fat => name.includes(fat))) {
     return 'fatsOils';
   }
   
-  if (['drink', 'juice', 'tea', 'coffee', 'water', 'soda'].some(beverage => name.includes(beverage))) {
+  if (['drink', 'juice', 'tea', 'coffee', 'water', 'soda', 'zobo', 'kunu', 'fura'].some(beverage => name.includes(beverage))) {
     return 'beverages';
   }
   
-  if (['bean', 'lentil', 'pea', 'chickpea'].some(legume => name.includes(legume))) {
+  if (['bean', 'lentil', 'pea', 'chickpea', 'black eye', 'cowpea', 'kidney bean'].some(legume => name.includes(legume))) {
     return 'legumes';
   }
   
-  if (['spice', 'herb', 'seasoning', 'pepper', 'salt'].some(spice => name.includes(spice))) {
+  if (['spice', 'herb', 'seasoning', 'pepper', 'salt', 'ginger', 'garlic', 'onion', 'curry', 'thyme', 'bay leaf', 'scotch bonnet'].some(spice => name.includes(spice))) {
     return 'herbs';
   }
   
-  if (['cookie', 'cake', 'candy', 'chip', 'snack', 'sweet'].some(snack => name.includes(snack))) {
+  if (['cookie', 'cake', 'candy', 'chip', 'snack', 'sweet', 'biscuit', 'chin chin', 'puff puff'].some(snack => name.includes(snack))) {
     return 'snacks';
   }
   

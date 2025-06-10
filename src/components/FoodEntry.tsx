@@ -288,7 +288,8 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     
     // Auto-categorize as user types
     if (value.length > 2) {
-      const autoCategory = categorizeFoodByName(value);
+      const databaseCategory = selectedDatabaseFood?.category;
+      const autoCategory = categorizeFoodByName(value, databaseCategory);
       if (autoCategory !== category) {
         setCategory(autoCategory);
         setSuggestedCategory(foodCategories[autoCategory]?.name || '');
