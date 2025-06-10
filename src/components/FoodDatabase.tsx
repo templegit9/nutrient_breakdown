@@ -47,7 +47,6 @@ export default function FoodDatabase() {
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [totalCount, setTotalCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [isFallbackData, setIsFallbackData] = useState(false)
   
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -72,7 +71,6 @@ export default function FoodDatabase() {
         console.log('Loaded foods:', result)
         setFoods(result.data)
         setTotalCount(result.count)
-        setIsFallbackData(result.isFallback || false)
       }
     } catch (err) {
       console.error('Error loading foods:', err)
@@ -86,6 +84,12 @@ export default function FoodDatabase() {
   }
 
   useEffect(() => {
+    // Debug: Check database schema on component mount
+    if (page === 0 && !searchTerm) {
+      DatabaseService.checkDatabaseSchema().then(result => {
+        console.log('Database schema check:', result)
+      })
+    }
     loadFoods()
   }, [page, rowsPerPage])
 
@@ -162,12 +166,6 @@ export default function FoodDatabase() {
         </Alert>
       )}
 
-      {isFallbackData && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Showing sample food data. The main food database appears to be empty or unavailable. 
-          This includes common foods and Nigerian cuisine options for demonstration.
-        </Alert>
-      )}
 
       {/* Search Bar */}
       <TextField

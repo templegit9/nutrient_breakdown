@@ -44,43 +44,6 @@ export default function FoodSearch({
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
-  // Fallback suggestions when database is not available or empty
-  const getFallbackSuggestions = (searchTerm: string): FoodOption[] => {
-    const commonFoods: FoodOption[] = [
-      // Common international foods
-      { name: 'Apple', category: 'Fruits', calories: 52, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Banana', category: 'Fruits', calories: 89, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Orange', category: 'Fruits', calories: 47, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Rice (White)', category: 'Grains', calories: 130, commonUnits: ['cups', 'grams'] },
-      { name: 'Rice (Brown)', category: 'Grains', calories: 123, commonUnits: ['cups', 'grams'] },
-      { name: 'Chicken Breast', category: 'Proteins', calories: 165, commonUnits: ['grams', 'ounces'] },
-      { name: 'Eggs', category: 'Proteins', calories: 155, commonUnits: ['large', 'medium', 'grams'] },
-      { name: 'Bread (White)', category: 'Grains', calories: 265, commonUnits: ['slices', 'grams'] },
-      { name: 'Bread (Whole Wheat)', category: 'Grains', calories: 247, commonUnits: ['slices', 'grams'] },
-      { name: 'Milk', category: 'Dairy', calories: 50, commonUnits: ['cups', 'ml'] },
-      { name: 'Spinach', category: 'Vegetables', calories: 23, commonUnits: ['cups', 'grams'] },
-      
-      // Nigerian/African foods
-      { name: 'Yam', category: 'Starches', calories: 118, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Plantain', category: 'Starches', calories: 122, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Cassava', category: 'Starches', calories: 160, commonUnits: ['cups', 'grams'] },
-      { name: 'Ugu (Fluted Pumpkin)', category: 'Vegetables', calories: 35, commonUnits: ['cups', 'grams'] },
-      { name: 'Waterleaf', category: 'Vegetables', calories: 22, commonUnits: ['cups', 'grams'] },
-      { name: 'Bitter Leaf', category: 'Vegetables', calories: 30, commonUnits: ['cups', 'grams'] },
-      { name: 'Cocoyam', category: 'Starches', calories: 112, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Sweet Potato', category: 'Starches', calories: 86, commonUnits: ['medium', 'grams', 'cups'] },
-      { name: 'Okra', category: 'Vegetables', calories: 33, commonUnits: ['cups', 'grams'] },
-      { name: 'Palm Oil', category: 'Fats', calories: 884, commonUnits: ['tablespoons', 'ml'] },
-      { name: 'Groundnut (Peanuts)', category: 'Nuts', calories: 567, commonUnits: ['grams', 'cups'] },
-      { name: 'Beans (Black-eyed Peas)', category: 'Legumes', calories: 336, commonUnits: ['cups', 'grams'] },
-      { name: 'Jollof Rice', category: 'Dishes', calories: 150, commonUnits: ['cups', 'grams'] },
-      { name: 'Fufu', category: 'Starches', calories: 267, commonUnits: ['cups', 'grams'] },
-    ];
-
-    return commonFoods.filter(food => 
-      food.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
 
   // Search foods from Supabase database
   const searchFoods = async (searchTerm: string) => {
@@ -91,7 +54,10 @@ export default function FoodSearch({
 
     setLoading(true);
     try {
+      console.log('Searching for foods with term:', searchTerm);
       const results = await DatabaseService.searchFoods(searchTerm);
+      console.log('Food search results:', results);
+      
       const foodOptions: FoodOption[] = results.map(food => ({
         name: food.name,
         category: food.category || 'Other',
@@ -99,27 +65,10 @@ export default function FoodSearch({
         commonUnits: getUnitsForFood(food.name)
       }));
       
-      // Always include fallback suggestions alongside database results
-      const fallbackOptions = getFallbackSuggestions(searchTerm);
-      
-      // Combine database results with fallback suggestions, removing duplicates
-      const combinedOptions = [...foodOptions];
-      
-      fallbackOptions.forEach(fallback => {
-        const isDuplicate = foodOptions.some(dbFood => 
-          dbFood.name.toLowerCase() === fallback.name.toLowerCase()
-        );
-        if (!isDuplicate) {
-          combinedOptions.push(fallback);
-        }
-      });
-      
-      setOptions(combinedOptions);
+      setOptions(foodOptions);
     } catch (error) {
       console.error('Error searching foods:', error);
-      // Show fallback suggestions on error
-      const fallbackOptions = getFallbackSuggestions(searchTerm);
-      setOptions(fallbackOptions);
+      setOptions([]);
     } finally {
       setLoading(false);
     }
@@ -202,11 +151,11 @@ export default function FoodSearch({
             }}
             helperText={
               inputValue.length > 1 && filteredOptions.length === 0 && !loading
-                ? "No foods found. Make sure your database is seeded with food data."
+                ? "No foods found in database. Check your search terms or ensure the database contains food data."
                 : inputValue.length === 1
                 ? "Type at least 2 characters to search..."
                 : filteredOptions.length > 0
-                ? `Found ${filteredOptions.length} food${filteredOptions.length !== 1 ? 's' : ''}`
+                ? `Found ${filteredOptions.length} food${filteredOptions.length !== 1 ? 's' : ''} in database`
                 : ""
             }
           />
