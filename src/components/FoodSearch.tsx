@@ -44,6 +44,31 @@ export default function FoodSearch({
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
+  // Fallback suggestions when database is not available or empty
+  const getFallbackSuggestions = (searchTerm: string): FoodOption[] => {
+    const commonFoods: FoodOption[] = [
+      { name: 'Apple', category: 'Fruits', calories: 52, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Banana', category: 'Fruits', calories: 89, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Orange', category: 'Fruits', calories: 47, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Rice (White)', category: 'Grains', calories: 130, commonUnits: ['cups', 'grams'] },
+      { name: 'Rice (Brown)', category: 'Grains', calories: 123, commonUnits: ['cups', 'grams'] },
+      { name: 'Chicken Breast', category: 'Proteins', calories: 165, commonUnits: ['grams', 'ounces'] },
+      { name: 'Eggs', category: 'Proteins', calories: 155, commonUnits: ['large', 'medium', 'grams'] },
+      { name: 'Bread (White)', category: 'Grains', calories: 265, commonUnits: ['slices', 'grams'] },
+      { name: 'Bread (Whole Wheat)', category: 'Grains', calories: 247, commonUnits: ['slices', 'grams'] },
+      { name: 'Milk', category: 'Dairy', calories: 50, commonUnits: ['cups', 'ml'] },
+      { name: 'Yam', category: 'Starches', calories: 118, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Plantain', category: 'Starches', calories: 122, commonUnits: ['medium', 'grams', 'cups'] },
+      { name: 'Cassava', category: 'Starches', calories: 160, commonUnits: ['cups', 'grams'] },
+      { name: 'Ugu (Fluted Pumpkin)', category: 'Vegetables', calories: 35, commonUnits: ['cups', 'grams'] },
+      { name: 'Spinach', category: 'Vegetables', calories: 23, commonUnits: ['cups', 'grams'] },
+    ];
+
+    return commonFoods.filter(food => 
+      food.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
   // Search foods from Supabase database
   const searchFoods = async (searchTerm: string) => {
     if (searchTerm.length < 2) {
@@ -60,10 +85,19 @@ export default function FoodSearch({
         calories: food.calories_per_100g || 0,
         commonUnits: getUnitsForFood(food.name)
       }));
-      setOptions(foodOptions);
+      
+      // If no results from database, show fallback suggestions
+      if (foodOptions.length === 0) {
+        const fallbackOptions = getFallbackSuggestions(searchTerm);
+        setOptions(fallbackOptions);
+      } else {
+        setOptions(foodOptions);
+      }
     } catch (error) {
       console.error('Error searching foods:', error);
-      setOptions([]);
+      // Show fallback suggestions on error
+      const fallbackOptions = getFallbackSuggestions(searchTerm);
+      setOptions(fallbackOptions);
     } finally {
       setLoading(false);
     }
@@ -146,9 +180,11 @@ export default function FoodSearch({
             }}
             helperText={
               inputValue.length > 1 && filteredOptions.length === 0 && !loading
-                ? "No foods found. Try a different search term."
+                ? "No foods found. Make sure your database is seeded with food data."
                 : inputValue.length === 1
                 ? "Type at least 2 characters to search..."
+                : filteredOptions.length > 0
+                ? `Found ${filteredOptions.length} food${filteredOptions.length !== 1 ? 's' : ''}`
                 : ""
             }
           />
