@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Container, Typography, Box, Tab, Tabs, useTheme, useMediaQuery } from '@mui/material'
+import { Container, Typography, Box, Tab, Tabs, useTheme, useMediaQuery, AppBar, Toolbar, Button } from '@mui/material'
 import FoodEntry from './components/FoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
+import { AuthProvider, useAuth } from './components/AuthProvider'
+import { LoginForm } from './components/LoginForm'
 import { FoodItem } from './types'
 import { storageManager } from './utils/localStorage'
 
@@ -33,12 +35,13 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-function App() {
+function AppContent() {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user, signOut } = useAuth();
 
   // Load food history from localStorage on component mount
   useEffect(() => {
@@ -112,32 +115,55 @@ function App() {
   }
 
   return (
-    <Container 
-      maxWidth="lg" 
-      sx={{ 
-        px: { xs: 1, sm: 2, md: 3 },
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
-      <Box sx={{ 
-        my: { xs: 2, sm: 3, md: 4 },
-        flex: 1
-      }}>
-        <Typography 
-          variant={isMobile ? "h4" : "h3"} 
-          component="h1" 
-          gutterBottom 
-          align="center" 
-          color="primary"
-          sx={{
-            mb: { xs: 2, sm: 3, md: 4 },
-            fontSize: { xs: '1.75rem', sm: '2.125rem', md: '3rem' }
-          }}
-        >
-          Nutrient Breakdown Tracker
-        </Typography>
+    <>
+      <AppBar position="static" elevation={1} sx={{ backgroundColor: 'white', color: 'text.primary' }}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 'bold' }}>
+            Nutrient Tracker
+          </Typography>
+          {user && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {user.email}
+              </Typography>
+              <Button
+                color="inherit"
+                onClick={signOut}
+                sx={{ color: 'text.secondary' }}
+              >
+                Sign Out
+              </Button>
+            </Box>
+          )}
+        </Toolbar>
+      </AppBar>
+      
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          px: { xs: 1, sm: 2, md: 3 },
+          minHeight: 'calc(100vh - 64px)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Box sx={{ 
+          my: { xs: 2, sm: 3, md: 4 },
+          flex: 1
+        }}>
+          <Typography 
+            variant={isMobile ? "h4" : "h3"} 
+            component="h1" 
+            gutterBottom 
+            align="center" 
+            color="primary"
+            sx={{
+              mb: { xs: 2, sm: 3, md: 4 },
+              fontSize: { xs: '1.75rem', sm: '2.125rem', md: '3rem' }
+            }}
+          >
+            Nutrient Breakdown Tracker
+          </Typography>
         
         <Box sx={{ 
           borderBottom: 1, 
@@ -185,9 +211,51 @@ function App() {
             onDeleteFood={handleDeleteFood}
           />
         </TabPanel>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </>
   )
 }
 
-export default App
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  )
+}
+
+function AppWithAuth() {
+  const { user, loading } = useAuth()
+  
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '100vh' 
+        }}>
+          <Typography variant="h6" color="text.secondary">
+            Loading...
+          </Typography>
+        </Box>
+      </Container>
+    )
+  }
+  
+  if (!user) {
+    return <LoginForm />
+  }
+  
+  return <AppContent />
+}
+
+export default function MainApp() {
+  return (
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
+  )
+}
