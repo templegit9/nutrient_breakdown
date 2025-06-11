@@ -124,6 +124,17 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         // Convert units to grams for proper nutrition calculation
         const convertedAmount = safeConvertToBaseUnit(quantityNum, unit, selectedDatabaseFood.name.toLowerCase());
         
+        console.log('DEBUG: Unit conversion details:', {
+          food: selectedDatabaseFood.name,
+          isCustom: selectedDatabaseFood.isCustom,
+          servingSize: selectedDatabaseFood.serving_size,
+          servingUnit: selectedDatabaseFood.serving_unit,
+          inputQuantity: quantityNum,
+          inputUnit: unit,
+          convertedAmount: convertedAmount,
+          isValid: convertedAmount.isValid
+        });
+        
         // Use converted amount or apply reasonable fallback based on unit type
         let gramsAmount = convertedAmount.grams;
         
@@ -176,6 +187,13 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         }
         
         const scaleFactor = gramsAmount / 100; // Scale from per-100g to actual amount
+        
+        console.log('DEBUG: Final calculation:', {
+          gramsAmount: gramsAmount,
+          scaleFactor: scaleFactor,
+          caloriesPer100g: dbFood.calories_per_100g,
+          finalCalories: dbFood.calories_per_100g * scaleFactor
+        });
         
         const rawNutrition = {
           calories: dbFood.calories_per_100g * scaleFactor,
