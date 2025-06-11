@@ -129,19 +129,49 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         
         if (!convertedAmount.isValid) {
           console.warn(`Unit conversion failed for ${unit}. Using fallback calculation which may be inaccurate.`);
-          // Apply reasonable fallbacks based on unit type instead of raw quantityNum
-          if (unit === 'pieces') {
-            gramsAmount = quantityNum * 100; // Default: 100g per piece
-          } else if (unit === 'slices') {
-            gramsAmount = quantityNum * 25; // Default: 25g per slice  
-          } else if (unit === 'cups') {
-            gramsAmount = quantityNum * 240; // Default: 240g per cup
-          } else if (unit === 'tablespoons' || unit === 'tbsp') {
-            gramsAmount = quantityNum * 15; // Default: 15g per tablespoon
-          } else if (unit === 'teaspoons' || unit === 'tsp') {
-            gramsAmount = quantityNum * 5; // Default: 5g per teaspoon
+          
+          // For custom foods, use their specific serving size information if available
+          if (dbFood.isCustom && dbFood.serving_unit && dbFood.serving_size) {
+            // Check if the selected unit matches the custom food's serving unit
+            if ((unit === 'slices' || unit === 'slice') && 
+                (dbFood.serving_unit === 'slice' || dbFood.serving_unit === 'slices')) {
+              gramsAmount = quantityNum * dbFood.serving_size; // Use custom food's specific serving size
+            } else if ((unit === 'pieces' || unit === 'piece') && 
+                       (dbFood.serving_unit === 'piece' || dbFood.serving_unit === 'pieces')) {
+              gramsAmount = quantityNum * dbFood.serving_size; // Use custom food's specific serving size
+            } else if (unit === dbFood.serving_unit) {
+              gramsAmount = quantityNum * dbFood.serving_size; // Exact unit match
+            } else {
+              // Fall back to generic conversions for non-matching units
+              if (unit === 'pieces') {
+                gramsAmount = quantityNum * 100; // Default: 100g per piece
+              } else if (unit === 'slices') {
+                gramsAmount = quantityNum * 25; // Default: 25g per slice  
+              } else if (unit === 'cups') {
+                gramsAmount = quantityNum * 240; // Default: 240g per cup
+              } else if (unit === 'tablespoons' || unit === 'tbsp') {
+                gramsAmount = quantityNum * 15; // Default: 15g per tablespoon
+              } else if (unit === 'teaspoons' || unit === 'tsp') {
+                gramsAmount = quantityNum * 5; // Default: 5g per teaspoon
+              } else {
+                gramsAmount = quantityNum; // Last resort for weight units
+              }
+            }
           } else {
-            gramsAmount = quantityNum; // Last resort for weight units
+            // Apply reasonable fallbacks based on unit type for non-custom foods
+            if (unit === 'pieces') {
+              gramsAmount = quantityNum * 100; // Default: 100g per piece
+            } else if (unit === 'slices') {
+              gramsAmount = quantityNum * 25; // Default: 25g per slice  
+            } else if (unit === 'cups') {
+              gramsAmount = quantityNum * 240; // Default: 240g per cup
+            } else if (unit === 'tablespoons' || unit === 'tbsp') {
+              gramsAmount = quantityNum * 15; // Default: 15g per tablespoon
+            } else if (unit === 'teaspoons' || unit === 'tsp') {
+              gramsAmount = quantityNum * 5; // Default: 5g per teaspoon
+            } else {
+              gramsAmount = quantityNum; // Last resort for weight units
+            }
           }
         }
         
