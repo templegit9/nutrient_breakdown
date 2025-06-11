@@ -112,8 +112,9 @@ export default function FoodDatabase() {
           allFoods = (searchResults || []).map(food => ({ ...food, isCustom: true }))
         }
         console.log('Search results:', allFoods)
-        setFoods(allFoods)
-        setTotalCount(allFoods.length)
+        console.log('Setting foods to:', allFoods, 'Array?', Array.isArray(allFoods))
+        setFoods(Array.isArray(allFoods) ? allFoods : [])
+        setTotalCount(Array.isArray(allFoods) ? allFoods.length : 0)
       } else {
         // Load foods based on view mode with pagination
         console.log('Loading foods with pagination...')
@@ -148,11 +149,14 @@ export default function FoodDatabase() {
               isCustom: true
             }))
           ]
-          setFoods(combinedFoods)
+          console.log('Combined foods:', combinedFoods, 'Array?', Array.isArray(combinedFoods))
+          setFoods(Array.isArray(combinedFoods) ? combinedFoods : [])
           setTotalCount((databaseResult?.count || 0) + (customFoods?.length || 0))
         } else if (viewMode === 'database') {
           const result = await DatabaseService.getAllFoods(page, rowsPerPage)
-          setFoods((result?.data || []).map(food => ({ ...food, isCustom: false })))
+          const mappedFoods = (result?.data || []).map(food => ({ ...food, isCustom: false }))
+          console.log('Database foods:', mappedFoods, 'Array?', Array.isArray(mappedFoods))
+          setFoods(Array.isArray(mappedFoods) ? mappedFoods : [])
           setTotalCount(result?.count || 0)
         } else if (viewMode === 'custom') {
           const customFoods = await DatabaseService.getCustomFoods()
@@ -178,8 +182,9 @@ export default function FoodDatabase() {
             preparation_state: 'raw',
             isCustom: true
           }))
-          setFoods(formattedCustomFoods)
-          setTotalCount(formattedCustomFoods.length)
+          console.log('Custom foods:', formattedCustomFoods, 'Array?', Array.isArray(formattedCustomFoods))
+          setFoods(Array.isArray(formattedCustomFoods) ? formattedCustomFoods : [])
+          setTotalCount(Array.isArray(formattedCustomFoods) ? formattedCustomFoods.length : 0)
         }
       }
     } catch (err) {
@@ -195,6 +200,7 @@ export default function FoodDatabase() {
 
   // Ensure foods is always an array
   const safeFoods = Array.isArray(foods) ? foods : []
+  console.log('Current foods state:', foods, 'SafeFoods:', safeFoods, 'Is array?', Array.isArray(foods))
 
   useEffect(() => {
     // Debug: Check database schema on component mount
