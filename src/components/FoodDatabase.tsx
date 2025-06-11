@@ -118,10 +118,20 @@ export default function FoodDatabase() {
         console.log('Loading foods with pagination...')
         if (viewMode === 'all') {
           // Load both database and custom foods
-          const [databaseResult, customFoods] = await Promise.all([
-            DatabaseService.getAllFoods(page, rowsPerPage),
-            DatabaseService.getCustomFoods()
-          ])
+          let databaseResult, customFoods
+          try {
+            databaseResult = await DatabaseService.getAllFoods(page, rowsPerPage)
+          } catch (err) {
+            console.error('Error loading database foods:', err)
+            databaseResult = { data: [], count: 0 }
+          }
+          
+          try {
+            customFoods = await DatabaseService.getCustomFoods()
+          } catch (err) {
+            console.error('Error loading custom foods:', err)
+            customFoods = []
+          }
           const combinedFoods = [
             ...(databaseResult?.data || []).map(food => ({ ...food, isCustom: false })),
             ...(customFoods || []).map(food => ({

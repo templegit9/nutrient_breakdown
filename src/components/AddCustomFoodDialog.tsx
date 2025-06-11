@@ -186,7 +186,7 @@ export default function AddCustomFoodDialog({ open, onClose, onSuccess }: AddCus
               fullWidth
               required
             >
-              {foodCategories.map((category) => (
+              {Object.values(foodCategories).map((category) => (
                 <MenuItem key={category.id} value={category.id}>
                   {category.name}
                 </MenuItem>
