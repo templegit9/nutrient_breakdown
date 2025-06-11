@@ -19,15 +19,30 @@ import {
   Card,
   CardContent,
   Grid,
-  Alert
+  Alert,
+  Button,
+  ToggleButton,
+  ToggleButtonGroup,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
-import FoodBankIcon from '@mui/icons-material/FoodBank'
+import {
+  Search as SearchIcon,
+  FoodBank as FoodBankIcon,
+  Person as PersonIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material'
 import { DatabaseService } from '../services/database'
+import AddCustomFoodDialog from './AddCustomFoodDialog'
 import type { DatabaseFood } from '../types'
 
 interface Food extends DatabaseFood {
-  source?: string // For backward compatibility
+  isCustom?: boolean // Identifier for custom vs database foods
+  user_id?: string // For custom foods
 }
 
 export default function FoodDatabase() {
@@ -38,6 +53,39 @@ export default function FoodDatabase() {
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [totalCount, setTotalCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'all' | 'database' | 'custom'>('all')
+  const [addCustomDialogOpen, setAddCustomDialogOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [foodToDelete, setFoodToDelete] = useState<Food | null>(null)
+  
+  const handleDeleteFood = async (food: Food) => {
+    if (!food.isCustom) return // Only allow deleting custom foods
+    setFoodToDelete(food)
+    setDeleteConfirmOpen(true)
+  }
+  
+  const handleDeleteConfirm = async () => {
+    if (!foodToDelete?.isCustom) return
+    
+    try {
+      await DatabaseService.deleteCustomFood(foodToDelete.id)
+      await loadFoods() // Reload foods after deletion
+      setDeleteConfirmOpen(false)
+      setFoodToDelete(null)
+    } catch (err) {
+      setError('Failed to delete custom food')
+    }
+  }
+  
+  const handleCustomFoodAdded = async () => {
+    setAddCustomDialogOpen(false)
+    await loadFoods() // Reload foods after adding
+  }
+  
+  const handleViewModeChange = (newMode: 'all' | 'database' | 'custom') => {
+    setViewMode(newMode)
+    setPage(0) // Reset to first page when changing view
+  }
   
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -46,22 +94,93 @@ export default function FoodDatabase() {
     try {
       setLoading(true)
       setError(null)
-      console.log('Loading foods...', { searchTerm, page, rowsPerPage })
+      console.log('Loading foods...', { searchTerm, page, rowsPerPage, viewMode })
+      
+      let allFoods: Food[] = []
       
       if (searchTerm.trim()) {
-        // Use search if there's a search term
+        // Use search based on view mode
         console.log('Searching for:', searchTerm)
-        const searchResults = await DatabaseService.searchFoods(searchTerm)
-        console.log('Search results:', searchResults)
-        setFoods(searchResults)
-        setTotalCount(searchResults.length)
+        if (viewMode === 'all') {
+          const searchResults = await DatabaseService.searchAllFoods(searchTerm)
+          allFoods = searchResults.map(food => ({ ...food, isCustom: food.isCustom || false }))
+        } else if (viewMode === 'database') {
+          const searchResults = await DatabaseService.searchFoods(searchTerm)
+          allFoods = searchResults.map(food => ({ ...food, isCustom: false }))
+        } else if (viewMode === 'custom') {
+          const searchResults = await DatabaseService.searchCustomFoods(searchTerm)
+          allFoods = searchResults.map(food => ({ ...food, isCustom: true }))
+        }
+        console.log('Search results:', allFoods)
+        setFoods(allFoods)
+        setTotalCount(allFoods.length)
       } else {
-        // Load all foods with pagination
-        console.log('Loading all foods with pagination...')
-        const result = await DatabaseService.getAllFoods(page, rowsPerPage)
-        console.log('Loaded foods:', result)
-        setFoods(result.data)
-        setTotalCount(result.count)
+        // Load foods based on view mode with pagination
+        console.log('Loading foods with pagination...')
+        if (viewMode === 'all') {
+          // Load both database and custom foods
+          const [databaseResult, customFoods] = await Promise.all([
+            DatabaseService.getAllFoods(page, rowsPerPage),
+            DatabaseService.getCustomFoods()
+          ])
+          const combinedFoods = [
+            ...databaseResult.data.map(food => ({ ...food, isCustom: false })),
+            ...(customFoods || []).map(food => ({
+              ...food,
+              id: food.id.toString(),
+              // Convert per-serving to per-100g for consistency
+              calories_per_100g: (food.calories_per_serving || 0) * 100 / (food.serving_size || 100),
+              protein_per_100g: (food.protein_per_serving || 0) * 100 / (food.serving_size || 100),
+              carbs_per_100g: (food.carbs_per_serving || 0) * 100 / (food.serving_size || 100),
+              fat_per_100g: (food.fat_per_serving || 0) * 100 / (food.serving_size || 100),
+              fiber_per_100g: (food.fiber_per_serving || 0) * 100 / (food.serving_size || 100),
+              sugar_per_100g: (food.sugar_per_serving || 0) * 100 / (food.serving_size || 100),
+              sodium_per_100g: (food.sodium_per_serving || 0) * 100 / (food.serving_size || 100),
+              cholesterol_per_100g: 0,
+              potassium_per_100g: 0,
+              iron_per_100g: 0,
+              calcium_per_100g: 0,
+              vitamin_c_per_100g: 0,
+              vitamin_d_per_100g: 0,
+              glycemic_index: null,
+              glycemic_load: null,
+              preparation_state: 'raw',
+              isCustom: true
+            }))
+          ]
+          setFoods(combinedFoods)
+          setTotalCount(databaseResult.count + (customFoods?.length || 0))
+        } else if (viewMode === 'database') {
+          const result = await DatabaseService.getAllFoods(page, rowsPerPage)
+          setFoods(result.data.map(food => ({ ...food, isCustom: false })))
+          setTotalCount(result.count)
+        } else if (viewMode === 'custom') {
+          const customFoods = await DatabaseService.getCustomFoods()
+          const formattedCustomFoods = (customFoods || []).map(food => ({
+            ...food,
+            id: food.id.toString(),
+            // Convert per-serving to per-100g for consistency
+            calories_per_100g: (food.calories_per_serving || 0) * 100 / (food.serving_size || 100),
+            protein_per_100g: (food.protein_per_serving || 0) * 100 / (food.serving_size || 100),
+            carbs_per_100g: (food.carbs_per_serving || 0) * 100 / (food.serving_size || 100),
+            fat_per_100g: (food.fat_per_serving || 0) * 100 / (food.serving_size || 100),
+            fiber_per_100g: (food.fiber_per_serving || 0) * 100 / (food.serving_size || 100),
+            sugar_per_100g: (food.sugar_per_serving || 0) * 100 / (food.serving_size || 100),
+            sodium_per_100g: (food.sodium_per_serving || 0) * 100 / (food.serving_size || 100),
+            cholesterol_per_100g: 0,
+            potassium_per_100g: 0,
+            iron_per_100g: 0,
+            calcium_per_100g: 0,
+            vitamin_c_per_100g: 0,
+            vitamin_d_per_100g: 0,
+            glycemic_index: null,
+            glycemic_load: null,
+            preparation_state: 'raw',
+            isCustom: true
+          }))
+          setFoods(formattedCustomFoods)
+          setTotalCount(formattedCustomFoods.length)
+        }
       }
     } catch (err) {
       console.error('Error loading foods:', err)
@@ -98,6 +217,11 @@ export default function FoodDatabase() {
 
     return () => clearTimeout(timeoutId)
   }, [searchTerm])
+  
+  useEffect(() => {
+    // Reload foods when view mode changes
+    loadFoods()
+  }, [viewMode])
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage)
@@ -171,6 +295,38 @@ export default function FoodDatabase() {
         </Alert>
       )}
 
+      {/* View Mode Toggle and Add Custom Food Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={(_, newMode) => newMode && handleViewModeChange(newMode)}
+          aria-label="food view mode"
+          size="small"
+        >
+          <ToggleButton value="all" aria-label="all foods">
+            <FoodBankIcon sx={{ mr: 1 }} />
+            All Foods
+          </ToggleButton>
+          <ToggleButton value="database" aria-label="database foods">
+            <FoodBankIcon sx={{ mr: 1 }} />
+            Database
+          </ToggleButton>
+          <ToggleButton value="custom" aria-label="custom foods">
+            <PersonIcon sx={{ mr: 1 }} />
+            Custom
+          </ToggleButton>
+        </ToggleButtonGroup>
+        
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setAddCustomDialogOpen(true)}
+          sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+        >
+          Add Custom Food
+        </Button>
+      </Box>
 
       {/* Search Bar */}
       <TextField
@@ -205,10 +361,25 @@ export default function FoodDatabase() {
             <Card key={food.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                  <Typography variant="h6" component="h3">
-                    {food.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                    {food.isCustom ? (
+                      <PersonIcon color="primary" fontSize="small" title="Custom Food" />
+                    ) : (
+                      <FoodBankIcon color="action" fontSize="small" title="Database Food" />
+                    )}
+                    <Typography variant="h6" component="h3">
+                      {food.name}
+                    </Typography>
+                    {food.isCustom && (
+                      <Chip
+                        label="Custom"
+                        size="small"
+                        color="primary"
+                        sx={{ fontSize: '0.7rem', height: '20px' }}
+                      />
+                    )}
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                     {food.category && (
                       <Chip
                         label={food.category}
@@ -229,6 +400,16 @@ export default function FoodDatabase() {
                         fontSize: '0.75rem'
                       }}
                     />
+                    {food.isCustom && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteFood(food)}
+                        title="Delete custom food"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Box>
                 </Box>
                 
@@ -341,6 +522,7 @@ export default function FoodDatabase() {
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Iron (mg)</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Calcium (mg)</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">GI</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -353,9 +535,24 @@ export default function FoodDatabase() {
                   }}
                 >
                   <TableCell component="th" scope="row">
-                    <Typography variant="body2" fontWeight="medium">
-                      {food.name}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {food.isCustom ? (
+                        <PersonIcon color="primary" fontSize="small" title="Custom Food" />
+                      ) : (
+                        <FoodBankIcon color="action" fontSize="small" title="Database Food" />
+                      )}
+                      <Typography variant="body2" fontWeight="medium">
+                        {food.name}
+                      </Typography>
+                      {food.isCustom && (
+                        <Chip
+                          label="Custom"
+                          size="small"
+                          color="primary"
+                          sx={{ fontSize: '0.7rem', height: '20px' }}
+                        />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
@@ -438,6 +635,18 @@ export default function FoodDatabase() {
                       <Typography variant="body2" color="text.secondary">-</Typography>
                     )}
                   </TableCell>
+                  <TableCell align="center">
+                    {food.isCustom && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteFood(food)}
+                        title="Delete custom food"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -463,13 +672,47 @@ export default function FoodDatabase() {
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <FoodBankIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
-            {searchTerm ? 'No foods found matching your search' : 'No foods available in the database'}
+            {searchTerm ? 'No foods found matching your search' : 
+           viewMode === 'custom' ? 'No custom foods created yet' :
+           viewMode === 'database' ? 'No database foods available' :
+           'No foods available'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {searchTerm ? 'Try different search terms' : 'The food database appears to be empty'}
+            {searchTerm ? 'Try different search terms' : 
+             viewMode === 'custom' ? 'Create your first custom food using the button above' :
+             viewMode === 'database' ? 'The food database appears to be empty' :
+             'No foods found in database or custom foods'}
           </Typography>
         </Box>
       )}
+      
+      {/* Add Custom Food Dialog */}
+      <AddCustomFoodDialog
+        open={addCustomDialogOpen}
+        onClose={() => setAddCustomDialogOpen(false)}
+        onSuccess={handleCustomFoodAdded}
+      />
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Delete Custom Food</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{foodToDelete?.name}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
