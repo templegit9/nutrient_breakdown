@@ -103,13 +103,13 @@ export default function FoodDatabase() {
         console.log('Searching for:', searchTerm)
         if (viewMode === 'all') {
           const searchResults = await DatabaseService.searchAllFoods(searchTerm)
-          allFoods = searchResults.map(food => ({ ...food, isCustom: food.isCustom || false }))
+          allFoods = (searchResults || []).map(food => ({ ...food, isCustom: food.isCustom || false }))
         } else if (viewMode === 'database') {
           const searchResults = await DatabaseService.searchFoods(searchTerm)
-          allFoods = searchResults.map(food => ({ ...food, isCustom: false }))
+          allFoods = (searchResults || []).map(food => ({ ...food, isCustom: false }))
         } else if (viewMode === 'custom') {
           const searchResults = await DatabaseService.searchCustomFoods(searchTerm)
-          allFoods = searchResults.map(food => ({ ...food, isCustom: true }))
+          allFoods = (searchResults || []).map(food => ({ ...food, isCustom: true }))
         }
         console.log('Search results:', allFoods)
         setFoods(allFoods)
@@ -124,7 +124,7 @@ export default function FoodDatabase() {
             DatabaseService.getCustomFoods()
           ])
           const combinedFoods = [
-            ...databaseResult.data.map(food => ({ ...food, isCustom: false })),
+            ...(databaseResult?.data || []).map(food => ({ ...food, isCustom: false })),
             ...(customFoods || []).map(food => ({
               ...food,
               id: food.id.toString(),
@@ -149,11 +149,11 @@ export default function FoodDatabase() {
             }))
           ]
           setFoods(combinedFoods)
-          setTotalCount(databaseResult.count + (customFoods?.length || 0))
+          setTotalCount((databaseResult?.count || 0) + (customFoods?.length || 0))
         } else if (viewMode === 'database') {
           const result = await DatabaseService.getAllFoods(page, rowsPerPage)
-          setFoods(result.data.map(food => ({ ...food, isCustom: false })))
-          setTotalCount(result.count)
+          setFoods((result?.data || []).map(food => ({ ...food, isCustom: false })))
+          setTotalCount(result?.count || 0)
         } else if (viewMode === 'custom') {
           const customFoods = await DatabaseService.getCustomFoods()
           const formattedCustomFoods = (customFoods || []).map(food => ({
@@ -192,6 +192,9 @@ export default function FoodDatabase() {
       setLoading(false)
     }
   }
+
+  // Ensure foods is always an array
+  const safeFoods = Array.isArray(foods) ? foods : []
 
   useEffect(() => {
     // Debug: Check database schema on component mount
@@ -268,7 +271,7 @@ export default function FoodDatabase() {
     return value.toFixed(1)
   }
 
-  if (loading && foods.length === 0) {
+  if (loading && safeFoods.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
         <CircularProgress />
@@ -357,7 +360,7 @@ export default function FoodDatabase() {
       {/* Mobile View - Cards */}
       {isMobile ? (
         <Box>
-          {foods.map((food) => (
+          {safeFoods.map((food) => (
             <Card key={food.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -526,7 +529,7 @@ export default function FoodDatabase() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {foods.map((food) => (
+              {safeFoods.map((food) => (
                 <TableRow
                   key={food.id}
                   sx={{ 
@@ -668,7 +671,7 @@ export default function FoodDatabase() {
         />
       )}
 
-      {foods.length === 0 && !loading && (
+      {safeFoods.length === 0 && !loading && (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <FoodBankIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
