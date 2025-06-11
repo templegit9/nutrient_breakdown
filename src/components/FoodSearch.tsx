@@ -63,7 +63,7 @@ export default function FoodSearch({
       const results = await DatabaseService.searchAllFoods(searchTerm);
       console.log('Combined food search results:', results);
       
-      const foodOptions: FoodOption[] = results.map(food => ({
+      const foodOptions: FoodOption[] = (results || []).map(food => ({
         name: food.name,
         category: food.category || 'Other',
         calories: food.calories_per_100g || 0,
