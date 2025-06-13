@@ -344,24 +344,43 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       setLoading(true);
       setError('');
 
+      console.log('Processing conversational foods:', parsedFoods);
+
       // Match parsed foods to database and process each one
       const matchResults = await matchFoodsToDatabase(parsedFoods);
+      console.log('Match results:', matchResults);
+      
+      let successCount = 0;
+      let failureCount = 0;
       
       for (const matchResult of matchResults) {
-        const parsedFood = matchResult.originalParsedFood;
+        const parsedFood = matchResult.originalParsedFood as SmartParsedFood;
         const bestMatch = matchResult.bestMatch;
         
-        if (bestMatch) {
-          // Use the matched database food
-          await processMatchedFood(parsedFood, bestMatch.food);
-        } else {
-          // Create a basic food entry if no match found
-          await processUnmatchedFood(parsedFood);
+        try {
+          if (bestMatch) {
+            console.log(`Processing matched food: ${parsedFood.name} -> ${bestMatch.food.name}`);
+            // Use the matched database food
+            await processMatchedFood(parsedFood, bestMatch.food);
+            successCount++;
+          } else {
+            console.log(`No match found for: ${parsedFood.name}, creating basic entry`);
+            // Create a basic food entry if no match found
+            await processUnmatchedFood(parsedFood);
+            successCount++;
+          }
+        } catch (itemError) {
+          console.error(`Failed to process food: ${parsedFood.name}`, itemError);
+          failureCount++;
         }
       }
       
-      setSuccess(`Successfully added ${matchResults.length} food${matchResults.length > 1 ? 's' : ''}!`);
-      setTimeout(() => setSuccess(''), 3000);
+      if (successCount > 0) {
+        setSuccess(`Successfully added ${successCount} food${successCount > 1 ? 's' : ''}!${failureCount > 0 ? ` (${failureCount} failed)` : ''}`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to process foods. Please try adding them manually.');
+      }
       
     } catch (err) {
       console.error('Error processing conversational foods:', err);

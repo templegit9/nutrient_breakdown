@@ -1,6 +1,7 @@
 import { DatabaseService } from '../services/database';
 import type { DatabaseFood } from '../types';
 import type { ParsedFood } from './conversationalParser';
+import type { SmartParsedFood } from './smartFoodParser';
 
 export interface FoodMatch {
   food: DatabaseFood;
@@ -10,7 +11,7 @@ export interface FoodMatch {
 }
 
 export interface MatchResult {
-  originalParsedFood: ParsedFood;
+  originalParsedFood: ParsedFood | SmartParsedFood;
   matches: FoodMatch[];
   bestMatch?: FoodMatch;
   needsDisambiguation: boolean;
@@ -41,7 +42,8 @@ const foodSynonyms: Record<string, string[]> = {
   
   // Grains
   'rice': ['white rice', 'brown rice'],
-  'bread': ['loaf', 'slice'],
+  'bread': ['loaf', 'slice', 'brioche', 'brioche bread', 'white bread', 'whole wheat bread'],
+  'brioche': ['brioche bread', 'bread'],
   'pasta': ['noodles', 'spaghetti', 'macaroni'],
   'oats': ['oatmeal', 'porridge'],
   
@@ -51,8 +53,8 @@ const foodSynonyms: Record<string, string[]> = {
   'yogurt': ['yoghurt'],
   
   // Beverages
-  'coffee': ['espresso', 'latte', 'cappuccino'],
-  'tea': ['green tea', 'black tea'],
+  'coffee': ['black coffee', 'espresso', 'americano', 'latte', 'cappuccino'],
+  'tea': ['black tea', 'green tea'],
   'water': ['h2o'],
   
   // Nigerian foods
@@ -80,7 +82,9 @@ const foodNamePatterns: Array<{ pattern: RegExp; replacement: string }> = [
 /**
  * Match parsed foods against the database
  */
-export async function matchFoodsToDatabase(parsedFoods: ParsedFood[]): Promise<MatchResult[]> {
+export async function matchFoodsToDatabase(parsedFoods: ParsedFood[]): Promise<MatchResult[]>;
+export async function matchFoodsToDatabase(parsedFoods: SmartParsedFood[]): Promise<MatchResult[]>;
+export async function matchFoodsToDatabase(parsedFoods: (ParsedFood | SmartParsedFood)[]): Promise<MatchResult[]> {
   const results: MatchResult[] = [];
   
   for (const parsedFood of parsedFoods) {
@@ -94,8 +98,9 @@ export async function matchFoodsToDatabase(parsedFoods: ParsedFood[]): Promise<M
 /**
  * Match a single parsed food against the database
  */
-async function matchSingleFood(parsedFood: ParsedFood): Promise<MatchResult> {
-  const foodName = parsedFood.foodName.toLowerCase();
+async function matchSingleFood(parsedFood: ParsedFood | SmartParsedFood): Promise<MatchResult> {
+  // Handle both ParsedFood and SmartParsedFood types
+  const foodName = ('foodName' in parsedFood ? parsedFood.foodName : parsedFood.name).toLowerCase();
   
   // Try different matching strategies in order of preference
   const matches: FoodMatch[] = [];
@@ -334,7 +339,10 @@ export async function testFoodMatcher() {
   console.log('Testing food matcher:');
   const results = await matchFoodsToDatabase(testFoods);
   results.forEach(result => {
-    console.log(`\nOriginal: "${result.originalParsedFood.rawText}"`);
+    const originalText = 'rawText' in result.originalParsedFood 
+      ? result.originalParsedFood.rawText 
+      : result.originalParsedFood.originalText;
+    console.log(`\nOriginal: "${originalText}"`);
     console.log(`Best match: ${result.bestMatch?.food.name || 'No match'}`);
     console.log(`Confidence: ${result.bestMatch?.confidence || 0}`);
     console.log(`Needs disambiguation: ${result.needsDisambiguation}`);
