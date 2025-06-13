@@ -31,7 +31,7 @@ export class SmartFoodParser {
   private isLoaded = false;
 
   /**
-   * Initialize the Transformers.js pipeline
+   * Initialize the Transformers.js pipeline (optional)
    */
   async initialize(): Promise<void> {
     if (this.isLoading || this.isLoaded) return;
@@ -39,24 +39,28 @@ export class SmartFoodParser {
     this.isLoading = true;
     
     try {
-      // Import transformers dynamically to avoid build issues
-      const { pipeline } = await import('@xenova/transformers');
-      
-      // Use a lightweight text generation model for food extraction
-      this.pipeline = await pipeline(
-        'text-generation',
-        'Xenova/distilgpt2',
-        { 
-          revision: 'main',
-          // Configure for smaller memory footprint
-          quantized: true
-        }
-      );
-      
-      this.isLoaded = true;
-      console.log('Smart food parser initialized successfully');
+      // Only try to load transformers in development or when explicitly available
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        const { pipeline } = await import('@xenova/transformers');
+        
+        // Use a lightweight text generation model for food extraction
+        this.pipeline = await pipeline(
+          'text-generation',
+          'Xenova/distilgpt2',
+          { 
+            revision: 'main',
+            quantized: true
+          }
+        );
+        
+        this.isLoaded = true;
+        console.log('Smart food parser initialized with LLM support');
+      } else {
+        console.log('Smart food parser initialized in pattern-only mode (production)');
+        this.isLoaded = false;
+      }
     } catch (error) {
-      console.error('Failed to initialize smart parser:', error);
+      console.warn('Transformers.js not available, using pattern-only parsing:', error);
       this.isLoaded = false;
     } finally {
       this.isLoading = false;

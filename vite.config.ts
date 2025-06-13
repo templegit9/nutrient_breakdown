@@ -3,8 +3,13 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Enable required features for Transformers.js
+  optimizeDeps: {
+    exclude: ['@xenova/transformers']
+  },
   build: {
     rollupOptions: {
+      external: ['@xenova/transformers'],
       output: {
         manualChunks: {
           // Vendor chunks for better caching
