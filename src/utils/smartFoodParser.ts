@@ -109,29 +109,12 @@ export class SmartFoodParser {
     const foods: SmartParsedFood[] = [];
     const normalizedText = text.toLowerCase().trim();
 
-    // Enhanced pattern matching
-    const foodPatterns = [
-      // "2 slices of bread", "3 cups rice"
-      /(\d+(?:\.\d+)?)\s+(slice|slices|cup|cups|piece|pieces|bowl|bowls|glass|glasses|plate|plates|serving|servings|portion|portions)\s+(?:of\s+)?([a-zA-Z\s]+)/g,
-      // "200g chicken", "1.5 oz cheese" 
-      /(\d+(?:\.\d+)?)\s*(g|gram|grams|kg|kilogram|kilograms|oz|ounce|ounces|lb|pound|pounds|ml|milliliter|milliliters|l|liter|liters)\s+(?:of\s+)?([a-zA-Z\s]+)/g,
-      // "a banana", "an apple", "some rice"
-      /(a|an|some|little|bit of)\s+([a-zA-Z\s]+)/g,
-      // "grilled chicken", "baked potato"
-      /(grilled|fried|baked|boiled|steamed|roasted|raw|fresh)\s+([a-zA-Z\s]+)/g,
-      // Just food names without quantities
-      /\b([a-zA-Z]{3,}(?:\s+[a-zA-Z]{3,})*)\b/g
-    ];
-
-    for (const pattern of foodPatterns) {
-      const matches = Array.from(normalizedText.matchAll(pattern));
-      
-      for (const match of matches) {
-        const food = this.extractFoodFromMatch(match, text);
-        if (food && this.isValidFood(food.name)) {
-          foods.push(food);
-        }
-      }
+    // Split by commas to process each food item separately
+    const foodSections = normalizedText.split(',').map(s => s.trim());
+    
+    for (const section of foodSections) {
+      const sectionFoods = this.parseSingleSection(section);
+      foods.push(...sectionFoods);
     }
 
     // Remove duplicates and merge similar foods
@@ -147,6 +130,61 @@ export class SmartFoodParser {
       processingMethod: 'hybrid',
       needsClarification: uniqueFoods.some(f => !f.quantity || !f.unit)
     };
+  }
+
+  /**
+   * Parse a single section (between commas)
+   */
+  private parseSingleSection(section: string): SmartParsedFood[] {
+    const foods: SmartParsedFood[] = [];
+    
+    // Enhanced pattern matching - order matters (most specific first)
+    const foodPatterns = [
+      // "2 slices of bread", "3 cups rice"
+      /(\d+(?:\.\d+)?)\s+(slice|slices|cup|cups|piece|pieces|bowl|bowls|glass|glasses|plate|plates|serving|servings|portion|portions)\s+(?:of\s+)?([a-zA-Z\s]+)/g,
+      // "200g chicken", "1.5 oz cheese" 
+      /(\d+(?:\.\d+)?)\s*(g|gram|grams|kg|kilogram|kilograms|oz|ounce|ounces|lb|pound|pounds|ml|milliliter|milliliters|l|liter|liters)\s+(?:of\s+)?([a-zA-Z\s]+)/g,
+      // "2 eggs", "3 apples" - number + food without explicit unit
+      /(\d+(?:\.\d+)?)\s+([a-zA-Z\s]+?)$/g,
+      // "a banana", "an apple", "some rice"
+      /(a|an|some|little|bit of)\s+([a-zA-Z\s]+)/g,
+      // "grilled chicken", "baked potato"
+      /(grilled|fried|baked|boiled|steamed|roasted|raw|fresh)\s+([a-zA-Z\s]+)/g,
+    ];
+
+    let matched = false;
+    
+    // Try patterns in order of specificity
+    for (const pattern of foodPatterns) {
+      const matches = Array.from(section.matchAll(pattern));
+      
+      for (const match of matches) {
+        const food = this.extractFoodFromMatch(match, section);
+        if (food && this.isValidFood(food.name)) {
+          foods.push(food);
+          matched = true;
+        }
+      }
+      
+      // If we found a match with a specific pattern, don't try more general ones
+      if (matched) break;
+    }
+    
+    // If no pattern matched, try to extract just the food name with default quantity
+    if (!matched) {
+      const cleanSection = section.replace(/^(i had |ate |consumed |drank )/g, '').trim();
+      if (cleanSection.length > 2 && this.isValidFood(cleanSection)) {
+        foods.push({
+          name: this.cleanFoodName(cleanSection),
+          quantity: 1,
+          unit: 'serving',
+          confidence: 0.5,
+          originalText: section
+        });
+      }
+    }
+    
+    return foods;
   }
 
   /**
@@ -167,13 +205,22 @@ export class SmartFoodParser {
       unit = this.normalizeUnit(match[2]);
       name = this.cleanFoodName(match[3]);
     } else if (match.length === 3) {
-      // Pattern with cooking method or quantity word
+      // Pattern with cooking method, quantity word, or number+food
       if (this.isCookingMethod(match[1])) {
         cookingMethod = match[1];
         name = this.cleanFoodName(match[2]);
       } else {
-        quantity = this.parseWordQuantity(match[1]);
-        name = this.cleanFoodName(match[2]);
+        const parsedQuantity = parseFloat(match[1]);
+        if (!isNaN(parsedQuantity)) {
+          // "2 eggs" pattern - number + food
+          quantity = parsedQuantity;
+          name = this.cleanFoodName(match[2]);
+          unit = 'piece'; // Default unit for counted items
+        } else {
+          // Word quantity like "some rice"
+          quantity = this.parseWordQuantity(match[1]);
+          name = this.cleanFoodName(match[2]);
+        }
       }
     } else {
       // Just food name
