@@ -17,17 +17,24 @@ import {
   FormControlLabel,
   Switch,
   Divider,
-  Chip
+  Chip,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
+import ChatIcon from '@mui/icons-material/Chat'
+import FormIcon from '@mui/icons-material/Assignment'
 import { FoodItem } from '../types'
 import { NutrientInfo } from '../types'
 import FoodSearch from './FoodSearch'
+import ConversationalInput from './ConversationalInput'
 import { units, getPortionSuggestions, safeConvertToBaseUnit } from '../utils/unitConversions'
 import { foodCategories, categorizeFoodByName, getCategoryInfo } from '../utils/foodCategories'
 import { adjustNutritionForCooking, getCookingStateDescription } from '../utils/cookingAdjustments'
 import { getTimeOfDay } from '../utils/timeOfDay'
+import type { SmartParsedFood } from '../utils/smartFoodParser'
+import { matchFoodsToDatabase } from '../utils/foodMatcher'
 
 interface FoodEntryProps {
   onAddFood: (food: FoodItem) => Promise<void>;
@@ -35,7 +42,13 @@ interface FoodEntryProps {
 
 // Remove the old static categories - we'll use the dynamic system
 
+type InputMode = 'form' | 'conversation';
+
 export default function FoodEntry({ onAddFood }: FoodEntryProps) {
+  // Input mode state
+  const [inputMode, setInputMode] = useState<InputMode>('form');
+  
+  // Existing form state
   const [foodName, setFoodName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('grams');
@@ -323,6 +336,168 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     }
   };
 
+  /**
+   * Handle foods confirmed from conversational input
+   */
+  const handleConversationalFoodsConfirmed = async (parsedFoods: SmartParsedFood[]) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Match parsed foods to database and process each one
+      const matchResults = await matchFoodsToDatabase(parsedFoods);
+      
+      for (const matchResult of matchResults) {
+        const parsedFood = matchResult.originalParsedFood;
+        const bestMatch = matchResult.bestMatch;
+        
+        if (bestMatch) {
+          // Use the matched database food
+          await processMatchedFood(parsedFood, bestMatch.food);
+        } else {
+          // Create a basic food entry if no match found
+          await processUnmatchedFood(parsedFood);
+        }
+      }
+      
+      setSuccess(`Successfully added ${matchResults.length} food${matchResults.length > 1 ? 's' : ''}!`);
+      setTimeout(() => setSuccess(''), 3000);
+      
+    } catch (err) {
+      console.error('Error processing conversational foods:', err);
+      setError('Failed to process some foods. Please try adding them manually.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Process a matched food from conversational input
+   */
+  const processMatchedFood = async (parsedFood: SmartParsedFood, dbFood: any) => {
+    const quantity = parsedFood.quantity || 1;
+    const unit = parsedFood.unit || 'g';
+    
+    // Convert units to grams for proper nutrition calculation
+    const convertedAmount = safeConvertToBaseUnit(quantity, unit, dbFood.name.toLowerCase());
+    
+    let gramsAmount = convertedAmount.grams;
+    
+    // Use the same fallback logic as form submission
+    if (!convertedAmount.isValid) {
+      if (dbFood.isCustom && dbFood.serving_unit && dbFood.serving_size) {
+        if ((unit === 'slices' || unit === 'slice') && 
+            (dbFood.serving_unit === 'slice' || dbFood.serving_unit === 'slices')) {
+          gramsAmount = quantity * dbFood.serving_size;
+        } else if ((unit === 'pieces' || unit === 'piece') && 
+                   (dbFood.serving_unit === 'piece' || dbFood.serving_unit === 'pieces')) {
+          gramsAmount = quantity * dbFood.serving_size;
+        } else if (unit === dbFood.serving_unit) {
+          gramsAmount = quantity * dbFood.serving_size;
+        } else {
+          gramsAmount = quantity * 100; // Fallback
+        }
+      } else {
+        // Standard fallbacks
+        if (unit === 'pieces') gramsAmount = quantity * 100;
+        else if (unit === 'slices') gramsAmount = quantity * 25;
+        else if (unit === 'cups') gramsAmount = quantity * 240;
+        else gramsAmount = quantity;
+      }
+    }
+    
+    const scaleFactor = gramsAmount / 100;
+    
+    const rawNutrition = {
+      calories: dbFood.calories_per_100g * scaleFactor,
+      protein: dbFood.protein_per_100g * scaleFactor,
+      carbs: dbFood.carbs_per_100g * scaleFactor,
+      fat: dbFood.fat_per_100g * scaleFactor,
+      fiber: (dbFood.fiber_per_100g || 0) * scaleFactor,
+      sugar: (dbFood.sugar_per_100g || 0) * scaleFactor,
+      sodium: (dbFood.sodium_per_100g || 0) * scaleFactor,
+    };
+    
+    // Apply cooking adjustments
+    const cookingStateToUse = parsedFood.cookingMethod || 'raw';
+    const adjustedNutrition = adjustNutritionForCooking(rawNutrition, cookingStateToUse as any);
+    
+    const nutrients: NutrientInfo[] = [
+      { id: 'protein', name: 'Protein', amount: adjustedNutrition.protein, unit: 'g', category: 'macronutrient' },
+      { id: 'carbs', name: 'Carbohydrates', amount: adjustedNutrition.carbs, unit: 'g', category: 'macronutrient' },
+      { id: 'fat', name: 'Fat', amount: adjustedNutrition.fat, unit: 'g', category: 'macronutrient' },
+      { id: 'fiber', name: 'Fiber', amount: adjustedNutrition.fiber, unit: 'g', category: 'other' },
+      { id: 'sugar', name: 'Sugar', amount: adjustedNutrition.sugar, unit: 'g', category: 'other' },
+      { id: 'sodium', name: 'Sodium', amount: adjustedNutrition.sodium, unit: 'mg', category: 'mineral' }
+    ];
+    
+    const currentTime = new Date();
+    const foodItem: FoodItem = {
+      id: Date.now().toString() + Math.random(),
+      name: parsedFood.name,
+      quantity,
+      unit,
+      category: dbFood.category || 'other',
+      dateAdded: currentTime,
+      timeOfDay: getTimeOfDay(currentTime),
+      cookingState: cookingStateToUse as any,
+      calories: adjustedNutrition.calories,
+      nutrients
+    };
+    
+    await onAddFood(foodItem);
+  };
+
+  /**
+   * Process an unmatched food from conversational input
+   */
+  const processUnmatchedFood = async (parsedFood: SmartParsedFood) => {
+    const quantity = parsedFood.quantity || 1;
+    const unit = parsedFood.unit || 'g';
+    
+    // Use basic nutrition estimation
+    const baseCalories = 100;
+    const rawCalories = (baseCalories * quantity) / 100;
+    
+    const rawNutrition = {
+      calories: rawCalories,
+      protein: rawCalories * 0.1 / 4,
+      carbs: rawCalories * 0.5 / 4,
+      fat: rawCalories * 0.3 / 9,
+      fiber: rawCalories * 0.05 / 4,
+      sugar: rawCalories * 0.2 / 4,
+      sodium: rawCalories * 0.01,
+    };
+    
+    const cookingStateToUse = parsedFood.cookingMethod || 'raw';
+    const adjustedNutrition = adjustNutritionForCooking(rawNutrition, cookingStateToUse as any);
+    
+    const nutrients: NutrientInfo[] = [
+      { id: 'protein', name: 'Protein', amount: adjustedNutrition.protein, unit: 'g', category: 'macronutrient' },
+      { id: 'carbs', name: 'Carbohydrates', amount: adjustedNutrition.carbs, unit: 'g', category: 'macronutrient' },
+      { id: 'fat', name: 'Fat', amount: adjustedNutrition.fat, unit: 'g', category: 'macronutrient' },
+      { id: 'fiber', name: 'Fiber', amount: adjustedNutrition.fiber, unit: 'g', category: 'other' },
+      { id: 'sugar', name: 'Sugar', amount: adjustedNutrition.sugar, unit: 'g', category: 'other' },
+      { id: 'sodium', name: 'Sodium', amount: adjustedNutrition.sodium, unit: 'mg', category: 'mineral' }
+    ];
+    
+    const currentTime = new Date();
+    const foodItem: FoodItem = {
+      id: Date.now().toString() + Math.random(),
+      name: parsedFood.name,
+      quantity,
+      unit,
+      category: categorizeFoodByName(parsedFood.name),
+      dateAdded: currentTime,
+      timeOfDay: getTimeOfDay(currentTime),
+      cookingState: cookingStateToUse as any,
+      calories: adjustedNutrition.calories,
+      nutrients
+    };
+    
+    await onAddFood(foodItem);
+  };
+
   const handleClearForm = () => {
     setFoodName('');
     setQuantity('');
@@ -407,17 +582,32 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       boxShadow: { xs: 1, md: 3 }
     }}>
       <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-        <Typography 
-          variant={isMobile ? "h6" : "h5"} 
-          gutterBottom 
-          color="primary"
-          sx={{ 
-            fontWeight: 600,
-            mb: { xs: 2, md: 3 }
-          }}
-        >
-          Add Food Item
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, md: 3 } }}>
+          <Typography 
+            variant={isMobile ? "h6" : "h5"} 
+            color="primary"
+            sx={{ fontWeight: 600 }}
+          >
+            Add Food Item
+          </Typography>
+          
+          <ToggleButtonGroup
+            value={inputMode}
+            exclusive
+            onChange={(_, newMode) => newMode && setInputMode(newMode)}
+            size="small"
+            aria-label="input mode"
+          >
+            <ToggleButton value="form" aria-label="form mode">
+              <FormIcon sx={{ mr: 0.5 }} />
+              Form
+            </ToggleButton>
+            <ToggleButton value="conversation" aria-label="conversation mode">
+              <ChatIcon sx={{ mr: 0.5 }} />
+              Chat
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -431,25 +621,31 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} noValidate>
-          <Grid container spacing={{ xs: 2, md: 3 }}>
-            <Grid item xs={12} md={6}>
-              <Box>
-                <FoodSearch
-                  value={foodName}
-                  onChange={handleFoodNameChange}
-                  onFoodSelect={handleFoodSelect}
-                  placeholder="e.g., Apple, Chicken breast, Brown rice"
-                  disabled={loading}
-                />
-                {validationErrors.foodName && (
-                  <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                    {validationErrors.foodName}
-                  </Typography>
-                )}
-                {suggestedCategory && (
-                  <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block' }}>
-                    Suggested category: {suggestedCategory}
+        {inputMode === 'conversation' ? (
+          <ConversationalInput
+            onFoodsConfirmed={handleConversationalFoodsConfirmed}
+            disabled={loading}
+          />
+        ) : (
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
+              <Grid item xs={12} md={6}>
+                <Box>
+                  <FoodSearch
+                    value={foodName}
+                    onChange={handleFoodNameChange}
+                    onFoodSelect={handleFoodSelect}
+                    placeholder="e.g., Apple, Chicken breast, Brown rice"
+                    disabled={loading}
+                  />
+                  {validationErrors.foodName && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                      {validationErrors.foodName}
+                    </Typography>
+                  )}
+                  {suggestedCategory && (
+                    <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block' }}>
+                      Suggested category: {suggestedCategory}
                   </Typography>
                 )}
               </Box>
@@ -736,7 +932,8 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
               </Box>
             </Grid>
           </Grid>
-        </Box>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
