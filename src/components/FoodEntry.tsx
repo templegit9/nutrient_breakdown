@@ -397,14 +397,28 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const quantity = parsedFood.quantity || 1;
     const unit = parsedFood.unit || 'g';
     
+    console.log(`Processing matched food: ${parsedFood.name}`, {
+      quantity,
+      unit,
+      dbFood: {
+        name: dbFood.name,
+        calories_per_100g: dbFood.calories_per_100g,
+        protein_per_100g: dbFood.protein_per_100g,
+        isCustom: dbFood.isCustom
+      }
+    });
+    
     // Convert units to grams for proper nutrition calculation
     const convertedAmount = safeConvertToBaseUnit(quantity, unit, dbFood.name.toLowerCase());
+    console.log('Unit conversion result:', convertedAmount);
     
     let gramsAmount = convertedAmount.grams;
     
     // Use the same fallback logic as form submission
     if (!convertedAmount.isValid) {
+      console.log('Unit conversion failed, using fallback logic');
       if (dbFood.isCustom && dbFood.serving_unit && dbFood.serving_size) {
+        console.log('Using custom food serving size logic');
         if ((unit === 'slices' || unit === 'slice') && 
             (dbFood.serving_unit === 'slice' || dbFood.serving_unit === 'slices')) {
           gramsAmount = quantity * dbFood.serving_size;
@@ -417,25 +431,34 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
           gramsAmount = quantity * 100; // Fallback
         }
       } else {
+        console.log('Using standard fallbacks for unit:', unit);
         // Standard fallbacks
-        if (unit === 'pieces') gramsAmount = quantity * 100;
+        if (unit === 'piece') gramsAmount = quantity * 50; // Better default for eggs
+        else if (unit === 'pieces') gramsAmount = quantity * 50;
+        else if (unit === 'slice') gramsAmount = quantity * 25;
         else if (unit === 'slices') gramsAmount = quantity * 25;
+        else if (unit === 'cup') gramsAmount = quantity * 240;
         else if (unit === 'cups') gramsAmount = quantity * 240;
+        else if (unit === 'serving') gramsAmount = quantity * 200; // Better default for coffee
         else gramsAmount = quantity;
       }
+      console.log('Final fallback grams amount:', gramsAmount);
     }
     
     const scaleFactor = gramsAmount / 100;
+    console.log('Scale factor calculation:', { gramsAmount, scaleFactor });
     
     const rawNutrition = {
-      calories: dbFood.calories_per_100g * scaleFactor,
-      protein: dbFood.protein_per_100g * scaleFactor,
-      carbs: dbFood.carbs_per_100g * scaleFactor,
-      fat: dbFood.fat_per_100g * scaleFactor,
+      calories: (dbFood.calories_per_100g || 0) * scaleFactor,
+      protein: (dbFood.protein_per_100g || 0) * scaleFactor,
+      carbs: (dbFood.carbs_per_100g || 0) * scaleFactor,
+      fat: (dbFood.fat_per_100g || 0) * scaleFactor,
       fiber: (dbFood.fiber_per_100g || 0) * scaleFactor,
       sugar: (dbFood.sugar_per_100g || 0) * scaleFactor,
       sodium: (dbFood.sodium_per_100g || 0) * scaleFactor,
     };
+    
+    console.log('Raw nutrition calculated:', rawNutrition);
     
     // Apply cooking adjustments
     const cookingStateToUse = parsedFood.cookingMethod || 'raw';
@@ -474,9 +497,29 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const quantity = parsedFood.quantity || 1;
     const unit = parsedFood.unit || 'g';
     
-    // Use basic nutrition estimation
-    const baseCalories = 100;
-    const rawCalories = (baseCalories * quantity) / 100;
+    console.log(`Processing unmatched food: ${parsedFood.name}`, { quantity, unit });
+    
+    // Use basic nutrition estimation based on food type and unit
+    let baseCalories = 100;
+    let gramsAmount = quantity;
+    
+    // Better estimates based on unit and food type
+    if (unit === 'piece') {
+      gramsAmount = quantity * 50; // Average piece size
+      if (parsedFood.name.toLowerCase().includes('egg')) {
+        baseCalories = 70; // Calories per egg (50g)
+        gramsAmount = quantity * 50; // Average egg weight
+      }
+    } else if (unit === 'serving') {
+      gramsAmount = quantity * 200; // Average serving size
+      if (parsedFood.name.toLowerCase().includes('coffee')) {
+        baseCalories = 2; // Coffee is very low calorie
+        gramsAmount = quantity * 240; // Cup of coffee
+      }
+    }
+    
+    const rawCalories = (baseCalories * gramsAmount) / 100;
+    console.log('Unmatched food calculation:', { baseCalories, gramsAmount, rawCalories });
     
     const rawNutrition = {
       calories: rawCalories,
