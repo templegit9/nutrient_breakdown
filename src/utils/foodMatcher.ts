@@ -43,7 +43,9 @@ const foodSynonyms: Record<string, string[]> = {
   // Grains
   'rice': ['white rice', 'brown rice'],
   'bread': ['loaf', 'slice', 'brioche', 'brioche bread', 'white bread', 'whole wheat bread'],
-  'brioche': ['brioche bread', 'bread'],
+  'brioche': ['bread', 'white bread'],
+  'brioche bread': ['bread', 'white bread'],
+  'white bread': ['bread', 'brioche', 'brioche bread'],
   'pasta': ['noodles', 'spaghetti', 'macaroni'],
   'oats': ['oatmeal', 'porridge'],
   
@@ -221,13 +223,16 @@ async function findPartialMatches(foodName: string): Promise<FoodMatch[]> {
  * Find matches using synonyms
  */
 async function findSynonymMatches(foodName: string): Promise<FoodMatch[]> {
+  console.log(`🔍 Searching for synonym matches: "${foodName}"`);
   const matches: FoodMatch[] = [];
   
   // Check if foodName is a synonym for any known food
   for (const [standardName, synonyms] of Object.entries(foodSynonyms)) {
     if (synonyms.some(synonym => synonym.toLowerCase() === foodName)) {
+      console.log(`📝 Found synonym mapping: "${foodName}" → "${standardName}"`);
       try {
         const results = await DatabaseService.searchAllFoods(standardName);
+        console.log(`🔍 Searching database for synonym "${standardName}": ${results?.length || 0} results`);
         
         matches.push(...(results || []).map(food => ({
           food,
@@ -236,10 +241,37 @@ async function findSynonymMatches(foodName: string): Promise<FoodMatch[]> {
           matchedName: food.name
         })));
       } catch (error) {
-        console.error(`Error searching for synonym ${standardName}:`, error);
+        console.error(`❌ Error searching for synonym ${standardName}:`, error);
       }
     }
   }
+  
+  // Also check if any synonym contains our food name (for partial matches)
+  if (matches.length === 0) {
+    for (const [standardName, synonyms] of Object.entries(foodSynonyms)) {
+      if (synonyms.some(synonym => foodName.includes(synonym.toLowerCase()) || synonym.toLowerCase().includes(foodName))) {
+        console.log(`📝 Found partial synonym mapping: "${foodName}" ↔ "${standardName}"`);
+        try {
+          const results = await DatabaseService.searchAllFoods(standardName);
+          console.log(`🔍 Partial synonym search for "${standardName}": ${results?.length || 0} results`);
+          
+          matches.push(...(results || []).map(food => ({
+            food,
+            confidence: 0.7, // Lower confidence for partial matches
+            matchType: 'synonym' as const,
+            matchedName: food.name
+          })));
+        } catch (error) {
+          console.error(`❌ Error searching for partial synonym ${standardName}:`, error);
+        }
+      }
+    }
+  }
+  
+  console.log(`🎯 Synonym matches found: ${matches.length}`);
+  matches.forEach((match, idx) => {
+    console.log(`  ${idx + 1}. ${match.food.name} (confidence: ${match.confidence})`);
+  });
   
   return matches;
 }
