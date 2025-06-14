@@ -151,9 +151,19 @@ async function matchSingleFood(parsedFood: ParsedFood | SmartParsedFood): Promis
  */
 async function findExactMatches(foodName: string): Promise<FoodMatch[]> {
   try {
+    console.log(`🔍 Searching database for exact match: "${foodName}"`);
     const results = await DatabaseService.searchAllFoods(foodName);
+    console.log(`📊 Database returned ${results?.length || 0} results for "${foodName}":`);
     
-    return (results || [])
+    if (results && results.length > 0) {
+      results.forEach((food, idx) => {
+        console.log(`  ${idx + 1}. ${food.name} (${food.calories_per_100g || 'NO CALORIES'} cal/100g)`);
+      });
+    } else {
+      console.log(`  ❌ No foods found in database for "${foodName}"`);
+    }
+    
+    const exactMatches = (results || [])
       .filter(food => food.name.toLowerCase() === foodName)
       .map(food => ({
         food,
@@ -161,8 +171,11 @@ async function findExactMatches(foodName: string): Promise<FoodMatch[]> {
         matchType: 'exact' as const,
         matchedName: food.name
       }));
+      
+    console.log(`🎯 Exact matches found: ${exactMatches.length}`);
+    return exactMatches;
   } catch (error) {
-    console.error('Error in exact match search:', error);
+    console.error('❌ Error in exact match search:', error);
     return [];
   }
 }
@@ -172,9 +185,10 @@ async function findExactMatches(foodName: string): Promise<FoodMatch[]> {
  */
 async function findPartialMatches(foodName: string): Promise<FoodMatch[]> {
   try {
+    console.log(`🔍 Searching for partial matches: "${foodName}"`);
     const results = await DatabaseService.searchAllFoods(foodName);
     
-    return (results || [])
+    const partialMatches = (results || [])
       .filter(food => {
         const dbName = food.name.toLowerCase();
         return dbName.includes(foodName) || foodName.includes(dbName);
@@ -190,8 +204,15 @@ async function findPartialMatches(foodName: string): Promise<FoodMatch[]> {
           matchedName: food.name
         };
       });
+      
+    console.log(`🎯 Partial matches found: ${partialMatches.length}`);
+    partialMatches.forEach((match, idx) => {
+      console.log(`  ${idx + 1}. ${match.food.name} (confidence: ${match.confidence.toFixed(2)})`);
+    });
+    
+    return partialMatches;
   } catch (error) {
-    console.error('Error in partial match search:', error);
+    console.error('❌ Error in partial match search:', error);
     return [];
   }
 }
