@@ -178,11 +178,17 @@ export class SLMTrainer {
   }
 
   private async predictWithLLM(mealDescription: string): Promise<SmartParsedFood[]> {
+    // Temporarily disable LLM due to hallucination issues
+    // TODO: Find a better model or improve prompting
+    console.log('LLM disabled due to hallucination issues, using pattern matching');
+    return [];
+    
+    /* DISABLED CODE:
     const prompt = this.createFoodExtractionPrompt(mealDescription);
     
     // Try primary model first
     try {
-      const result = await this.callHuggingFaceAPI(this.HUGGING_FACE_API_URL, prompt);
+      const result = await this.callHuggingFaceAPI(this.HUGGING_FACE_API_URL, prompt, mealDescription);
       if (result.length > 0) {
         return result;
       }
@@ -192,7 +198,7 @@ export class SLMTrainer {
 
     // Try backup model
     try {
-      const result = await this.callHuggingFaceAPI(this.BACKUP_API_URL, prompt);
+      const result = await this.callHuggingFaceAPI(this.BACKUP_API_URL, prompt, mealDescription);
       if (result.length > 0) {
         return result;
       }
@@ -201,9 +207,10 @@ export class SLMTrainer {
     }
 
     return [];
+    */
   }
 
-  private async callHuggingFaceAPI(apiUrl: string, prompt: string): Promise<SmartParsedFood[]> {
+  private async callHuggingFaceAPI(apiUrl: string, prompt: string, originalInput: string): Promise<SmartParsedFood[]> {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -229,44 +236,57 @@ export class SLMTrainer {
     const data: HuggingFaceResponse[] = await response.json();
     
     if (data && data[0] && data[0].generated_text) {
-      return this.parseLLMResponse(data[0].generated_text);
+      return this.parseLLMResponse(data[0].generated_text, originalInput);
     }
     
     return [];
   }
 
   private createFoodExtractionPrompt(mealDescription: string): string {
-    return `Extract food items from this meal description. Return ONLY a JSON array.
+    return `You are a precise food extraction assistant. Extract ONLY the foods actually mentioned in the input.
 
-Task: Break down "${mealDescription}" into individual food components with quantities.
+INPUT: "${mealDescription}"
 
-Rules:
-- Return valid JSON array only
-- Each item needs: food, quantity, unit
-- Use common food names that exist in nutrition databases
-- Estimate reasonable portions if not specified
-- Units: g, cup, slice, piece, tbsp, tsp, medium, large, small
+STRICT RULES:
+1. Extract ONLY foods explicitly mentioned in the input text
+2. Do NOT add foods not mentioned
+3. Do NOT substitute or replace foods  
+4. Return valid JSON array format only
+5. Use exact food names from the input when possible
 
-Examples:
-"rice and chicken" → [{"food":"rice","quantity":1,"unit":"cup"},{"food":"chicken","quantity":100,"unit":"g"}]
-"2 eggs with toast" → [{"food":"eggs","quantity":2,"unit":"large"},{"food":"bread","quantity":2,"unit":"slice"}]
+REQUIRED FORMAT:
+[{"food":"exact_food_name","quantity":number,"unit":"string"}]
 
-Now extract from: "${mealDescription}"`;
+EXAMPLES:
+Input: "rice and chicken" → [{"food":"rice","quantity":1,"unit":"cup"},{"food":"chicken","quantity":100,"unit":"g"}]
+Input: "2 eggs with toast" → [{"food":"eggs","quantity":2,"unit":"large"},{"food":"bread","quantity":2,"unit":"slice"}]
+Input: "macaroni and chicken" → [{"food":"macaroni","quantity":1,"unit":"cup"},{"food":"chicken","quantity":100,"unit":"g"}]
+
+EXTRACT FROM: "${mealDescription}"
+RESPONSE (JSON only):`;
   }
 
-  private parseLLMResponse(responseText: string): SmartParsedFood[] {
+  private parseLLMResponse(responseText: string, originalInput: string): SmartParsedFood[] {
     try {
       // Try to extract JSON from response
       const jsonMatch = responseText.match(/\[.*?\]/s);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (Array.isArray(parsed)) {
-          return parsed.map(item => ({
+          const foods = parsed.map(item => ({
             food: this.cleanAndValidateFoodName(item.food || item.name || ''),
             quantity: item.quantity || 1,
             unit: this.normalizeUnit(item.unit || 'serving'),
-            confidence: 0.85 // High confidence for LLM predictions
+            confidence: 0.6 // Lower confidence due to hallucination issues
           })).filter(item => item.food !== ''); // Remove empty food names
+          
+          // Validate that LLM response makes sense for the input
+          if (this.validateLLMResponse(foods, originalInput)) {
+            return foods;
+          } else {
+            console.warn('LLM response validation failed - hallucination detected');
+            return [];
+          }
         }
       }
       
@@ -276,6 +296,81 @@ Now extract from: "${mealDescription}"`;
       console.warn('Failed to parse LLM response:', error);
       return this.parseTextResponse(responseText);
     }
+  }
+
+  private validateLLMResponse(foods: SmartParsedFood[], originalInput: string): boolean {
+    if (foods.length === 0) return false;
+    
+    const inputWords = originalInput.toLowerCase().split(/\s+/);
+    let matchCount = 0;
+    
+    // Check if at least one detected food has some relation to input words
+    for (const food of foods) {
+      const foodWords = food.food.toLowerCase().split(/\s+/);
+      
+      // Check for direct word matches or partial matches
+      for (const foodWord of foodWords) {
+        for (const inputWord of inputWords) {
+          if (
+            inputWord.includes(foodWord) || 
+            foodWord.includes(inputWord) ||
+            this.areSimilarWords(foodWord, inputWord)
+          ) {
+            matchCount++;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Require at least 50% of detected foods to have some relation to input
+    const validationRatio = matchCount / foods.length;
+    const isValid = validationRatio >= 0.5;
+    
+    if (!isValid) {
+      console.warn(`LLM validation failed: ${matchCount}/${foods.length} foods match input`);
+      console.warn('Detected foods:', foods.map(f => f.food));
+      console.warn('Original input:', originalInput);
+    }
+    
+    return isValid;
+  }
+
+  private areSimilarWords(word1: string, word2: string): boolean {
+    // Check for common food synonyms and variations
+    const synonyms: Record<string, string[]> = {
+      'pasta': ['macaroni', 'noodles', 'spaghetti'],
+      'macaroni': ['pasta', 'noodles'],
+      'chicken': ['poultry', 'bird'],
+      'beef': ['meat', 'steak'],
+      'bread': ['toast', 'bun', 'roll'],
+      'rice': ['grain']
+    };
+    
+    // Check if words are synonyms
+    for (const [key, values] of Object.entries(synonyms)) {
+      if ((key === word1 && values.includes(word2)) || 
+          (key === word2 && values.includes(word1))) {
+        return true;
+      }
+    }
+    
+    // Check if words share significant letters (simple similarity)
+    if (word1.length >= 4 && word2.length >= 4) {
+      const shorter = word1.length < word2.length ? word1 : word2;
+      const longer = word1.length >= word2.length ? word1 : word2;
+      
+      let commonChars = 0;
+      for (let i = 0; i < shorter.length; i++) {
+        if (longer.includes(shorter[i])) {
+          commonChars++;
+        }
+      }
+      
+      return (commonChars / shorter.length) >= 0.6;
+    }
+    
+    return false;
   }
 
   private cleanAndValidateFoodName(foodName: string): string {

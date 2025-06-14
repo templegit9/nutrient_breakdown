@@ -76,7 +76,7 @@ export class SmartFoodParser {
     try {
       const slmResult = await slmTrainer.predict(text);
       
-      if (slmResult.length > 0 && slmResult.every(f => f.confidence > 0.6)) {
+      if (slmResult.length > 0 && slmResult.every(f => f.confidence > 0.7)) {
         return {
           foods: slmResult.map(f => ({
             ...f,
