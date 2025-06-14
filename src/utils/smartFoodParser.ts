@@ -73,19 +73,23 @@ export class SmartFoodParser {
    */
   async parseFood(text: string): Promise<SmartParseResult> {
     // Try SLM prediction first (most accurate for complete meals)
-    const slmResult = slmTrainer.predict(text);
-    
-    if (slmResult.length > 0 && slmResult.every(f => f.confidence > 0.6)) {
-      return {
-        foods: slmResult.map(f => ({
-          ...f,
-          originalText: text
-        })),
-        originalText: text,
-        processingMethod: 'llm',
-        needsClarification: slmResult.some(f => !f.quantity || !f.unit),
-        mealType: this.extractMealType(text.toLowerCase())
-      };
+    try {
+      const slmResult = await slmTrainer.predict(text);
+      
+      if (slmResult.length > 0 && slmResult.every(f => f.confidence > 0.6)) {
+        return {
+          foods: slmResult.map(f => ({
+            ...f,
+            originalText: text
+          })),
+          originalText: text,
+          processingMethod: 'llm',
+          needsClarification: slmResult.some(f => !f.quantity || !f.unit),
+          mealType: this.extractMealType(text.toLowerCase())
+        };
+      }
+    } catch (error) {
+      console.warn('SLM prediction failed, falling back to pattern matching:', error);
     }
 
     // Fall back to pattern matching
@@ -112,8 +116,16 @@ export class SmartFoodParser {
       }
     }
 
-    // Merge SLM and pattern results
-    const mergedFoods = [...slmResult, ...patternResult.foods];
+    // Try SLM again as fallback merge
+    let slmFallback: SmartParsedFood[] = [];
+    try {
+      slmFallback = await slmTrainer.predict(text);
+    } catch (error) {
+      console.warn('SLM fallback failed:', error);
+    }
+
+    // Merge SLM fallback and pattern results
+    const mergedFoods = [...slmFallback, ...patternResult.foods];
     const uniqueFoods = this.deduplicateFoods(mergedFoods.map(f => ({
       ...f,
       food: f.food || 'unknown',

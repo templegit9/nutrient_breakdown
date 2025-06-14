@@ -19,8 +19,18 @@ export interface TrainingExample {
   };
 }
 
+export interface HuggingFaceResponse {
+  generated_text?: string;
+  error?: string;
+}
+
 export class SLMTrainer {
   private trainingData: TrainingExample[] = [];
+  // Use a more capable instruction-following model
+  private readonly HUGGING_FACE_API_URL = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-large';
+  private readonly BACKUP_API_URL = 'https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill';
+  private readonly API_KEY = import.meta.env.VITE_HUGGING_FACE_TOKEN || 'hf_placeholder';
+  private isInitialized = false;
 
   constructor() {
     this.loadTrainingData();
@@ -129,11 +139,20 @@ export class SLMTrainer {
     }
   }
 
-  // Simple rule-based model for now (can be replaced with neural network later)
-  predict(mealDescription: string): SmartParsedFood[] {
+  // Advanced LLM-powered food breakdown using Hugging Face API
+  async predict(mealDescription: string): Promise<SmartParsedFood[]> {
+    try {
+      // Try LLM first for best results
+      const llmResult = await this.predictWithLLM(mealDescription);
+      if (llmResult.length > 0) {
+        return llmResult;
+      }
+    } catch (error) {
+      console.warn('LLM prediction failed, using fallback:', error);
+    }
+
+    // Fallback to training data matching
     const normalizedInput = mealDescription.toLowerCase();
-    
-    // Find closest training example using enhanced keyword matching
     let bestMatch: TrainingExample | null = null;
     let bestScore = 0;
     
@@ -146,17 +165,224 @@ export class SLMTrainer {
     }
     
     if (bestMatch && bestScore > 0.25) {
-      // Convert training format to SmartParsedFood format
       return bestMatch.output.components.map(component => ({
         food: component.name,
         quantity: component.quantity,
         unit: component.unit,
-        confidence: Math.min(bestScore + 0.2, 1.0) // Boost confidence for SLM predictions
+        confidence: Math.min(bestScore + 0.2, 1.0)
       }));
     }
     
-    // Fallback to basic parsing if no good match found
+    // Final fallback to basic parsing
     return this.basicParse(mealDescription);
+  }
+
+  private async predictWithLLM(mealDescription: string): Promise<SmartParsedFood[]> {
+    const prompt = this.createFoodExtractionPrompt(mealDescription);
+    
+    // Try primary model first
+    try {
+      const result = await this.callHuggingFaceAPI(this.HUGGING_FACE_API_URL, prompt);
+      if (result.length > 0) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('Primary model failed, trying backup:', error);
+    }
+
+    // Try backup model
+    try {
+      const result = await this.callHuggingFaceAPI(this.BACKUP_API_URL, prompt);
+      if (result.length > 0) {
+        return result;
+      }
+    } catch (error) {
+      console.error('Both models failed:', error);
+    }
+
+    return [];
+  }
+
+  private async callHuggingFaceAPI(apiUrl: string, prompt: string): Promise<SmartParsedFood[]> {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 200,
+          temperature: 0.2, // Lower temperature for more consistent results
+          do_sample: true,
+          return_full_text: false,
+          repetition_penalty: 1.1
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data: HuggingFaceResponse[] = await response.json();
+    
+    if (data && data[0] && data[0].generated_text) {
+      return this.parseLLMResponse(data[0].generated_text);
+    }
+    
+    return [];
+  }
+
+  private createFoodExtractionPrompt(mealDescription: string): string {
+    return `Extract food items from this meal description. Return ONLY a JSON array.
+
+Task: Break down "${mealDescription}" into individual food components with quantities.
+
+Rules:
+- Return valid JSON array only
+- Each item needs: food, quantity, unit
+- Use common food names that exist in nutrition databases
+- Estimate reasonable portions if not specified
+- Units: g, cup, slice, piece, tbsp, tsp, medium, large, small
+
+Examples:
+"rice and chicken" → [{"food":"rice","quantity":1,"unit":"cup"},{"food":"chicken","quantity":100,"unit":"g"}]
+"2 eggs with toast" → [{"food":"eggs","quantity":2,"unit":"large"},{"food":"bread","quantity":2,"unit":"slice"}]
+
+Now extract from: "${mealDescription}"`;
+  }
+
+  private parseLLMResponse(responseText: string): SmartParsedFood[] {
+    try {
+      // Try to extract JSON from response
+      const jsonMatch = responseText.match(/\[.*?\]/s);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => ({
+            food: this.cleanAndValidateFoodName(item.food || item.name || ''),
+            quantity: item.quantity || 1,
+            unit: this.normalizeUnit(item.unit || 'serving'),
+            confidence: 0.85 // High confidence for LLM predictions
+          })).filter(item => item.food !== ''); // Remove empty food names
+        }
+      }
+      
+      // Fallback parsing if JSON extraction fails
+      return this.parseTextResponse(responseText);
+    } catch (error) {
+      console.warn('Failed to parse LLM response:', error);
+      return this.parseTextResponse(responseText);
+    }
+  }
+
+  private cleanAndValidateFoodName(foodName: string): string {
+    if (!foodName || typeof foodName !== 'string') {
+      return '';
+    }
+    
+    // Clean the food name
+    let cleaned = foodName
+      .toLowerCase()
+      .trim()
+      .replace(/^(i had |i ate |ate |had |some |a |an |the )/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Validate minimum length
+    if (cleaned.length < 2) {
+      return '';
+    }
+    
+    // Remove common non-food words
+    const nonFoodWords = ['unknown', 'food', 'item', 'thing', 'stuff', 'something'];
+    if (nonFoodWords.includes(cleaned)) {
+      return '';
+    }
+    
+    // Map common variations to standard names
+    const foodNameMapping: Record<string, string> = {
+      'scrambled eggs': 'eggs',
+      'fried eggs': 'eggs', 
+      'boiled eggs': 'eggs',
+      'white bread': 'bread',
+      'brown bread': 'bread',
+      'jollof rice': 'rice',
+      'fried rice': 'rice',
+      'grilled chicken': 'chicken',
+      'fried chicken': 'chicken',
+      'baked chicken': 'chicken',
+      'fried plantain': 'plantain',
+      'boiled plantain': 'plantain'
+    };
+    
+    return foodNameMapping[cleaned] || cleaned;
+  }
+
+  private normalizeUnit(unit: string): string {
+    if (!unit || typeof unit !== 'string') {
+      return 'serving';
+    }
+    
+    const unitMapping: Record<string, string> = {
+      'pieces': 'piece',
+      'slices': 'slice',
+      'cups': 'cup',
+      'grams': 'g',
+      'gram': 'g',
+      'large': 'large',
+      'medium': 'medium',
+      'small': 'small',
+      'tbsp': 'tbsp',
+      'tablespoon': 'tbsp',
+      'tablespoons': 'tbsp',
+      'tsp': 'tsp',
+      'teaspoon': 'tsp',
+      'teaspoons': 'tsp'
+    };
+    
+    const normalized = unit.toLowerCase().trim();
+    return unitMapping[normalized] || normalized;
+  }
+
+  private parseTextResponse(responseText: string): SmartParsedFood[] {
+    const foods: SmartParsedFood[] = [];
+    const lines = responseText.split('\n').filter(line => line.trim());
+    
+    for (const line of lines) {
+      // Look for patterns like "1 cup rice" or "2 slices bread"
+      const match = line.match(/(\d+(?:\.\d+)?)\s*(\w+)?\s*(.+)/);
+      if (match) {
+        const [_, quantityStr, unit, foodName] = match;
+        const quantity = parseFloat(quantityStr);
+        const cleanedFood = this.cleanAndValidateFoodName(foodName);
+        
+        if (quantity && cleanedFood) {
+          foods.push({
+            food: cleanedFood,
+            quantity,
+            unit: this.normalizeUnit(unit || 'serving'),
+            confidence: 0.75
+          });
+        }
+      } else {
+        // If no quantity found, extract just the food name
+        const cleanLine = line.replace(/^[-•*]\s*/, '').trim();
+        const cleanedFood = this.cleanAndValidateFoodName(cleanLine);
+        if (cleanedFood) {
+          foods.push({
+            food: cleanedFood,
+            quantity: 1,
+            unit: 'serving',
+            confidence: 0.6
+          });
+        }
+      }
+    }
+    
+    return foods.filter(food => food.food !== ''); // Remove any empty food names
   }
 
   private calculateSimilarity(input1: string, input2: string): number {
@@ -229,24 +455,61 @@ export class SLMTrainer {
   }
 
   private basicParse(mealDescription: string): SmartParsedFood[] {
-    // Simple fallback parser
-    const commonFoods = ['rice', 'chicken', 'bread', 'eggs', 'fish', 'beans', 'yam', 'plantain'];
+    const commonFoods = [
+      'rice', 'chicken', 'bread', 'eggs', 'fish', 'beans', 'yam', 'plantain',
+      'beef', 'pork', 'turkey', 'cheese', 'milk', 'yogurt', 'apple', 'banana',
+      'tomato', 'onion', 'garlic', 'potato', 'carrot', 'spinach', 'lettuce',
+      'pasta', 'noodles', 'soup', 'salad', 'sandwich'
+    ];
     const found: SmartParsedFood[] = [];
     
-    const words = mealDescription.toLowerCase().split(/\s+/);
+    const normalizedText = mealDescription.toLowerCase();
     
-    for (const food of commonFoods) {
-      if (words.some(word => word.includes(food))) {
-        found.push({
-          food: food,
-          quantity: 1,
-          unit: 'serving',
-          confidence: 0.5
-        });
+    // Extract quantity patterns first
+    const quantityMatches = normalizedText.match(/(\d+(?:\.\d+)?)\s*(\w+)?\s*([a-z\s]+)/g);
+    
+    if (quantityMatches) {
+      for (const match of quantityMatches) {
+        const parts = match.match(/(\d+(?:\.\d+)?)\s*(\w+)?\s*([a-z\s]+)/);
+        if (parts) {
+          const [_, quantityStr, unit, foodText] = parts;
+          const quantity = parseFloat(quantityStr);
+          
+          for (const food of commonFoods) {
+            if (foodText.includes(food)) {
+              found.push({
+                food: food,
+                quantity: quantity || 1,
+                unit: this.normalizeUnit(unit || 'serving'),
+                confidence: 0.6
+              });
+              break; // Only match first food found in this text
+            }
+          }
+        }
       }
     }
     
-    return found;
+    // If no quantity-based matches, look for just food names
+    if (found.length === 0) {
+      for (const food of commonFoods) {
+        if (normalizedText.includes(food)) {
+          found.push({
+            food: food,
+            quantity: 1,
+            unit: 'serving',
+            confidence: 0.4
+          });
+        }
+      }
+    }
+    
+    // Remove duplicates
+    const unique = found.filter((item, index, self) => 
+      index === self.findIndex(t => t.food === item.food)
+    );
+    
+    return unique;
   }
 
   getTrainingDataSize(): number {

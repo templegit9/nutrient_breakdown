@@ -21,14 +21,21 @@ export async function testSLMIntegration() {
     console.log(`\n--- Testing: "${input}" ---`);
     
     // Test SLM directly
-    const slmResult = slmTrainer.predict(input);
-    console.log('SLM Result:', slmResult);
+    try {
+      const slmResult = await slmTrainer.predict(input);
+      console.log('SLM Result:', slmResult);
+    } catch (error) {
+      console.error('SLM Error:', error);
+    }
     
     // Test integrated smart parser
-    const smartResult = await parseSmartFood(input);
-    console.log('Smart Parser Result:', smartResult);
-    
-    console.log('Processing method:', smartResult.processingMethod);
+    try {
+      const smartResult = await parseSmartFood(input);
+      console.log('Smart Parser Result:', smartResult);
+      console.log('Processing method:', smartResult.processingMethod);
+    } catch (error) {
+      console.error('Smart Parser Error:', error);
+    }
   }
   
   // Test a few training examples

@@ -357,20 +357,27 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         const parsedFood = matchResult.originalParsedFood as SmartParsedFood;
         const bestMatch = matchResult.bestMatch;
         
+        // Skip foods with invalid names
+        if (!parsedFood.food || parsedFood.food.trim() === '' || parsedFood.food.toLowerCase() === 'unknown') {
+          console.log(`Skipping invalid food: "${parsedFood.food}"`);
+          failureCount++;
+          continue;
+        }
+        
         try {
           if (bestMatch) {
-            console.log(`Processing matched food: ${parsedFood.name} -> ${bestMatch.food.name}`);
+            console.log(`Processing matched food: ${parsedFood.food} -> ${bestMatch.food.name}`);
             // Use the matched database food
             await processMatchedFood(parsedFood, bestMatch.food);
             successCount++;
           } else {
-            console.log(`No match found for: ${parsedFood.name}, creating basic entry`);
+            console.log(`No match found for: ${parsedFood.food}, creating basic entry`);
             // Create a basic food entry if no match found
             await processUnmatchedFood(parsedFood);
             successCount++;
           }
         } catch (itemError) {
-          console.error(`Failed to process food: ${parsedFood.name}`, itemError);
+          console.error(`Failed to process food: ${parsedFood.food}`, itemError);
           failureCount++;
         }
       }
@@ -476,7 +483,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const currentTime = new Date();
     const foodItem: FoodItem = {
       id: Date.now().toString() + Math.random(),
-      name: parsedFood.name,
+      name: parsedFood.food,
       quantity,
       unit,
       category: dbFood.category || 'other',
@@ -497,7 +504,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const quantity = parsedFood.quantity || 1;
     const unit = parsedFood.unit || 'g';
     
-    console.log(`Processing unmatched food: ${parsedFood.name}`, { quantity, unit });
+    console.log(`Processing unmatched food: ${parsedFood.food}`, { quantity, unit });
     
     // Use basic nutrition estimation based on food type and unit
     let baseCalories = 100;
@@ -546,10 +553,10 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const currentTime = new Date();
     const foodItem: FoodItem = {
       id: Date.now().toString() + Math.random(),
-      name: parsedFood.name,
+      name: parsedFood.food,
       quantity,
       unit,
-      category: categorizeFoodByName(parsedFood.name),
+      category: categorizeFoodByName(parsedFood.food),
       dateAdded: currentTime,
       timeOfDay: getTimeOfDay(currentTime),
       cookingState: cookingStateToUse as any,

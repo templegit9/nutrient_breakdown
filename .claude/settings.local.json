@@ -21,7 +21,11 @@
       "Bash(awk:*)",
       "Bash(rg:*)",
       "Bash(npm start)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(find:*)",
+      "Bash(cp:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }
