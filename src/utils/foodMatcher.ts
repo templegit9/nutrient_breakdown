@@ -102,7 +102,7 @@ export async function matchFoodsToDatabase(parsedFoods: (ParsedFood | SmartParse
  */
 async function matchSingleFood(parsedFood: ParsedFood | SmartParsedFood): Promise<MatchResult> {
   // Handle both ParsedFood and SmartParsedFood types
-  const foodName = ('foodName' in parsedFood ? parsedFood.foodName : parsedFood.name).toLowerCase();
+  const foodName = ('foodName' in parsedFood ? parsedFood.foodName : parsedFood.food).toLowerCase();
   
   // Try different matching strategies in order of preference
   const matches: FoodMatch[] = [];

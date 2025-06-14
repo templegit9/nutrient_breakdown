@@ -116,6 +116,11 @@ const theme = createTheme({
   },
 });
 
+// Import SLM test utility for development
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/testSLM');
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>

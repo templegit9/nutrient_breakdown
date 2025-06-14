@@ -24,6 +24,12 @@ The Nutrition Tracker is a comprehensive web application designed to help health
 
 5. **As a data-driven user**, I want to see visual representations of my nutritional intake so that I can easily identify patterns and areas for improvement.
 
+6. **As a busy user**, I want to type "I had 2 slices of bread and a cup of coffee" and have the app automatically understand and log my food intake so that I can log meals quickly without filling out forms.
+
+7. **As a casual user**, I want to have natural conversations about my food intake so that logging feels intuitive and less like data entry.
+
+8. **As someone who eats complex meals**, I want to describe my entire meal in one message (e.g., "chicken salad with tomatoes, cucumbers and olive oil dressing") and have the app parse each component accurately.
+
 ## Functional Requirements
 
 1. **Food Logging System**
@@ -31,6 +37,15 @@ The Nutrition Tracker is a comprehensive web application designed to help health
    - System must support various measurement units (grams, ounces, cups, pieces, etc.)
    - Users must be able to specify quantity and portion sizes
    - System must categorize foods by type (fruits, vegetables, proteins, etc.)
+
+1a. **Conversational Food Input**
+   - System must provide toggle between traditional form input and conversational mode
+   - System must parse natural language food descriptions (e.g., "2 slices of bread")
+   - System must extract food names, quantities, units, and cooking methods from text
+   - System must handle multiple foods in a single message
+   - System must ask clarifying questions for ambiguous inputs
+   - System must show parsed interpretation before final confirmation
+   - System must maintain all existing functionality (cooking states, time tracking, etc.)
 
 2. **Detailed Nutritional Analysis**
    - System must display comprehensive nutritional information including:

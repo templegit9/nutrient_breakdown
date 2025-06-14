@@ -24,6 +24,15 @@ export interface GlucoseReading {
 
 export type TimeOfDay = 'early-morning' | 'morning' | 'late-morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
 
+export interface SmartParsedFood {
+  food: string;
+  quantity?: number;
+  unit?: string;
+  cookingMethod?: string;
+  confidence: number;
+  originalText?: string;
+}
+
 export interface FoodItem {
   id: string;
   name: string;

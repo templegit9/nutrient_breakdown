@@ -19,6 +19,7 @@ import {
   Edit as EditIcon
 } from '@mui/icons-material';
 import { parseSmartFood } from '../utils/smartFoodParser';
+import { parseConversationalInput } from '../utils/conversationalParser';
 import type { SmartParseResult, SmartParsedFood } from '../utils/smartFoodParser';
 
 interface ConversationalInputProps {
@@ -103,11 +104,11 @@ export default function ConversationalInput({ onFoodsConfirmed, disabled }: Conv
       content = "I didn't find any specific foods in that message. Could you tell me what you ate? For example: '2 slices of bread' or '1 cup of rice'";
     } else if (parseResult.needsClarification) {
       content = `I found some foods but need clarification:\n${parseResult.foods.map(f => 
-        `• ${f.name}${f.quantity ? ` (${f.quantity}${f.unit ? ' ' + f.unit : ''})` : ' (how much?)'}`
+        `• ${f.food}${f.quantity ? ` (${f.quantity}${f.unit ? ' ' + f.unit : ''})` : ' (how much?)'}`
       ).join('\n')}`;
     } else {
       content = `Great! I found ${parseResult.foods.length} food${parseResult.foods.length > 1 ? 's' : ''}:\n${parseResult.foods.map(f => 
-        `• ${f.quantity || ''} ${f.unit || ''} ${f.name}${f.cookingMethod ? ` (${f.cookingMethod})` : ''}`
+        `• ${f.quantity || ''} ${f.unit || ''} ${f.food}${f.cookingMethod ? ` (${f.cookingMethod})` : ''}`
       ).join('\n')}`;
     }
 
@@ -153,7 +154,7 @@ export default function ConversationalInput({ onFoodsConfirmed, disabled }: Conv
     const editMessage: ChatMessage = {
       id: Date.now().toString() + '_edit',
       type: 'assistant',
-      content: `To edit "${food.name}", you can tell me: "Actually, I had [amount] [unit] of ${food.name}" or switch to the form mode for precise editing.`,
+      content: `To edit "${food.food}", you can tell me: "Actually, I had [amount] [unit] of ${food.food}" or switch to the form mode for precise editing.`,
       timestamp: new Date()
     };
     
@@ -307,7 +308,7 @@ function MessageBubble({ message, onConfirmFoods, onEditFood, pendingFoods }: Me
                 {message.foods.map((food, index) => (
                   <Chip
                     key={index}
-                    label={`${food.quantity || '?'} ${food.unit || ''} ${food.name}`.trim()}
+                    label={`${food.quantity || '?'} ${food.unit || ''} ${food.food}`.trim()}
                     size="small"
                     color={food.confidence > 0.7 ? 'success' : 'warning'}
                     icon={food.confidence > 0.7 ? <CheckIcon /> : <EditIcon />}

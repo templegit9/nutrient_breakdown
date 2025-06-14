@@ -69,27 +69,52 @@ const mealContextMap: Record<string, string> = {
 
 /**
  * Main function to parse natural language food descriptions
+ * Now uses SLM as primary parsing method with fallback to pattern matching
  */
-export function parseConversationalInput(text: string): ParsedMessage {
+export async function parseConversationalInput(text: string): Promise<ParsedMessage> {
   const normalizedText = text.toLowerCase().trim();
   
-  // Extract meal context
+  // Try SLM parsing first
+  try {
+    const { parseSmartFood } = await import('./smartFoodParser');
+    const smartResult = await parseSmartFood(text);
+    
+    if (smartResult.foods.length > 0 && smartResult.foods.some(f => f.confidence > 0.6)) {
+      // Convert SmartParsedFood to ParsedFood format
+      const convertedFoods: ParsedFood[] = smartResult.foods.map(smartFood => ({
+        rawText: smartFood.originalText || text,
+        foodName: smartFood.food,
+        quantity: smartFood.quantity,
+        unit: smartFood.unit,
+        cookingMethod: smartFood.cookingMethod,
+        confidence: smartFood.confidence
+      }));
+      
+      const confidence = convertedFoods.reduce((sum, food) => sum + food.confidence, 0) / convertedFoods.length;
+      
+      return {
+        originalText: text,
+        foods: convertedFoods,
+        mealContext: smartResult.mealType,
+        confidence,
+        needsClarification: smartResult.needsClarification,
+        clarificationPrompts: smartResult.suggestions || generateClarificationPrompts(convertedFoods)
+      };
+    }
+  } catch (error) {
+    console.warn('SLM parsing failed, falling back to pattern matching:', error);
+  }
+  
+  // Fallback to original pattern-based parsing
   const mealContext = extractMealContext(normalizedText);
-  
-  // Split text into potential food items
   const foodSegments = segmentFoodItems(normalizedText);
-  
-  // Parse each food segment
   const foods = foodSegments.map(segment => parseFoodSegment(segment));
   
-  // Calculate overall confidence
   const confidence = foods.length > 0 
     ? foods.reduce((sum, food) => sum + food.confidence, 0) / foods.length 
     : 0;
   
-  // Determine if clarification is needed
   const needsClarification = confidence < 0.7 || foods.some(food => !food.quantity || !food.unit);
-  
   const clarificationPrompts = generateClarificationPrompts(foods);
   
   return {

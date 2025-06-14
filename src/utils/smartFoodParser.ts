@@ -1,16 +1,17 @@
 /**
- * Smart Food Parser using Transformers.js
- * This uses a combination of a small LLM and pattern matching for accurate food extraction
+ * Smart Food Parser using custom SLM and pattern matching
+ * This uses a combination of training-based predictions and pattern matching for accurate food extraction
  */
 
+import { slmTrainer } from './slmTrainer';
 
 export interface SmartParsedFood {
-  name: string;
+  food: string;
   quantity?: number;
   unit?: string;
   cookingMethod?: string;
   confidence: number;
-  originalText: string;
+  originalText?: string;
 }
 
 export interface SmartParseResult {
@@ -71,7 +72,23 @@ export class SmartFoodParser {
    * Parse food input using smart extraction
    */
   async parseFood(text: string): Promise<SmartParseResult> {
-    // Always try pattern matching first (fast and reliable)
+    // Try SLM prediction first (most accurate for complete meals)
+    const slmResult = slmTrainer.predict(text);
+    
+    if (slmResult.length > 0 && slmResult.every(f => f.confidence > 0.6)) {
+      return {
+        foods: slmResult.map(f => ({
+          ...f,
+          originalText: text
+        })),
+        originalText: text,
+        processingMethod: 'llm',
+        needsClarification: slmResult.some(f => !f.quantity || !f.unit),
+        mealType: this.extractMealType(text.toLowerCase())
+      };
+    }
+
+    // Fall back to pattern matching
     const patternResult = this.parseWithPatterns(text);
     
     // If pattern matching gives good results, use it
@@ -82,7 +99,7 @@ export class SmartFoodParser {
       };
     }
 
-    // Try LLM enhancement if available
+    // Try LLM enhancement if available (legacy support)
     if (this.isLoaded) {
       try {
         const llmResult = await this.enhanceWithLLM(text, patternResult);
@@ -95,10 +112,27 @@ export class SmartFoodParser {
       }
     }
 
-    // Fall back to pattern result
+    // Merge SLM and pattern results
+    const mergedFoods = [...slmResult, ...patternResult.foods];
+    const uniqueFoods = this.deduplicateFoods(mergedFoods.map(f => ({
+      ...f,
+      food: f.food || 'unknown',
+      originalText: f.originalText || text
+    })));
+
     return {
-      ...patternResult,
-      processingMethod: 'fallback'
+      foods: uniqueFoods.map(f => ({
+        food: f.food,
+        quantity: f.quantity,
+        unit: f.unit,
+        cookingMethod: f.cookingMethod,
+        confidence: f.confidence,
+        originalText: f.originalText
+      })),
+      originalText: text,
+      processingMethod: 'fallback',
+      needsClarification: uniqueFoods.some(f => !f.quantity || !f.unit),
+      mealType: this.extractMealType(text.toLowerCase())
     };
   }
 
@@ -175,7 +209,7 @@ export class SmartFoodParser {
       const cleanSection = section.replace(/^(i had |ate |consumed |drank )/g, '').trim();
       if (cleanSection.length > 2 && this.isValidFood(cleanSection)) {
         foods.push({
-          name: this.cleanFoodName(cleanSection),
+          food: this.cleanFoodName(cleanSection),
           quantity: 1,
           unit: 'serving',
           confidence: 0.5,
@@ -230,7 +264,7 @@ export class SmartFoodParser {
     if (!name || name.length < 2) return null;
 
     return {
-      name,
+      food: name,
       quantity,
       unit,
       cookingMethod,
@@ -376,7 +410,7 @@ export class SmartFoodParser {
     const seen = new Map<string, SmartParsedFood>();
     
     for (const food of foods) {
-      const key = food.name.toLowerCase();
+      const key = food.food.toLowerCase();
       const existing = seen.get(key);
       
       if (!existing || food.confidence > existing.confidence) {
@@ -392,7 +426,7 @@ export class SmartFoodParser {
     const result = [...patternFoods];
     
     for (const llmFood of llmFoods) {
-      const existing = result.find(f => f.name.toLowerCase() === llmFood.name.toLowerCase());
+      const existing = result.find(f => f.food.toLowerCase() === llmFood.food.toLowerCase());
       if (!existing) {
         result.push(llmFood);
       } else if (!existing.quantity && llmFood.quantity) {
