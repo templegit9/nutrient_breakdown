@@ -4,6 +4,8 @@
 
 The Nutrition Tracker is a comprehensive web application designed to help health-conscious individuals and people with medical conditions (such as PCOS, diabetes, etc.) track their food intake and analyze detailed nutritional components. The app provides in-depth nutritional breakdowns and helps users understand how their food choices impact their health metrics like blood sugar and insulin levels.
 
+**Latest Enhancement (2025):** The application now features an integrated Small Language Model (SLM) that intelligently breaks down complex meal descriptions into individual food components. Using 60 curated training examples, the SLM can accurately parse meals like "jollof rice with chicken and plantain" into separate ingredients with appropriate quantities, making food logging significantly more intuitive and accurate.
+
 ## Goals
 
 1. Enable users to log food items and receive detailed nutritional analysis
@@ -38,7 +40,7 @@ The Nutrition Tracker is a comprehensive web application designed to help health
    - Users must be able to specify quantity and portion sizes
    - System must categorize foods by type (fruits, vegetables, proteins, etc.)
 
-1a. **Conversational Food Input**
+1a. **Conversational Food Input with AI Enhancement**
    - System must provide toggle between traditional form input and conversational mode
    - System must parse natural language food descriptions (e.g., "2 slices of bread")
    - System must extract food names, quantities, units, and cooking methods from text
@@ -46,6 +48,15 @@ The Nutrition Tracker is a comprehensive web application designed to help health
    - System must ask clarifying questions for ambiguous inputs
    - System must show parsed interpretation before final confirmation
    - System must maintain all existing functionality (cooking states, time tracking, etc.)
+
+1b. **Small Language Model (SLM) Integration**
+   - System must use training data with 60 meal examples (30 global + 30 Nigerian) for enhanced accuracy
+   - System must intelligently break down complex meal descriptions into individual food components
+   - System must provide confidence scoring for meal breakdown predictions
+   - System must implement multi-tier parsing: SLM → Pattern matching → Basic fallback
+   - System must handle meals like "jollof rice with chicken and plantain" by identifying rice, chicken, and plantain separately
+   - System must predict appropriate quantities and units based on training patterns
+   - System must gracefully fallback to pattern matching when SLM confidence is low
 
 2. **Detailed Nutritional Analysis**
    - System must display comprehensive nutritional information including:
