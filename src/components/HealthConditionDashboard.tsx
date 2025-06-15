@@ -42,9 +42,11 @@ import {
   getHealthConditionsByCategory,
   type HealthConditionData
 } from '../utils/healthConditionsExpanded';
+import { filterEntriesByDateRangeType, DateRangeType } from '../services/dashboardAggregation';
 import { DatabaseService } from '../services/database';
 import { UserProfile } from '../types';
 import HealthConditionSettings from './HealthConditionSettings';
+import DateRangeSelector from './DateRangeSelector';
 import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils';
 
 interface HealthConditionDashboardProps {
@@ -58,6 +60,9 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRangeType>('today');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const theme = useTheme();
 
   // Load user profile and health conditions
@@ -91,11 +96,19 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
     }
   };
 
-  const todayEntries = entries?.filter(entry => {
-    const entryDate = new Date(entry.dateAdded);
-    const today = new Date();
-    return entryDate.toDateString() === today.toDateString();
-  }) || [];
+  const handleDateRangeChange = (rangeType: DateRangeType, customStart?: Date, customEnd?: Date) => {
+    setSelectedDateRange(rangeType);
+    setCustomStartDate(customStart);
+    setCustomEndDate(customEnd);
+  };
+
+  // Filter entries by selected date range instead of just today
+  const { filteredEntries: dateFilteredEntries, dateRange } = filterEntriesByDateRangeType(
+    entries || [],
+    selectedDateRange,
+    customStartDate,
+    customEndDate
+  );
 
   const userEnabledConditions = userProfile?.healthConditions || [];
   const availableConditions = EXPANDED_HEALTH_CONDITIONS.filter(condition => 
@@ -108,12 +121,12 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   }, {} as Record<string, HealthConditionData[]>);
 
   const currentCondition = getHealthConditionById(selectedCondition);
-  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, todayEntries) : 0;
-  const recommendations = currentCondition ? getConditionRecommendations(currentCondition, todayEntries) : [];
+  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, dateFilteredEntries) : 0;
+  const recommendations = currentCondition ? getConditionRecommendations(currentCondition, dateFilteredEntries) : [];
   
-  // Calculate statistics for today's entries
-  const totalCalories = todayEntries.reduce((sum, entry) => sum + (entry.totalNutrients.calories || 0), 0);
-  const beneficialFoodCount = todayEntries.filter(entry => {
+  // Calculate statistics for selected date range entries
+  const totalCalories = dateFilteredEntries.reduce((sum, entry) => sum + (entry.totalNutrients.calories || 0), 0);
+  const beneficialFoodCount = dateFilteredEntries.filter(entry => {
     if (!currentCondition) return false;
     const encouragedFoods = currentCondition.foodRecommendations
       .filter(rec => rec.type === 'encourage')
@@ -123,7 +136,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
       food.toLowerCase().includes(entry.foodName.toLowerCase())
     );
   }).length;
-  const cautionFoodCount = todayEntries.filter(entry => {
+  const cautionFoodCount = dateFilteredEntries.filter(entry => {
     if (!currentCondition) return false;
     const limitFoods = currentCondition.foodRecommendations
       .filter(rec => rec.type === 'limit' || rec.type === 'avoid')
@@ -172,6 +185,13 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
           Manage Conditions
         </Button>
       </Box>
+      
+      {/* Date Range Selector */}
+      <DateRangeSelector 
+        selectedRange={selectedDateRange}
+        onRangeChange={handleDateRangeChange}
+        entriesCount={dateFilteredEntries.length}
+      />
       
       {/* Category Selection */}
       <Box mb={4}>
@@ -237,7 +257,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                 {/* Health Score */}
                 <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Today's Adherence Score
+                    {dateRange.label} Adherence Score
                   </Typography>
                   <Typography 
                     variant="h3" 
@@ -279,7 +299,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
             <Card>
               <CardContent>
                 <Typography variant="h5" fontWeight="semibold" gutterBottom>
-                  Today's Recommendations
+                  {dateRange.label} Recommendations
                 </Typography>
                 
                 {recommendations.length > 0 ? (
@@ -304,7 +324,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                   <Box textAlign="center" py={4}>
                     <Typography variant="h6" gutterBottom>🎉 Great job!</Typography>
                     <Typography color="text.secondary">
-                      You're meeting all recommendations for {currentCondition.name} today.
+                      You're meeting all recommendations for {currentCondition.name} for {dateRange.label.toLowerCase()}.
                     </Typography>
                   </Box>
                 )}
