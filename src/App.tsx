@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { useFoodData } from './hooks/useFoodData'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
+import type { GroupedFoodEntry } from './types/food'
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -45,7 +46,7 @@ function AppContent() {
   const { foods, loading, addFood, updateFood, deleteFood } = useFoodData();
   const { isConnected, isChecking } = useConnectionStatus();
 
-  const handleFoodEntrySuccess = () => {
+  const handleFoodEntrySuccess = (entry: GroupedFoodEntry) => {
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -204,7 +205,7 @@ function AppContent() {
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <LLMFoodEntry onSuccess={handleFoodEntrySuccess} />
+          <LLMFoodEntry onFoodAdded={handleFoodEntrySuccess} />
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>

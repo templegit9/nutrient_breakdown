@@ -39,6 +39,8 @@ interface LLMFoodEntryProps {
 
 export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
   console.log('=== COMPONENT INITIALIZING ===');
+  console.log('onFoodAdded prop received:', onFoodAdded);
+  console.log('typeof onFoodAdded prop:', typeof onFoodAdded);
   
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,7 +106,17 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
         setSuccess('Food entry saved successfully!');
         
         console.log('Calling onFoodAdded callback...');
-        onFoodAdded(previewEntry);
+        console.log('onFoodAdded function:', onFoodAdded);
+        console.log('typeof onFoodAdded:', typeof onFoodAdded);
+        
+        if (typeof onFoodAdded === 'function') {
+          console.log('onFoodAdded is a function, calling it...');
+          onFoodAdded(previewEntry);
+          console.log('onFoodAdded called successfully');
+        } else {
+          console.error('onFoodAdded is not a function!', onFoodAdded);
+          throw new Error(`onFoodAdded is not a function, it's a ${typeof onFoodAdded}`);
+        }
         
         console.log('Resetting form...');
         // Reset form
