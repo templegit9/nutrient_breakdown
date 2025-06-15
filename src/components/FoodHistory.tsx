@@ -24,7 +24,14 @@ import {
   InputAdornment,
   TableSortLabel,
   Checkbox,
-  Divider
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormGroup,
+  FormControlLabel,
+  ListItemText
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -32,6 +39,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { GroupedFoodDatabase, GroupedFoodEntry } from '../services/groupedFoodDatabase';
 import { supabase } from '../config/supabase';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
@@ -39,6 +47,24 @@ import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils
 interface FoodHistoryProps {
   refreshTrigger?: number;
 }
+
+// Available nutrients for selection
+const AVAILABLE_NUTRIENTS = [
+  { key: 'total_calories', label: 'Calories', unit: 'kcal', default: true },
+  { key: 'total_protein', label: 'Protein', unit: 'g', default: true },
+  { key: 'total_carbs', label: 'Carbs', unit: 'g', default: true },
+  { key: 'total_fat', label: 'Fat', unit: 'g', default: true },
+  { key: 'total_fiber', label: 'Fiber', unit: 'g', default: false },
+  { key: 'total_sugar', label: 'Sugar', unit: 'g', default: false },
+  { key: 'total_sodium', label: 'Sodium', unit: 'mg', default: false },
+  { key: 'total_calcium', label: 'Calcium', unit: 'mg', default: false },
+  { key: 'total_iron', label: 'Iron', unit: 'mg', default: false },
+  { key: 'total_vitamin_c', label: 'Vitamin C', unit: 'mg', default: false },
+  { key: 'total_vitamin_d', label: 'Vitamin D', unit: 'mg', default: false },
+  { key: 'total_potassium', label: 'Potassium', unit: 'mg', default: false }
+];
+
+const DEFAULT_VISIBLE_NUTRIENTS = AVAILABLE_NUTRIENTS.filter(n => n.default).map(n => n.key);
 
 export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [groupedEntries, setGroupedEntries] = useState<GroupedFoodEntry[]>([]);
@@ -54,6 +80,10 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Nutrient selection state
+  const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
+  const [nutrientSettingsOpen, setNutrientSettingsOpen] = useState(false);
   
   const groupedFoodDatabase = new GroupedFoodDatabase();
 
@@ -154,6 +184,32 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     }
   };
 
+  const handleNutrientToggle = (nutrientKey: string) => {
+    setVisibleNutrients(prev => {
+      if (prev.includes(nutrientKey)) {
+        // Don't allow removing all nutrients
+        if (prev.length <= 1) return prev;
+        return prev.filter(key => key !== nutrientKey);
+      } else {
+        return [...prev, nutrientKey];
+      }
+    });
+  };
+
+  const resetToDefaults = () => {
+    setVisibleNutrients(DEFAULT_VISIBLE_NUTRIENTS);
+  };
+
+  const getNutrientValue = (entry: GroupedFoodEntry, nutrientKey: string): number => {
+    return (entry as any)[nutrientKey] || 0;
+  };
+
+  const formatNutrientValue = (value: number, unit: string): string => {
+    if (unit === 'kcal') return Math.round(value).toString();
+    if (unit === 'mg') return value < 1 ? value.toFixed(2) : Math.round(value).toString();
+    return Math.round(value).toString();
+  };
+
   // Filter and sort grouped entries
   const filteredAndSortedEntries = groupedEntries
     .filter(entry => {
@@ -225,9 +281,18 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
           <Typography variant="h5">
             Food History
           </Typography>
-          <IconButton onClick={() => setShowFilters(!showFilters)}>
-            <FilterListIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Customize Nutrients">
+              <IconButton onClick={() => setNutrientSettingsOpen(true)}>
+                <SettingsIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Filters">
+              <IconButton onClick={() => setShowFilters(!showFilters)}>
+                <FilterListIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
         <Collapse in={showFilters}>
@@ -295,18 +360,22 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                     Meal Description
                   </TableSortLabel>
                 </TableCell>
-                <TableCell align="right">
-                  <TableSortLabel
-                    active={sortBy === 'calories'}
-                    direction={sortBy === 'calories' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('calories')}
-                  >
-                    Total Calories
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right">Total Protein (g)</TableCell>
-                <TableCell align="right">Total Carbs (g)</TableCell>
-                <TableCell align="right">Total Fat (g)</TableCell>
+                {visibleNutrients.map(nutrientKey => {
+                  const nutrient = AVAILABLE_NUTRIENTS.find(n => n.key === nutrientKey);
+                  if (!nutrient) return null;
+                  
+                  return (
+                    <TableCell key={nutrientKey} align="right">
+                      <TableSortLabel
+                        active={sortBy === nutrientKey}
+                        direction={sortBy === nutrientKey ? sortOrder : 'asc'}
+                        onClick={() => handleSort(nutrientKey as any)}
+                      >
+                        {nutrient.label} ({nutrient.unit})
+                      </TableSortLabel>
+                    </TableCell>
+                  );
+                })}
                 <TableCell align="center">Time of Day</TableCell>
                 <TableCell>
                   <TableSortLabel
@@ -347,20 +416,24 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                         {entry.individual_items.length} item{entry.individual_items.length !== 1 ? 's' : ''}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" fontWeight="medium">
-                        {Math.round(entry.total_calories)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      {Math.round(entry.total_protein)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {Math.round(entry.total_carbs)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {Math.round(entry.total_fat)}
-                    </TableCell>
+                    {visibleNutrients.map(nutrientKey => {
+                      const nutrient = AVAILABLE_NUTRIENTS.find(n => n.key === nutrientKey);
+                      if (!nutrient) return null;
+                      
+                      const value = getNutrientValue(entry, nutrientKey);
+                      const isFirstNutrient = nutrientKey === visibleNutrients[0];
+                      
+                      return (
+                        <TableCell key={nutrientKey} align="right">
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={isFirstNutrient ? "medium" : "normal"}
+                          >
+                            {formatNutrientValue(value, nutrient.unit)}
+                          </Typography>
+                        </TableCell>
+                      );
+                    })}
                     <TableCell align="center">
                       {entry.time_of_day ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
@@ -399,7 +472,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                   
                   {/* Expanded row showing individual items */}
                   <TableRow>
-                    <TableCell colSpan={10} sx={{ py: 0, borderBottom: expandedRows.has(entry.id) ? 1 : 0 }}>
+                    <TableCell colSpan={visibleNutrients.length + 5} sx={{ py: 0, borderBottom: expandedRows.has(entry.id) ? 1 : 0 }}>
                       <Collapse in={expandedRows.has(entry.id)} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
                           <Typography variant="subtitle2" sx={{ mb: 2 }}>Individual Food Items:</Typography>
@@ -407,10 +480,16 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                             <TableHead>
                               <TableRow>
                                 <TableCell>Food Item</TableCell>
-                                <TableCell align="right">Calories</TableCell>
-                                <TableCell align="right">Protein (g)</TableCell>
-                                <TableCell align="right">Carbs (g)</TableCell>
-                                <TableCell align="right">Fat (g)</TableCell>
+                                {visibleNutrients.map(nutrientKey => {
+                                  const nutrient = AVAILABLE_NUTRIENTS.find(n => n.key === nutrientKey);
+                                  if (!nutrient) return null;
+                                  
+                                  return (
+                                    <TableCell key={nutrientKey} align="right">
+                                      {nutrient.label} ({nutrient.unit})
+                                    </TableCell>
+                                  );
+                                })}
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -421,18 +500,20 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                                       {item.name}
                                     </Typography>
                                   </TableCell>
-                                  <TableCell align="right">
-                                    {Math.round(item.calories)}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {Math.round(item.protein)}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {Math.round(item.carbs)}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {Math.round(item.fat)}
-                                  </TableCell>
+                                  {visibleNutrients.map(nutrientKey => {
+                                    const nutrient = AVAILABLE_NUTRIENTS.find(n => n.key === nutrientKey);
+                                    if (!nutrient) return null;
+                                    
+                                    // Map nutrient keys to item properties
+                                    const itemKey = nutrientKey.replace('total_', '');
+                                    const value = (item as any)[itemKey] || 0;
+                                    
+                                    return (
+                                      <TableCell key={nutrientKey} align="right">
+                                        {formatNutrientValue(value, nutrient.unit)}
+                                      </TableCell>
+                                    );
+                                  })}
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -480,6 +561,83 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
               variant="contained"
             >
               Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Nutrient Settings Dialog */}
+        <Dialog
+          open={nutrientSettingsOpen}
+          onClose={() => setNutrientSettingsOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Customize Visible Nutrients
+              <Chip 
+                label={`${visibleNutrients.length} selected`} 
+                size="small" 
+                color="primary"
+              />
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Choose which nutrients to display in the food history table. The 4 main nutrients (Calories, Protein, Carbs, Fat) are shown by default.
+            </Typography>
+            
+            <FormGroup>
+              {AVAILABLE_NUTRIENTS.map((nutrient) => (
+                <FormControlLabel
+                  key={nutrient.key}
+                  control={
+                    <Checkbox
+                      checked={visibleNutrients.includes(nutrient.key)}
+                      onChange={() => handleNutrientToggle(nutrient.key)}
+                      disabled={nutrient.default && visibleNutrients.length <= 1}
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                      <span>{nutrient.label}</span>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Chip 
+                          label={nutrient.unit} 
+                          size="small" 
+                          variant="outlined"
+                        />
+                        {nutrient.default && (
+                          <Chip 
+                            label="default" 
+                            size="small" 
+                            color="primary"
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                  }
+                  sx={{ 
+                    mb: 1,
+                    '& .MuiFormControlLabel-label': { width: '100%' },
+                    opacity: nutrient.default && visibleNutrients.length <= 1 ? 0.5 : 1
+                  }}
+                />
+              ))}
+            </FormGroup>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={resetToDefaults}>
+              Reset to Defaults
+            </Button>
+            <Button onClick={() => setNutrientSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => setNutrientSettingsOpen(false)}
+              variant="contained"
+            >
+              Apply Changes
             </Button>
           </DialogActions>
         </Dialog>
