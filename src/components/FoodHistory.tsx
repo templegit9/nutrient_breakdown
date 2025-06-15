@@ -98,10 +98,12 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
       if (error) {
         throw error;
       }
-      setGroupedEntries(entries);
+      // Ensure entries is always an array
+      setGroupedEntries(Array.isArray(entries) ? entries : []);
     } catch (err) {
       console.error('Error loading grouped entries:', err);
       setError('Failed to load food history');
+      setGroupedEntries([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

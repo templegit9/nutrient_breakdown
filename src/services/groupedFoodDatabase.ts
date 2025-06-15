@@ -65,11 +65,20 @@ export class GroupedFoodDatabase {
         .range(offset, offset + limit - 1);
 
       if (error) {
+        console.error('Database query error:', error);
         return { data: [], error };
       }
 
-      // Convert database format to GroupedFoodEntry format
-      const groupedEntries: GroupedFoodEntry[] = (data || []).map(this.dbToGroupedEntry);
+      console.log('Raw database data:', data);
+
+      // Ensure data is an array and convert database format to GroupedFoodEntry format
+      if (!Array.isArray(data)) {
+        console.warn('Database returned non-array data:', data);
+        return { data: [], error: 'Invalid data format from database' };
+      }
+
+      const groupedEntries: GroupedFoodEntry[] = data.map(GroupedFoodDatabase.dbToGroupedEntry);
+      console.log('Converted entries:', groupedEntries);
 
       return { data: groupedEntries, error: null };
     } catch (error) {
@@ -106,7 +115,7 @@ export class GroupedFoodDatabase {
         return { data: [], error };
       }
 
-      const groupedEntries: GroupedFoodEntry[] = (data || []).map(this.dbToGroupedEntry);
+      const groupedEntries: GroupedFoodEntry[] = (data || []).map(GroupedFoodDatabase.dbToGroupedEntry);
 
       return { data: groupedEntries, error: null };
     } catch (error) {
@@ -218,7 +227,7 @@ export class GroupedFoodDatabase {
   /**
    * Convert database record to GroupedFoodEntry
    */
-  private static dbToGroupedEntry(dbEntry: GroupedFoodEntryDB): GroupedFoodEntry {
+  static dbToGroupedEntry(dbEntry: GroupedFoodEntryDB): GroupedFoodEntry {
     return {
       id: dbEntry.id,
       originalInput: dbEntry.description, // Use description as original input
