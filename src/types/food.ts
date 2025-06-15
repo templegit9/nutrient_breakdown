@@ -50,6 +50,14 @@ export interface GroupedFoodEntryDB {
   total_protein: number;
   total_carbs: number;
   total_fat: number;
+  total_fiber?: number;
+  total_sugar?: number;
+  total_sodium?: number;
+  total_calcium?: number;
+  total_iron?: number;
+  total_vitamin_c?: number;
+  total_vitamin_d?: number;
+  total_potassium?: number;
   time_of_day?: string;
   created_at: string;
 }

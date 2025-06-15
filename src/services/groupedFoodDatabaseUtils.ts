@@ -35,6 +35,14 @@ export async function saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ d
       total_protein: entry.totalNutrients.protein,
       total_carbs: entry.totalNutrients.carbohydrates,
       total_fat: entry.totalNutrients.fat,
+      total_fiber: entry.totalNutrients.fiber,
+      total_sugar: entry.totalNutrients.sugar,
+      total_sodium: entry.totalNutrients.sodium,
+      total_calcium: entry.totalNutrients.calcium,
+      total_iron: entry.totalNutrients.iron,
+      total_vitamin_c: entry.totalNutrients.vitamin_c,
+      total_vitamin_d: entry.totalNutrients.vitamin_d,
+      total_potassium: entry.totalNutrients.potassium,
       time_of_day: entry.timeOfDay
     };
     console.log('Insert data:', insertData);
@@ -140,14 +148,14 @@ function dbToGroupedEntry(dbEntry: GroupedFoodEntryDB): GroupedFoodEntry {
       protein: dbEntry.total_protein,
       carbohydrates: dbEntry.total_carbs,
       fat: dbEntry.total_fat,
-      fiber: 0, // Default values for missing nutrients
-      sugar: 0,
-      sodium: 0,
-      calcium: 0,
-      iron: 0,
-      vitamin_c: 0,
-      vitamin_d: 0,
-      potassium: 0
+      fiber: dbEntry.total_fiber || 0,
+      sugar: dbEntry.total_sugar || 0,
+      sodium: dbEntry.total_sodium || 0,
+      calcium: dbEntry.total_calcium || 0,
+      iron: dbEntry.total_iron || 0,
+      vitamin_c: dbEntry.total_vitamin_c || 0,
+      vitamin_d: dbEntry.total_vitamin_d || 0,
+      potassium: dbEntry.total_potassium || 0
     },
     individualItems: dbEntry.individual_items,
     dateAdded: new Date(dbEntry.created_at),
