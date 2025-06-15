@@ -4,7 +4,6 @@ import LLMFoodEntry from './components/LLMFoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
-import FoodDatabase from './components/FoodDatabase'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { useFoodData } from './hooks/useFoodData'
@@ -200,7 +199,6 @@ function AppContent() {
             <Tab label="Dashboard" />
             <Tab label={isMobile ? "Health" : "Health Conditions"} />
             <Tab label="History" />
-            <Tab label={isMobile ? "Database" : "Food Database"} />
           </Tabs>
         </Box>
 
@@ -218,10 +216,6 @@ function AppContent() {
         
         <TabPanel value={tabValue} index={3}>
           <FoodHistory refreshTrigger={refreshTrigger} />
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={4}>
-          <FoodDatabase />
         </TabPanel>
         </Box>
       </Container>
