@@ -30,19 +30,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check current auth state
-    DatabaseService.getCurrentUser().then((user) => {
-      setUser(user ? { id: user.id, email: user.email! } : null)
+    DatabaseService.getCurrentUser().then(async (user) => {
+      if (user) {
+        setUser({ id: user.id, email: user.email! })
+        // Ensure user profile exists
+        await ensureUserProfileExists()
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = DatabaseService.onAuthStateChange((user) => {
-      setUser(user ? { id: user.id, email: user.email } : null)
+    const { data: { subscription } } = DatabaseService.onAuthStateChange(async (user) => {
+      if (user) {
+        setUser({ id: user.id, email: user.email })
+        // Ensure user profile exists when user signs in
+        await ensureUserProfileExists()
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const ensureUserProfileExists = async () => {
+    try {
+      const existingProfile = await DatabaseService.getUserProfile()
+      
+      if (!existingProfile) {
+        console.log('No user profile found, creating default profile...')
+        const defaultProfile = {
+          id: undefined,
+          name: '',
+          age: 25,
+          gender: 'other' as const,
+          height: 170,
+          weight: 70,
+          activityLevel: 'moderate' as const,
+          healthConditions: [],
+          dietaryRestrictions: [],
+          targetCalories: 2000,
+          targetProtein: 150,
+          targetCarbs: 250,
+          targetFat: 65,
+          targetFiber: 25
+        }
+        
+        await DatabaseService.saveUserProfile(defaultProfile)
+        console.log('Default user profile created successfully')
+      }
+    } catch (error) {
+      console.error('Error ensuring user profile exists:', error)
+    }
+  }
 
   const signIn = async (email: string, password: string) => {
     await DatabaseService.signIn(email, password)

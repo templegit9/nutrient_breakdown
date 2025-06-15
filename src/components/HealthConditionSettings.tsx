@@ -55,6 +55,7 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = (props) 
   const loadUserProfile = async () => {
     try {
       const profile = await DatabaseService.getUserProfile();
+      console.log('Loaded user profile:', profile);
       setUserProfile(profile);
       setSelectedConditions(profile?.healthConditions || []);
     } catch (error) {
@@ -81,17 +82,41 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = (props) 
   };
 
   const handleSave = async () => {
-    if (!userProfile) return;
-
     setSaving(true);
     try {
-      const updatedProfile = {
-        ...userProfile,
-        healthConditions: selectedConditions
-      };
+      let profileToSave = userProfile;
       
-      await DatabaseService.saveUserProfile(updatedProfile);
-      setUserProfile(updatedProfile);
+      // If no user profile exists, create a default one
+      if (!userProfile) {
+        console.log('No user profile found, creating default profile...');
+        profileToSave = {
+          id: undefined,
+          name: '',
+          age: 25,
+          gender: 'other' as const,
+          height: 170,
+          weight: 70,
+          activityLevel: 'moderate' as const,
+          healthConditions: selectedConditions,
+          dietaryRestrictions: [],
+          targetCalories: 2000,
+          targetProtein: 150,
+          targetCarbs: 250,
+          targetFat: 65,
+          targetFiber: 25
+        };
+      } else {
+        profileToSave = {
+          ...userProfile,
+          healthConditions: selectedConditions
+        };
+      }
+      
+      console.log('Saving user profile with health conditions:', profileToSave);
+      const savedProfile = await DatabaseService.saveUserProfile(profileToSave);
+      console.log('Successfully saved profile:', savedProfile);
+      
+      setUserProfile(savedProfile);
       
       if (onClose) {
         onClose();
@@ -101,7 +126,7 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = (props) 
       }
     } catch (error) {
       console.error('Error saving health conditions:', error);
-      alert('Failed to save health conditions. Please try again.');
+      alert(`Failed to save health conditions: ${error.message || error}. Please try again.`);
     } finally {
       setSaving(false);
     }

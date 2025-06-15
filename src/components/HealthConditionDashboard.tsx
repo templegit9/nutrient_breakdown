@@ -68,10 +68,12 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   const loadUserProfile = async () => {
     try {
       const profile = await DatabaseService.getUserProfile();
+      console.log('HealthConditionDashboard: Loaded user profile:', profile);
       setUserProfile(profile);
       
       // Set initial selected condition if user has any
       if (profile?.healthConditions && profile.healthConditions.length > 0) {
+        console.log('HealthConditionDashboard: Setting health conditions:', profile.healthConditions);
         setSelectedCondition(profile.healthConditions[0]);
         
         // Set category for the first condition
@@ -79,6 +81,8 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
         if (firstCondition) {
           setSelectedCategory(firstCondition.category);
         }
+      } else {
+        console.log('HealthConditionDashboard: No health conditions found');
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
