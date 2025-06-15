@@ -4,33 +4,21 @@ import type { GroupedFoodEntry, FoodItem } from './llmFoodBrain';
 export interface GroupedFoodEntryDB {
   id: string;
   user_id: string;
-  original_input: string;
-  combined_name: string;
+  description: string;
+  individual_items: FoodItem[]; // JSON field
   total_calories: number;
   total_protein: number;
-  total_carbohydrates: number;
+  total_carbs: number;
   total_fat: number;
-  total_fiber: number;
-  total_sugar: number;
-  total_sodium: number;
-  total_calcium?: number;
-  total_iron?: number;
-  total_vitamin_c?: number;
-  total_vitamin_d?: number;
-  total_potassium?: number;
-  individual_items: FoodItem[]; // JSON field
-  date_added: string;
   time_of_day?: string;
-  meal_type?: string;
   created_at: string;
-  updated_at: string;
 }
 
 export class GroupedFoodDatabase {
   /**
    * Save a grouped food entry to the database
    */
-  static async saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ data: any; error: any }> {
+  async saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ data: any; error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -41,24 +29,13 @@ export class GroupedFoodDatabase {
         .from('grouped_food_entries')
         .insert({
           user_id: user.data.user.id,
-          original_input: entry.originalInput,
-          combined_name: entry.combinedName,
+          description: entry.combinedName,
+          individual_items: entry.individualItems,
           total_calories: entry.totalCalories,
           total_protein: entry.totalNutrients.protein,
-          total_carbohydrates: entry.totalNutrients.carbohydrates,
+          total_carbs: entry.totalNutrients.carbohydrates,
           total_fat: entry.totalNutrients.fat,
-          total_fiber: entry.totalNutrients.fiber,
-          total_sugar: entry.totalNutrients.sugar,
-          total_sodium: entry.totalNutrients.sodium,
-          total_calcium: entry.totalNutrients.calcium,
-          total_iron: entry.totalNutrients.iron,
-          total_vitamin_c: entry.totalNutrients.vitamin_c,
-          total_vitamin_d: entry.totalNutrients.vitamin_d,
-          total_potassium: entry.totalNutrients.potassium,
-          individual_items: entry.individualItems,
-          date_added: entry.dateAdded.toISOString(),
-          time_of_day: entry.timeOfDay,
-          meal_type: entry.mealType
+          time_of_day: entry.timeOfDay
         })
         .select()
         .single();
@@ -73,7 +50,7 @@ export class GroupedFoodDatabase {
   /**
    * Get all grouped food entries for the current user
    */
-  static async getUserGroupedFoodEntries(limit = 100, offset = 0): Promise<{ data: GroupedFoodEntry[]; error: any }> {
+  async getUserGroupedFoodEntries(limit = 100, offset = 0): Promise<{ data: GroupedFoodEntry[]; error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -84,7 +61,7 @@ export class GroupedFoodDatabase {
         .from('grouped_food_entries')
         .select('*')
         .eq('user_id', user.data.user.id)
-        .order('date_added', { ascending: false })
+        .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
       if (error) {
@@ -92,7 +69,7 @@ export class GroupedFoodDatabase {
       }
 
       // Convert database format to GroupedFoodEntry format
-      const groupedEntries: GroupedFoodEntry[] = (data || []).map(this.dbToGroupedEntry);
+      const groupedEntries: GroupedFoodEntry[] = (data || []).map(GroupedFoodDatabase.dbToGroupedEntry);
 
       return { data: groupedEntries, error: null };
     } catch (error) {
@@ -104,7 +81,7 @@ export class GroupedFoodDatabase {
   /**
    * Get grouped food entries for a specific date
    */
-  static async getGroupedFoodEntriesForDate(date: Date): Promise<{ data: GroupedFoodEntry[]; error: any }> {
+  async getGroupedFoodEntriesForDate(date: Date): Promise<{ data: GroupedFoodEntry[]; error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -121,15 +98,15 @@ export class GroupedFoodDatabase {
         .from('grouped_food_entries')
         .select('*')
         .eq('user_id', user.data.user.id)
-        .gte('date_added', startOfDay.toISOString())
-        .lte('date_added', endOfDay.toISOString())
-        .order('date_added', { ascending: false });
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString())
+        .order('created_at', { ascending: false });
 
       if (error) {
         return { data: [], error };
       }
 
-      const groupedEntries: GroupedFoodEntry[] = (data || []).map(this.dbToGroupedEntry);
+      const groupedEntries: GroupedFoodEntry[] = (data || []).map(GroupedFoodDatabase.dbToGroupedEntry);
 
       return { data: groupedEntries, error: null };
     } catch (error) {
@@ -141,7 +118,7 @@ export class GroupedFoodDatabase {
   /**
    * Delete a grouped food entry
    */
-  static async deleteGroupedFoodEntry(id: string): Promise<{ error: any }> {
+  async deleteGroupedFoodEntry(id: string): Promise<{ error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -164,7 +141,7 @@ export class GroupedFoodDatabase {
   /**
    * Get nutrition totals for a specific date
    */
-  static async getDailyNutritionTotals(date: Date): Promise<{
+  async getDailyNutritionTotals(date: Date): Promise<{
     data: {
       totalCalories: number;
       totalNutrients: {
@@ -184,7 +161,8 @@ export class GroupedFoodDatabase {
     error: any;
   }> {
     try {
-      const { data: entries, error } = await this.getGroupedFoodEntriesForDate(date);
+      const groupedDb = new GroupedFoodDatabase();
+      const { data: entries, error } = await groupedDb.getGroupedFoodEntriesForDate(date);
       
       if (error) {
         return {
@@ -244,26 +222,25 @@ export class GroupedFoodDatabase {
   private static dbToGroupedEntry(dbEntry: GroupedFoodEntryDB): GroupedFoodEntry {
     return {
       id: dbEntry.id,
-      originalInput: dbEntry.original_input,
-      combinedName: dbEntry.combined_name,
+      originalInput: dbEntry.description, // Use description as original input
+      combinedName: dbEntry.description,
       totalCalories: dbEntry.total_calories,
       totalNutrients: {
         protein: dbEntry.total_protein,
-        carbohydrates: dbEntry.total_carbohydrates,
+        carbohydrates: dbEntry.total_carbs,
         fat: dbEntry.total_fat,
-        fiber: dbEntry.total_fiber,
-        sugar: dbEntry.total_sugar,
-        sodium: dbEntry.total_sodium,
-        calcium: dbEntry.total_calcium,
-        iron: dbEntry.total_iron,
-        vitamin_c: dbEntry.total_vitamin_c,
-        vitamin_d: dbEntry.total_vitamin_d,
-        potassium: dbEntry.total_potassium
+        fiber: 0, // Default values for missing nutrients
+        sugar: 0,
+        sodium: 0,
+        calcium: 0,
+        iron: 0,
+        vitamin_c: 0,
+        vitamin_d: 0,
+        potassium: 0
       },
       individualItems: dbEntry.individual_items,
-      dateAdded: new Date(dbEntry.date_added),
-      timeOfDay: dbEntry.time_of_day,
-      mealType: dbEntry.meal_type as 'breakfast' | 'lunch' | 'dinner' | 'snack'
+      dateAdded: new Date(dbEntry.created_at),
+      timeOfDay: dbEntry.time_of_day
     };
   }
 }
