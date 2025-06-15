@@ -24,20 +24,7 @@ import {
 } from '@mui/icons-material';
 import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
-import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
-
-// Create a wrapper function to isolate the database call
-const saveGroupedEntry = async (entry: GroupedFoodEntry) => {
-  console.log('saveGroupedEntry wrapper called with:', entry);
-  console.log('GroupedFoodDatabase class:', GroupedFoodDatabase);
-  
-  // Create instance and call method
-  const db = new GroupedFoodDatabase();
-  console.log('Database instance:', db);
-  console.log('Instance method:', db.saveGroupedFoodEntry);
-  
-  return await db.saveGroupedFoodEntry(entry);
-};
+import { saveGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
 
 interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
@@ -87,8 +74,8 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setError('');
 
     try {
-      console.log('About to call saveGroupedEntry wrapper');
-      const { data, error: dbError } = await saveGroupedEntry(previewEntry);
+      console.log('About to call saveGroupedFoodEntry function');
+      const { data, error: dbError } = await saveGroupedFoodEntry(previewEntry);
       
       if (dbError) {
         setError('Failed to save food entry to database');

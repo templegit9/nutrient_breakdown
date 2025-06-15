@@ -40,7 +40,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
+import { getUserGroupedFoodEntries, deleteGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
 import type { GroupedFoodEntry } from '../types/food';
 import { supabase } from '../config/supabase';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
@@ -86,9 +86,6 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
   const [nutrientSettingsOpen, setNutrientSettingsOpen] = useState(false);
   
-  // Create database instance
-  const groupedDb = new GroupedFoodDatabase();
-  
   useEffect(() => {
     loadGroupedEntries();
   }, [refreshTrigger]);
@@ -97,7 +94,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     try {
       setLoading(true);
       setError(null);
-      const { data: entries, error } = await groupedDb.getUserGroupedFoodEntries();
+      const { data: entries, error } = await getUserGroupedFoodEntries();
       if (error) {
         throw error;
       }
@@ -119,10 +116,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const handleDeleteConfirm = async () => {
     if (deleteDialog.entry) {
       try {
-        const { error } = await supabase
-          .from('grouped_food_entries')
-          .delete()
-          .eq('id', deleteDialog.entry.id);
+        const { error } = await deleteGroupedFoodEntry(deleteDialog.entry.id!);
         
         if (error) throw error;
         
@@ -175,12 +169,15 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const handleBulkDelete = async () => {
     if (selectedEntries.size > 0) {
       try {
-        const { error } = await supabase
-          .from('grouped_food_entries')
-          .delete()
-          .in('id', Array.from(selectedEntries));
+        // Delete each entry individually using our function
+        const deletePromises = Array.from(selectedEntries).map(id => deleteGroupedFoodEntry(id));
+        const results = await Promise.all(deletePromises);
         
-        if (error) throw error;
+        // Check if any deletions failed
+        const errors = results.filter(result => result.error);
+        if (errors.length > 0) {
+          throw new Error(`Failed to delete ${errors.length} entries`);
+        }
         
         setSelectedEntries(new Set());
         await loadGroupedEntries();
