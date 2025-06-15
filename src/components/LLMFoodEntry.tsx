@@ -23,7 +23,7 @@ import {
   Download as DownloadIcon
 } from '@mui/icons-material';
 import { llmFoodBrain, type GroupedFoodEntry } from '../services/llmFoodBrain';
-import GroupedFoodDatabase from '../services/groupedFoodDatabase';
+import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
 
 interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
@@ -73,8 +73,7 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setError('');
 
     try {
-      const groupedDb = new GroupedFoodDatabase();
-      const { data, error: dbError } = await groupedDb.saveGroupedFoodEntry(previewEntry);
+      const { data, error: dbError } = await GroupedFoodDatabase.saveGroupedFoodEntry(previewEntry);
       
       if (dbError) {
         setError('Failed to save food entry to database');

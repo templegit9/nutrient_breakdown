@@ -18,7 +18,7 @@ export class GroupedFoodDatabase {
   /**
    * Save a grouped food entry to the database
    */
-  async saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ data: any; error: any }> {
+  static async saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ data: any; error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -50,7 +50,7 @@ export class GroupedFoodDatabase {
   /**
    * Get all grouped food entries for the current user
    */
-  async getUserGroupedFoodEntries(limit = 100, offset = 0): Promise<{ data: GroupedFoodEntry[]; error: any }> {
+  static async getUserGroupedFoodEntries(limit = 100, offset = 0): Promise<{ data: GroupedFoodEntry[]; error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -69,7 +69,7 @@ export class GroupedFoodDatabase {
       }
 
       // Convert database format to GroupedFoodEntry format
-      const groupedEntries: GroupedFoodEntry[] = (data || []).map(GroupedFoodDatabase.dbToGroupedEntry);
+      const groupedEntries: GroupedFoodEntry[] = (data || []).map(this.dbToGroupedEntry);
 
       return { data: groupedEntries, error: null };
     } catch (error) {
@@ -81,7 +81,7 @@ export class GroupedFoodDatabase {
   /**
    * Get grouped food entries for a specific date
    */
-  async getGroupedFoodEntriesForDate(date: Date): Promise<{ data: GroupedFoodEntry[]; error: any }> {
+  static async getGroupedFoodEntriesForDate(date: Date): Promise<{ data: GroupedFoodEntry[]; error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -106,7 +106,7 @@ export class GroupedFoodDatabase {
         return { data: [], error };
       }
 
-      const groupedEntries: GroupedFoodEntry[] = (data || []).map(GroupedFoodDatabase.dbToGroupedEntry);
+      const groupedEntries: GroupedFoodEntry[] = (data || []).map(this.dbToGroupedEntry);
 
       return { data: groupedEntries, error: null };
     } catch (error) {
@@ -118,7 +118,7 @@ export class GroupedFoodDatabase {
   /**
    * Delete a grouped food entry
    */
-  async deleteGroupedFoodEntry(id: string): Promise<{ error: any }> {
+  static async deleteGroupedFoodEntry(id: string): Promise<{ error: any }> {
     try {
       const user = await supabase.auth.getUser();
       if (!user.data.user) {
@@ -141,7 +141,7 @@ export class GroupedFoodDatabase {
   /**
    * Get nutrition totals for a specific date
    */
-  async getDailyNutritionTotals(date: Date): Promise<{
+  static async getDailyNutritionTotals(date: Date): Promise<{
     data: {
       totalCalories: number;
       totalNutrients: {
@@ -161,8 +161,7 @@ export class GroupedFoodDatabase {
     error: any;
   }> {
     try {
-      const groupedDb = new GroupedFoodDatabase();
-      const { data: entries, error } = await groupedDb.getGroupedFoodEntriesForDate(date);
+      const { data: entries, error } = await GroupedFoodDatabase.getGroupedFoodEntriesForDate(date);
       
       if (error) {
         return {
@@ -245,4 +244,4 @@ export class GroupedFoodDatabase {
   }
 }
 
-export default GroupedFoodDatabase;
+export { GroupedFoodDatabase };

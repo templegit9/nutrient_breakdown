@@ -40,7 +40,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { GroupedFoodDatabase, GroupedFoodEntry } from '../services/groupedFoodDatabase';
+import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
+import { GroupedFoodEntry } from '../services/llmFoodBrain';
 import { supabase } from '../config/supabase';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
 
@@ -85,8 +86,6 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
   const [nutrientSettingsOpen, setNutrientSettingsOpen] = useState(false);
   
-  const groupedFoodDatabase = new GroupedFoodDatabase();
-
   useEffect(() => {
     loadGroupedEntries();
   }, [refreshTrigger]);
@@ -95,7 +94,10 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     try {
       setLoading(true);
       setError(null);
-      const entries = await groupedFoodDatabase.getUserGroupedFoodEntries();
+      const { data: entries, error } = await GroupedFoodDatabase.getUserGroupedFoodEntries();
+      if (error) {
+        throw error;
+      }
       setGroupedEntries(entries);
     } catch (err) {
       console.error('Error loading grouped entries:', err);
@@ -201,7 +203,34 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   };
 
   const getNutrientValue = (entry: GroupedFoodEntry, nutrientKey: string): number => {
-    return (entry as any)[nutrientKey] || 0;
+    switch (nutrientKey) {
+      case 'total_calories':
+        return entry.totalCalories || 0;
+      case 'total_protein':
+        return entry.totalNutrients.protein || 0;
+      case 'total_carbs':
+        return entry.totalNutrients.carbohydrates || 0;
+      case 'total_fat':
+        return entry.totalNutrients.fat || 0;
+      case 'total_fiber':
+        return entry.totalNutrients.fiber || 0;
+      case 'total_sugar':
+        return entry.totalNutrients.sugar || 0;
+      case 'total_sodium':
+        return entry.totalNutrients.sodium || 0;
+      case 'total_calcium':
+        return entry.totalNutrients.calcium || 0;
+      case 'total_iron':
+        return entry.totalNutrients.iron || 0;
+      case 'total_vitamin_c':
+        return entry.totalNutrients.vitamin_c || 0;
+      case 'total_vitamin_d':
+        return entry.totalNutrients.vitamin_d || 0;
+      case 'total_potassium':
+        return entry.totalNutrients.potassium || 0;
+      default:
+        return 0;
+    }
   };
 
   const formatNutrientValue = (value: number, unit: string): string => {
@@ -213,7 +242,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   // Filter and sort grouped entries
   const filteredAndSortedEntries = groupedEntries
     .filter(entry => {
-      const matchesSearch = entry.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = entry.combinedName.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     })
     .sort((a, b) => {
@@ -221,13 +250,13 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
       
       switch (sortBy) {
         case 'description':
-          comparison = a.description.localeCompare(b.description);
+          comparison = a.combinedName.localeCompare(b.combinedName);
           break;
         case 'date':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          comparison = new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
           break;
         case 'calories':
-          comparison = a.total_calories - b.total_calories;
+          comparison = a.totalCalories - b.totalCalories;
           break;
       }
       
@@ -410,10 +439,10 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                     </TableCell>
                     <TableCell component="th" scope="row">
                       <Typography variant="body2" fontWeight="medium">
-                        {entry.description}
+                        {entry.combinedName}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {entry.individual_items.length} item{entry.individual_items.length !== 1 ? 's' : ''}
+                        {entry.individualItems.length} item{entry.individualItems.length !== 1 ? 's' : ''}
                       </Typography>
                     </TableCell>
                     {visibleNutrients.map(nutrientKey => {
@@ -454,7 +483,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {new Date(entry.created_at).toLocaleDateString()}
+                        {new Date(entry.dateAdded).toLocaleDateString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
@@ -493,7 +522,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {entry.individual_items.map((item, index) => (
+                              {entry.individualItems.map((item, index) => (
                                 <TableRow key={index}>
                                   <TableCell>
                                     <Typography variant="body2">
@@ -544,8 +573,8 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
           <DialogTitle>Delete Meal Entry</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete "{deleteDialog.entry?.description}"? 
-              This will remove all {deleteDialog.entry?.individual_items.length || 0} food items in this meal.
+              Are you sure you want to delete "{deleteDialog.entry?.combinedName}"? 
+              This will remove all {deleteDialog.entry?.individualItems.length || 0} food items in this meal.
               This action cannot be undone.
             </Typography>
           </DialogContent>
