@@ -466,14 +466,14 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                       );
                     })}
                     <TableCell align="center">
-                      {entry.time_of_day ? (
+                      {entry.timeOfDay ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                          <Typography component="span">{getTimeOfDayIcon(entry.time_of_day)}</Typography>
+                          <Typography component="span">{getTimeOfDayIcon(entry.timeOfDay)}</Typography>
                           <Chip
-                            label={getTimeOfDayLabel(entry.time_of_day)}
+                            label={getTimeOfDayLabel(entry.timeOfDay)}
                             size="small"
                             sx={{
-                              backgroundColor: getTimeOfDayColor(entry.time_of_day),
+                              backgroundColor: getTimeOfDayColor(entry.timeOfDay),
                               color: 'white',
                               fontSize: '0.75rem'
                             }}
