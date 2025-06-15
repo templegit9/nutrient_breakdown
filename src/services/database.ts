@@ -257,35 +257,82 @@ export class DatabaseService {
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.data.user.id)
-      .maybeSingle()
+      .order('updated_at', { ascending: false })
+      .limit(1)
 
     if (error) {
       console.error('DatabaseService: Error getting user profile:', error)
       throw error
     }
     
-    if (!data) {
+    if (!data || data.length === 0) {
       console.log('DatabaseService: No user profile found')
       return null
     }
 
-    console.log('DatabaseService: Found user profile:', data)
+    const profile = data[0]
+    console.log('DatabaseService: Found user profile:', profile)
 
     return {
-      id: data.id,
-      name: data.name || '',
-      age: data.age || 0,
-      gender: data.gender as UserProfile['gender'] || 'other',
-      height: data.height_cm || 0,
-      weight: data.weight_kg || 0,
-      activityLevel: data.activity_level as UserProfile['activityLevel'] || 'moderate',
-      healthConditions: data.health_conditions || [],
-      dietaryRestrictions: data.dietary_restrictions || [],
-      targetCalories: data.target_calories || 2000,
-      targetProtein: data.target_protein_g || 150,
-      targetCarbs: data.target_carbs_g || 250,
-      targetFat: data.target_fat_g || 65,
-      targetFiber: data.target_fiber_g || 25
+      id: profile.id,
+      name: profile.name || '',
+      age: profile.age || 0,
+      gender: profile.gender as UserProfile['gender'] || 'other',
+      height: profile.height_cm || 0,
+      weight: profile.weight_kg || 0,
+      activityLevel: profile.activity_level as UserProfile['activityLevel'] || 'moderate',
+      healthConditions: profile.health_conditions || [],
+      dietaryRestrictions: profile.dietary_restrictions || [],
+      targetCalories: profile.target_calories || 2000,
+      targetProtein: profile.target_protein_g || 150,
+      targetCarbs: profile.target_carbs_g || 250,
+      targetFat: profile.target_fat_g || 65,
+      targetFiber: profile.target_fiber_g || 25
+    }
+  }
+
+  // Clean up duplicate user profiles (keep the most recent one)
+  static async cleanupDuplicateProfiles() {
+    try {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) throw new Error('User not authenticated')
+
+      console.log('DatabaseService: Checking for duplicate profiles...')
+
+      // Get all profiles for this user
+      const { data: profiles, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.data.user.id)
+        .order('updated_at', { ascending: false })
+
+      if (fetchError) {
+        console.error('DatabaseService: Error fetching profiles for cleanup:', fetchError)
+        return
+      }
+
+      if (!profiles || profiles.length <= 1) {
+        console.log('DatabaseService: No duplicate profiles found')
+        return
+      }
+
+      console.log(`DatabaseService: Found ${profiles.length} profiles, keeping the most recent one`)
+      
+      // Keep the first (most recent) profile, delete the rest
+      const profilesToDelete = profiles.slice(1).map(p => p.id)
+      
+      const { error: deleteError } = await supabase
+        .from('user_profiles')
+        .delete()
+        .in('id', profilesToDelete)
+
+      if (deleteError) {
+        console.error('DatabaseService: Error deleting duplicate profiles:', deleteError)
+      } else {
+        console.log(`DatabaseService: Successfully deleted ${profilesToDelete.length} duplicate profiles`)
+      }
+    } catch (error) {
+      console.error('DatabaseService: Error during profile cleanup:', error)
     }
   }
 

@@ -65,6 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Clean up any duplicate profiles first
+      await DatabaseService.cleanupDuplicateProfiles()
+      
       const existingProfile = await DatabaseService.getUserProfile()
       
       if (!existingProfile) {
