@@ -535,9 +535,50 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                                     const nutrient = AVAILABLE_NUTRIENTS.find(n => n.key === nutrientKey);
                                     if (!nutrient) return null;
                                     
-                                    // Map nutrient keys to item properties
-                                    const itemKey = nutrientKey.replace('total_', '');
-                                    const value = (item as any)[itemKey] || 0;
+                                    // Map nutrient keys to item properties with correct mapping
+                                    let itemKey: string;
+                                    let value: number;
+                                    
+                                    switch (nutrientKey) {
+                                      case 'total_calories':
+                                        value = item.calories || 0;
+                                        break;
+                                      case 'total_protein':
+                                        value = item.protein || 0;
+                                        break;
+                                      case 'total_carbs':
+                                        value = item.carbohydrates || 0; // Note: carbohydrates, not carbs
+                                        break;
+                                      case 'total_fat':
+                                        value = item.fat || 0;
+                                        break;
+                                      case 'total_fiber':
+                                        value = item.fiber || 0;
+                                        break;
+                                      case 'total_sugar':
+                                        value = item.sugar || 0;
+                                        break;
+                                      case 'total_sodium':
+                                        value = item.sodium || 0;
+                                        break;
+                                      case 'total_calcium':
+                                        value = item.calcium || 0;
+                                        break;
+                                      case 'total_iron':
+                                        value = item.iron || 0;
+                                        break;
+                                      case 'total_vitamin_c':
+                                        value = item.vitamin_c || 0;
+                                        break;
+                                      case 'total_vitamin_d':
+                                        value = item.vitamin_d || 0;
+                                        break;
+                                      case 'total_potassium':
+                                        value = item.potassium || 0;
+                                        break;
+                                      default:
+                                        value = 0;
+                                    }
                                     
                                     return (
                                       <TableCell key={nutrientKey} align="right">
