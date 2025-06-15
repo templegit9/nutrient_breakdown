@@ -125,23 +125,7 @@ function AppContent() {
                 : isChecking 
                 ? '0 0 10px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4)'
                 : '0 0 10px rgba(244, 67, 54, 0.6), 0 0 20px rgba(244, 67, 54, 0.4)',
-              transition: 'text-shadow 0.3s ease-in-out',
-              position: 'relative',
-              '&::after': isConnected ? {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(45deg, transparent 30%, rgba(76, 175, 80, 0.1) 50%, transparent 70%)',
-                animation: 'shimmer 2s infinite',
-                pointerEvents: 'none'
-              } : {},
-              '@keyframes shimmer': {
-                '0%': { transform: 'translateX(-100%)' },
-                '100%': { transform: 'translateX(100%)' }
-              }
+              transition: 'text-shadow 0.3s ease-in-out'
             }}
           >
             Nutrient Breakdown Tracker
