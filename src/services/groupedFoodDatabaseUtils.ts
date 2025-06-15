@@ -27,7 +27,7 @@ export async function saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ d
     }
 
     console.log('Building insert data...');
-    // Only include basic nutrients until migration is run
+    // Full nutrition data with micronutrients (post-migration)
     const insertData = {
       user_id: user.data.user.id,
       description: entry.combinedName,
@@ -36,18 +36,16 @@ export async function saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ d
       total_protein: entry.totalNutrients.protein,
       total_carbs: entry.totalNutrients.carbohydrates,
       total_fat: entry.totalNutrients.fat,
+      total_fiber: entry.totalNutrients.fiber,
+      total_sugar: entry.totalNutrients.sugar,
+      total_sodium: entry.totalNutrients.sodium,
+      total_calcium: entry.totalNutrients.calcium,
+      total_iron: entry.totalNutrients.iron,
+      total_vitamin_c: entry.totalNutrients.vitamin_c,
+      total_vitamin_d: entry.totalNutrients.vitamin_d,
+      total_potassium: entry.totalNutrients.potassium,
       time_of_day: entry.timeOfDay
     };
-    
-    // TODO: After running database migration, uncomment these lines:
-    // total_fiber: entry.totalNutrients.fiber,
-    // total_sugar: entry.totalNutrients.sugar,
-    // total_sodium: entry.totalNutrients.sodium,
-    // total_calcium: entry.totalNutrients.calcium,
-    // total_iron: entry.totalNutrients.iron,
-    // total_vitamin_c: entry.totalNutrients.vitamin_c,
-    // total_vitamin_d: entry.totalNutrients.vitamin_d,
-    // total_potassium: entry.totalNutrients.potassium,
     console.log('Insert data:', insertData);
 
     console.log('About to call supabase.from().insert()');
