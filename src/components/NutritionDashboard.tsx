@@ -41,13 +41,23 @@ import {
   AreaChart
 } from 'recharts'
 import { FoodItem, NutritionAnalysis } from '../types'
+import { GroupedFoodEntry } from '../types/food'
 import { calculateTotalNutrition } from '../utils/nutritionCalculator'
+import { 
+  convertGroupedEntriesToFoodItems, 
+  calculateNutritionFromGroupedEntries,
+  filterEntriesByDateRangeType,
+  DateRangeType,
+  calculateMealTimingInsights 
+} from '../services/dashboardAggregation'
+import DateRangeSelector from './DateRangeSelector'
 import DetailedNutritionInsights from './DetailedNutritionInsights'
+import MealTimingAnalysis from './MealTimingAnalysis'
 import { roundToInteger, calculatePercentage, formatNutritionValue, roundToOneDecimal, roundToPercentage } from '../utils/roundingUtils'
 import { useState } from 'react'
 
 interface NutritionDashboardProps {
-  foods: FoodItem[];
+  groupedEntries: GroupedFoodEntry[];
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
@@ -71,12 +81,31 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
+export default function NutritionDashboard({ groupedEntries }: NutritionDashboardProps) {
   const [tabValue, setTabValue] = useState(0);
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRangeType>('today');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const analysis = calculateTotalNutrition(foods);
+  
+  // Defensive programming for data safety
+  const safeGroupedEntries = groupedEntries || [];
+  
+  // Filter entries by selected date range
+  const { filteredEntries, dateRange } = filterEntriesByDateRangeType(
+    safeGroupedEntries, 
+    selectedDateRange,
+    customStartDate,
+    customEndDate
+  );
+  
+  // Convert filtered entries to analysis format
+  const foods = convertGroupedEntriesToFoodItems(filteredEntries);
+  const analysis = filteredEntries.length > 0 
+    ? calculateNutritionFromGroupedEntries(filteredEntries)
+    : calculateTotalNutrition([]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -256,7 +285,13 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
     return null;
   };
 
-  if (foods.length === 0) {
+  const handleDateRangeChange = (rangeType: DateRangeType, customStart?: Date, customEnd?: Date) => {
+    setSelectedDateRange(rangeType);
+    setCustomStartDate(customStart);
+    setCustomEndDate(customEnd);
+  };
+
+  if (safeGroupedEntries.length === 0) {
     return (
       <Card>
         <CardContent>
@@ -265,6 +300,50 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
           </Typography>
         </CardContent>
       </Card>
+    );
+  }
+  
+  if (filteredEntries.length === 0) {
+    return (
+      <Box>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 2 
+        }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Nutrition Dashboard - {dateRange.label}
+          </Typography>
+          <IconButton
+            onClick={handleExportClick}
+            sx={{ 
+              bgcolor: 'primary.main', 
+              color: 'white',
+              '&:hover': { bgcolor: 'primary.dark' }
+            }}
+          >
+            <GetAppIcon />
+          </IconButton>
+        </Box>
+        
+        <DateRangeSelector 
+          selectedRange={selectedDateRange}
+          onRangeChange={handleDateRangeChange}
+          entriesCount={filteredEntries.length}
+        />
+        
+        <Card>
+          <CardContent>
+            <Typography variant="h6" align="center" color="text.secondary">
+              No food entries found for {dateRange.label.toLowerCase()}
+            </Typography>
+            <Typography variant="body2" align="center" color="text.secondary" sx={{ mt: 1 }}>
+              Try selecting a different date range or add some food entries
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
     );
   }
 
@@ -277,7 +356,7 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
         mb: 2 
       }}>
         <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Nutrition Dashboard
+          Nutrition Dashboard - {dateRange.label}
         </Typography>
         <IconButton
           onClick={handleExportClick}
@@ -290,6 +369,12 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
           <GetAppIcon />
         </IconButton>
       </Box>
+      
+      <DateRangeSelector 
+        selectedRange={selectedDateRange}
+        onRangeChange={handleDateRangeChange}
+        entriesCount={filteredEntries.length}
+      />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs 
@@ -299,6 +384,7 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
         >
           <Tab label="Overview" />
           <Tab label="Detailed Analysis" />
+          <Tab label="Meal Timing" />
         </Tabs>
       </Box>
 
@@ -498,7 +584,7 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Today's Foods
+              {dateRange.label} Foods
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={1}>
               {foods.map((food) => (
@@ -518,6 +604,10 @@ export default function NutritionDashboard({ foods }: NutritionDashboardProps) {
 
       <TabPanel value={tabValue} index={1}>
         <DetailedNutritionInsights foods={foods} />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={2}>
+        <MealTimingAnalysis entries={filteredEntries} />
       </TabPanel>
     </Box>
   );

@@ -7,6 +7,7 @@ import HealthConditionDashboard from './components/HealthConditionDashboard'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { useFoodData } from './hooks/useFoodData'
+import { useGroupedFoodData } from './hooks/useGroupedFoodData'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import type { GroupedFoodEntry } from './types/food'
 
@@ -43,9 +44,11 @@ function AppContent() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOut } = useAuth();
   const { foods, loading, addFood, updateFood, deleteFood } = useFoodData();
+  const { groupedEntries, loading: groupedLoading, addEntryToState } = useGroupedFoodData();
   const { isConnected, isChecking } = useConnectionStatus();
 
   const handleFoodEntrySuccess = (entry: GroupedFoodEntry) => {
+    addEntryToState(entry);
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -53,7 +56,7 @@ function AppContent() {
     setTabValue(newValue);
   };
 
-  if (loading) {
+  if (loading || groupedLoading) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ 
@@ -207,7 +210,7 @@ function AppContent() {
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>
-          <NutritionDashboard foods={foods} />
+          <NutritionDashboard groupedEntries={groupedEntries} />
         </TabPanel>
         
         <TabPanel value={tabValue} index={2}>
