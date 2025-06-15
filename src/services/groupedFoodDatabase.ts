@@ -1,18 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { GroupedFoodEntry, FoodItem } from './llmFoodBrain';
-
-export interface GroupedFoodEntryDB {
-  id: string;
-  user_id: string;
-  description: string;
-  individual_items: FoodItem[]; // JSON field
-  total_calories: number;
-  total_protein: number;
-  total_carbs: number;
-  total_fat: number;
-  time_of_day?: string;
-  created_at: string;
-}
+import type { GroupedFoodEntry, GroupedFoodEntryDB } from '../types/food';
 
 export class GroupedFoodDatabase {
   /**

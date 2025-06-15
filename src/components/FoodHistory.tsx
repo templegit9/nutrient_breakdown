@@ -41,7 +41,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
-import { GroupedFoodEntry } from '../services/llmFoodBrain';
+import type { GroupedFoodEntry } from '../types/food';
 import { supabase } from '../config/supabase';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
 

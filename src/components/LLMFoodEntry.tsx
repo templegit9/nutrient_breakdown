@@ -22,7 +22,8 @@ import {
   Check as CheckIcon,
   Download as DownloadIcon
 } from '@mui/icons-material';
-import { llmFoodBrain, type GroupedFoodEntry } from '../services/llmFoodBrain';
+import { llmFoodBrain } from '../services/llmFoodBrain';
+import type { GroupedFoodEntry } from '../types/food';
 import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
 
 interface LLMFoodEntryProps {

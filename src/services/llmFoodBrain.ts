@@ -4,48 +4,10 @@
  * Takes natural language input and returns structured food data with nutrition
  */
 
-export interface FoodItem {
-  name: string;
-  quantity: number;
-  unit: string;
-  calories: number;
-  protein: number;
-  carbohydrates: number;
-  fat: number;
-  fiber: number;
-  sugar: number;
-  sodium: number;
-  // Micronutrients
-  calcium?: number;
-  iron?: number;
-  vitamin_c?: number;
-  vitamin_d?: number;
-  potassium?: number;
-}
+import type { FoodItem, GroupedFoodEntry } from '../types/food';
 
-export interface GroupedFoodEntry {
-  id: string;
-  originalInput: string;
-  combinedName: string; // e.g., "Bread and Eggs"
-  totalCalories: number;
-  totalNutrients: {
-    protein: number;
-    carbohydrates: number;
-    fat: number;
-    fiber: number;
-    sugar: number;
-    sodium: number;
-    calcium?: number;
-    iron?: number;
-    vitamin_c?: number;
-    vitamin_d?: number;
-    potassium?: number;
-  };
-  individualItems: FoodItem[];
-  dateAdded: Date;
-  timeOfDay?: string;
-  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-}
+// Re-export types for backwards compatibility
+export type { FoodItem, GroupedFoodEntry };
 
 export interface LLMResponse {
   success: boolean;
