@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Container, Typography, Box, Tab, Tabs, useTheme, useMediaQuery, AppBar, Toolbar, Button } from '@mui/material'
-import FoodEntry from './components/FoodEntry'
+import LLMFoodEntry from './components/LLMFoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
@@ -38,11 +38,16 @@ function TabPanel(props: TabPanelProps) {
 
 function AppContent() {
   const [tabValue, setTabValue] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOut } = useAuth();
   const { foods, loading, addFood, updateFood, deleteFood } = useFoodData();
   const { isConnected, isChecking } = useConnectionStatus();
+
+  const handleFoodEntrySuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -199,7 +204,7 @@ function AppContent() {
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <FoodEntry onAddFood={addFood} />
+          <LLMFoodEntry onSuccess={handleFoodEntrySuccess} />
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>
@@ -211,11 +216,7 @@ function AppContent() {
         </TabPanel>
         
         <TabPanel value={tabValue} index={3}>
-          <FoodHistory 
-            foods={foods} 
-            onUpdateFood={updateFood}
-            onDeleteFood={deleteFood}
-          />
+          <FoodHistory refreshTrigger={refreshTrigger} />
         </TabPanel>
         
         <TabPanel value={tabValue} index={4}>

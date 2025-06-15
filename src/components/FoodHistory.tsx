@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,88 +19,96 @@ import {
   DialogActions,
   Button,
   Tooltip,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
+  Collapse,
   TextField,
   InputAdornment,
   TableSortLabel,
   Checkbox,
-  Fab,
-  Collapse
-} from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import SearchIcon from '@mui/icons-material/Search'
-import FilterListIcon from '@mui/icons-material/FilterList'
-import ClearIcon from '@mui/icons-material/Clear'
-import { FoodItem } from '../types'
-import { foodCategories } from '../utils/foodCategories'
-import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay'
-import { useState } from 'react'
-import EditFoodDialog from './EditFoodDialog'
+  Divider
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
+import { GroupedFoodDatabase, GroupedFoodEntry } from '../services/groupedFoodDatabase';
+import { supabase } from '../config/supabase';
+import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
 
 interface FoodHistoryProps {
-  foods: FoodItem[];
-  onUpdateFood?: (id: string, updates: Partial<FoodItem>) => void;
-  onDeleteFood?: (id: string) => void;
+  refreshTrigger?: number;
 }
 
-export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodHistoryProps) {
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; food: FoodItem | null }>({
+export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
+  const [groupedEntries, setGroupedEntries] = useState<GroupedFoodEntry[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; entry: GroupedFoodEntry | null }>({
     open: false,
-    food: null
-  });
-  const [menuAnchor, setMenuAnchor] = useState<{ element: HTMLElement | null; food: FoodItem | null }>({
-    element: null,
-    food: null
-  });
-  const [editDialog, setEditDialog] = useState<{ open: boolean; food: FoodItem | null }>({
-    open: false,
-    food: null
+    entry: null
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'date' | 'calories' | 'category'>('date');
+  const [sortBy, setSortBy] = useState<'description' | 'date' | 'calories'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [selectedFoods, setSelectedFoods] = useState<Set<string>>(new Set());
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  
+  const groupedFoodDatabase = new GroupedFoodDatabase();
 
-  const handleDeleteClick = (food: FoodItem) => {
-    setDeleteDialog({ open: true, food });
-    setMenuAnchor({ element: null, food: null });
-  };
+  useEffect(() => {
+    loadGroupedEntries();
+  }, [refreshTrigger]);
 
-  const handleDeleteConfirm = () => {
-    if (deleteDialog.food && onDeleteFood) {
-      onDeleteFood(deleteDialog.food.id);
+  const loadGroupedEntries = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const entries = await groupedFoodDatabase.getUserGroupedFoodEntries();
+      setGroupedEntries(entries);
+    } catch (err) {
+      console.error('Error loading grouped entries:', err);
+      setError('Failed to load food history');
+    } finally {
+      setLoading(false);
     }
-    setDeleteDialog({ open: false, food: null });
   };
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, food: FoodItem) => {
-    setMenuAnchor({ element: event.currentTarget, food });
+  const handleDeleteClick = (entry: GroupedFoodEntry) => {
+    setDeleteDialog({ open: true, entry });
   };
 
-  const handleMenuClose = () => {
-    setMenuAnchor({ element: null, food: null });
-  };
-
-  const handleEditClick = (food: FoodItem) => {
-    setEditDialog({ open: true, food });
-    setMenuAnchor({ element: null, food: null });
-  };
-
-  const handleEditSave = (id: string, updates: Partial<FoodItem>) => {
-    if (onUpdateFood) {
-      onUpdateFood(id, updates);
+  const handleDeleteConfirm = async () => {
+    if (deleteDialog.entry) {
+      try {
+        const { error } = await supabase
+          .from('grouped_food_entries')
+          .delete()
+          .eq('id', deleteDialog.entry.id);
+        
+        if (error) throw error;
+        
+        await loadGroupedEntries();
+      } catch (err) {
+        console.error('Error deleting entry:', err);
+        setError('Failed to delete entry');
+      }
     }
-    setEditDialog({ open: false, food: null });
+    setDeleteDialog({ open: false, entry: null });
   };
 
-  const handleSort = (column: 'name' | 'date' | 'calories' | 'category') => {
+  const toggleRowExpansion = (entryId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(entryId)) {
+      newExpanded.delete(entryId);
+    } else {
+      newExpanded.add(entryId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  const handleSort = (column: 'description' | 'date' | 'calories') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -108,68 +117,101 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
     }
   };
 
-  const handleSelectFood = (foodId: string) => {
-    const newSelected = new Set(selectedFoods);
-    if (newSelected.has(foodId)) {
-      newSelected.delete(foodId);
+  const handleSelectEntry = (entryId: string) => {
+    const newSelected = new Set(selectedEntries);
+    if (newSelected.has(entryId)) {
+      newSelected.delete(entryId);
     } else {
-      newSelected.add(foodId);
+      newSelected.add(entryId);
     }
-    setSelectedFoods(newSelected);
+    setSelectedEntries(newSelected);
   };
 
   const handleSelectAll = () => {
-    if (selectedFoods.size === filteredAndSortedFoods.length) {
-      setSelectedFoods(new Set());
+    if (selectedEntries.size === filteredAndSortedEntries.length) {
+      setSelectedEntries(new Set());
     } else {
-      setSelectedFoods(new Set(filteredAndSortedFoods.map(food => food.id)));
+      setSelectedEntries(new Set(filteredAndSortedEntries.map(entry => entry.id)));
     }
   };
 
-  const handleBulkDelete = () => {
-    if (onDeleteFood && selectedFoods.size > 0) {
-      selectedFoods.forEach(foodId => {
-        onDeleteFood(foodId);
-      });
-      setSelectedFoods(new Set());
+  const handleBulkDelete = async () => {
+    if (selectedEntries.size > 0) {
+      try {
+        const { error } = await supabase
+          .from('grouped_food_entries')
+          .delete()
+          .in('id', Array.from(selectedEntries));
+        
+        if (error) throw error;
+        
+        setSelectedEntries(new Set());
+        await loadGroupedEntries();
+      } catch (err) {
+        console.error('Error deleting entries:', err);
+        setError('Failed to delete entries');
+      }
     }
   };
 
-  // Filter and sort foods
-  const filteredAndSortedFoods = foods
-    .filter(food => {
-      const matchesSearch = food.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = filterCategory === 'all' || food.category === filterCategory;
-      return matchesSearch && matchesCategory;
+  // Filter and sort grouped entries
+  const filteredAndSortedEntries = groupedEntries
+    .filter(entry => {
+      const matchesSearch = entry.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
     })
     .sort((a, b) => {
       let comparison = 0;
       
       switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
+        case 'description':
+          comparison = a.description.localeCompare(b.description);
           break;
         case 'date':
-          comparison = new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
         case 'calories':
-          comparison = a.calories - b.calories;
-          break;
-        case 'category':
-          const aCategoryName = foodCategories[a.category]?.name || a.category;
-          const bCategoryName = foodCategories[b.category]?.name || b.category;
-          comparison = aCategoryName.localeCompare(bCategoryName);
+          comparison = a.total_calories - b.total_calories;
           break;
       }
       
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  if (foods.length === 0) {
+  if (loading) {
     return (
       <Card>
         <CardContent>
           <Typography variant="h6" align="center" color="text.secondary">
-            No foods added yet
+            Loading food history...
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent>
+          <Typography variant="h6" align="center" color="error">
+            {error}
+          </Typography>
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
+            <Button onClick={loadGroupedEntries} variant="outlined">
+              Retry
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (groupedEntries.length === 0) {
+    return (
+      <Card>
+        <CardContent>
+          <Typography variant="h6" align="center" color="text.secondary">
+            No food entries yet
           </Typography>
         </CardContent>
       </Card>
@@ -192,7 +234,7 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
           <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
             <TextField
               fullWidth
-              placeholder="Search foods..."
+              placeholder="Search meal descriptions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -209,34 +251,15 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
                   </InputAdornment>
                 )
               }}
-              sx={{ mb: 2 }}
             />
-            
-            <TextField
-              select
-              label="Filter by Category"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              sx={{ minWidth: 200 }}
-            >
-              <MenuItem value="all">All Categories</MenuItem>
-              {Object.entries(foodCategories).map(([id, category]) => (
-                <MenuItem key={id} value={id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span>{category.icon}</span>
-                    <span>{category.name}</span>
-                  </Box>
-                </MenuItem>
-              ))}
-            </TextField>
           </Box>
         </Collapse>
 
-        {selectedFoods.size > 0 && (
+        {selectedEntries.size > 0 && (
           <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="body2" color="primary.contrastText">
-                {selectedFoods.size} item(s) selected
+                {selectedEntries.size} meal(s) selected
               </Typography>
               <Button
                 variant="contained"
@@ -257,28 +280,19 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
               <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selectedFoods.size > 0 && selectedFoods.size < filteredAndSortedFoods.length}
-                    checked={filteredAndSortedFoods.length > 0 && selectedFoods.size === filteredAndSortedFoods.length}
+                    indeterminate={selectedEntries.size > 0 && selectedEntries.size < filteredAndSortedEntries.length}
+                    checked={filteredAndSortedEntries.length > 0 && selectedEntries.size === filteredAndSortedEntries.length}
                     onChange={handleSelectAll}
                   />
                 </TableCell>
+                <TableCell></TableCell>
                 <TableCell>
                   <TableSortLabel
-                    active={sortBy === 'name'}
-                    direction={sortBy === 'name' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('name')}
+                    active={sortBy === 'description'}
+                    direction={sortBy === 'description' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('description')}
                   >
-                    Food
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={sortBy === 'category'}
-                    direction={sortBy === 'category' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('category')}
-                  >
-                    Category
+                    Meal Description
                   </TableSortLabel>
                 </TableCell>
                 <TableCell align="right">
@@ -287,14 +301,12 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
                     direction={sortBy === 'calories' ? sortOrder : 'asc'}
                     onClick={() => handleSort('calories')}
                   >
-                    Calories
+                    Total Calories
                   </TableSortLabel>
                 </TableCell>
-                <TableCell align="right">Protein (g)</TableCell>
-                <TableCell align="right">Carbs (g)</TableCell>
-                <TableCell align="right">Fat (g)</TableCell>
-                <TableCell align="center">Pre-Glucose</TableCell>
-                <TableCell align="center">Post-Glucose</TableCell>
+                <TableCell align="right">Total Protein (g)</TableCell>
+                <TableCell align="right">Total Carbs (g)</TableCell>
+                <TableCell align="right">Total Fat (g)</TableCell>
                 <TableCell align="center">Time of Day</TableCell>
                 <TableCell>
                   <TableSortLabel
@@ -309,107 +321,127 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredAndSortedFoods.map((food) => (
-                <TableRow key={food.id} hover selected={selectedFoods.has(food.id)}>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedFoods.has(food.id)}
-                      onChange={() => handleSelectFood(food.id)}
-                    />
-                  </TableCell>
-                  <TableCell component="th" scope="row">
-                    <Typography variant="body2" fontWeight="medium">
-                      {food.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {food.quantity} {food.unit}
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={foodCategories[food.category]?.name || food.category} 
-                      size="small" 
-                      variant="outlined"
-                      color="primary"
-                      icon={<span>{foodCategories[food.category]?.icon}</span>}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    {Math.round(food.calories)}
-                  </TableCell>
-                  <TableCell align="right">
-                    {Math.round(food.nutrients.find(n => n.name === 'Protein')?.amount || 0)}
-                  </TableCell>
-                  <TableCell align="right">
-                    {Math.round(food.nutrients.find(n => n.name === 'Carbohydrates')?.amount || 0)}
-                  </TableCell>
-                  <TableCell align="right">
-                    {Math.round(food.nutrients.find(n => n.name === 'Fat')?.amount || 0)}
-                  </TableCell>
-                  <TableCell align="center">
-                    {food.glucoseData?.preGlucose ? (
-                      <Chip 
-                        label={`${food.glucoseData.preGlucose} mg/dL`}
-                        size="small"
-                        color={
-                          food.glucoseData.preGlucose <= 100 ? 'success' :
-                          food.glucoseData.preGlucose <= 125 ? 'warning' : 'error'
-                        }
-                        variant="outlined"
+              {filteredAndSortedEntries.map((entry) => (
+                <React.Fragment key={entry.id}>
+                  <TableRow hover selected={selectedEntries.has(entry.id)}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedEntries.has(entry.id)}
+                        onChange={() => handleSelectEntry(entry.id)}
                       />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    {food.glucoseData?.postGlucose ? (
-                      <Chip 
-                        label={`${food.glucoseData.postGlucose} mg/dL`}
-                        size="small"
-                        color={
-                          food.glucoseData.postGlucose <= 140 ? 'success' :
-                          food.glucoseData.postGlucose <= 199 ? 'warning' : 'error'
-                        }
-                        variant="outlined"
-                      />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    {food.timeOfDay ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                        <Typography component="span">{getTimeOfDayIcon(food.timeOfDay)}</Typography>
-                        <Chip
-                          label={getTimeOfDayLabel(food.timeOfDay)}
-                          size="small"
-                          sx={{
-                            backgroundColor: getTimeOfDayColor(food.timeOfDay),
-                            color: 'white',
-                            fontSize: '0.75rem'
-                          }}
-                        />
-                      </Box>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(food.dateAdded).toLocaleDateString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip title="More actions">
+                    </TableCell>
+                    <TableCell>
                       <IconButton 
                         size="small" 
-                        onClick={(e) => handleMenuClick(e, food)}
+                        onClick={() => toggleRowExpansion(entry.id)}
+                        sx={{ mr: 1 }}
                       >
-                        <MoreVertIcon fontSize="small" />
+                        {expandedRows.has(entry.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell component="th" scope="row">
+                      <Typography variant="body2" fontWeight="medium">
+                        {entry.description}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {entry.individual_items.length} item{entry.individual_items.length !== 1 ? 's' : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight="medium">
+                        {Math.round(entry.total_calories)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      {Math.round(entry.total_protein)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {Math.round(entry.total_carbs)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {Math.round(entry.total_fat)}
+                    </TableCell>
+                    <TableCell align="center">
+                      {entry.time_of_day ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                          <Typography component="span">{getTimeOfDayIcon(entry.time_of_day)}</Typography>
+                          <Chip
+                            label={getTimeOfDayLabel(entry.time_of_day)}
+                            size="small"
+                            sx={{
+                              backgroundColor: getTimeOfDayColor(entry.time_of_day),
+                              color: 'white',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(entry.created_at).toLocaleDateString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Delete entry">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDeleteClick(entry)}
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Expanded row showing individual items */}
+                  <TableRow>
+                    <TableCell colSpan={10} sx={{ py: 0, borderBottom: expandedRows.has(entry.id) ? 1 : 0 }}>
+                      <Collapse in={expandedRows.has(entry.id)} timeout="auto" unmountOnExit>
+                        <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+                          <Typography variant="subtitle2" sx={{ mb: 2 }}>Individual Food Items:</Typography>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Food Item</TableCell>
+                                <TableCell align="right">Calories</TableCell>
+                                <TableCell align="right">Protein (g)</TableCell>
+                                <TableCell align="right">Carbs (g)</TableCell>
+                                <TableCell align="right">Fat (g)</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {entry.individual_items.map((item, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {item.name}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {Math.round(item.calories)}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {Math.round(item.protein)}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {Math.round(item.carbs)}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {Math.round(item.fat)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
@@ -417,50 +449,28 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
 
         <Box mt={2}>
           <Typography variant="body2" color="text.secondary">
-            Showing {filteredAndSortedFoods.length} of {foods.length} items
+            Showing {filteredAndSortedEntries.length} of {groupedEntries.length} meals
             {searchTerm && ` (filtered by "${searchTerm}")`}
-            {filterCategory !== 'all' && ` (${foodCategories[filterCategory]?.name})`}
           </Typography>
         </Box>
 
-        {/* Action Menu */}
-        <Menu
-          anchorEl={menuAnchor.element}
-          open={Boolean(menuAnchor.element)}
-          onClose={handleMenuClose}
-        >
-          <MenuItem onClick={() => menuAnchor.food && handleEditClick(menuAnchor.food)}>
-            <ListItemIcon>
-              <EditIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Edit</ListItemText>
-          </MenuItem>
-          <MenuItem 
-            onClick={() => menuAnchor.food && handleDeleteClick(menuAnchor.food)}
-            sx={{ color: 'error.main' }}
-          >
-            <ListItemIcon>
-              <DeleteIcon fontSize="small" color="error" />
-            </ListItemIcon>
-            <ListItemText>Delete</ListItemText>
-          </MenuItem>
-        </Menu>
 
         {/* Delete Confirmation Dialog */}
         <Dialog
           open={deleteDialog.open}
-          onClose={() => setDeleteDialog({ open: false, food: null })}
+          onClose={() => setDeleteDialog({ open: false, entry: null })}
         >
-          <DialogTitle>Delete Food Item</DialogTitle>
+          <DialogTitle>Delete Meal Entry</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete "{deleteDialog.food?.name}"? 
+              Are you sure you want to delete "{deleteDialog.entry?.description}"? 
+              This will remove all {deleteDialog.entry?.individual_items.length || 0} food items in this meal.
               This action cannot be undone.
             </Typography>
           </DialogContent>
           <DialogActions>
             <Button 
-              onClick={() => setDeleteDialog({ open: false, food: null })}
+              onClick={() => setDeleteDialog({ open: false, entry: null })}
             >
               Cancel
             </Button>
@@ -473,14 +483,6 @@ export default function FoodHistory({ foods, onUpdateFood, onDeleteFood }: FoodH
             </Button>
           </DialogActions>
         </Dialog>
-
-        {/* Edit Food Dialog */}
-        <EditFoodDialog
-          open={editDialog.open}
-          food={editDialog.food}
-          onClose={() => setEditDialog({ open: false, food: null })}
-          onSave={handleEditSave}
-        />
       </CardContent>
     </Card>
   );

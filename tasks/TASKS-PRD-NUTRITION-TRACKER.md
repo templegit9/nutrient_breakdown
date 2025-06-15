@@ -159,13 +159,34 @@
 - `public/manifest.json` - PWA configuration
 - `src/sw.ts` - Service worker for offline functionality
 
-### SLM Enhancement Files (Phase 3)
+## Revolutionary Update: LLM-Brain Architecture (Completed)
+
+- [x] 12.0 Complete architectural overhaul to LLM-powered food processing
+  - [x] 12.1 Remove food database restrictions for unrestricted food entry
+  - [x] 12.2 Implement Google Gemini API integration as the "brain" of the application
+  - [x] 12.3 Create LLMFoodBrain service for comprehensive food analysis
+  - [x] 12.4 Build GroupedFoodDatabase for new data architecture
+  - [x] 12.5 Design grouped food entries with individual item breakdown
+  - [x] 12.6 Redesign FoodHistory with expandable grouped rows
+  - [x] 12.7 Replace traditional FoodEntry with AI-powered LLMFoodEntry
+  - [x] 12.8 Implement CSV nutrition export functionality
+  - [x] 12.9 Add real-time nutrition calculation and validation
+
+### LLM-Brain Architecture Files (Phase 3)
+- `src/services/llmFoodBrain.ts` - Google Gemini API integration for food processing and nutrition analysis
+- `src/services/groupedFoodDatabase.ts` - Database service for grouped food entries with JSON storage
+- `src/components/LLMFoodEntry.tsx` - AI-powered food entry interface replacing traditional database lookup
+- `src/components/FoodHistory.tsx` - Redesigned with expandable grouped meal displays
+- `database/migration-grouped-food-entries.sql` - Database schema for grouped entries with RLS policies
+- `src/App.tsx` - Updated to use LLM components and grouped architecture
+
+### Legacy SLM Enhancement Files (Superseded by LLM-Brain)
 - `Training/global_meal_descriptions.md` - Training data with 30 global meal examples
 - `Training/nigerian_meal_descriptions.md` - Training data with 30 Nigerian meal examples
 - `public/Training/` - Frontend-accessible training data directory
-- `src/utils/slmTrainer.ts` - Core SLM implementation with similarity matching
+- `src/utils/slmTrainer.ts` - Core SLM implementation (disabled due to hallucination issues)
 - `src/utils/testSLM.ts` - Testing utilities for SLM validation and debugging
-- `src/utils/smartFoodParser.ts` - Enhanced with SLM integration as primary parsing method
+- `src/utils/smartFoodParser.ts` - Enhanced with SLM integration (superseded by LLM-Brain)
 - `src/utils/conversationalParser.ts` - Updated to use async SLM predictions
 - `src/components/ConversationalInput.tsx` - Updated with interface compatibility fixes
 - `src/utils/foodMatcher.ts` - Updated food property handling for SmartParsedFood
