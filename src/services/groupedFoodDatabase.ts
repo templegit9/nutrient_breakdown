@@ -252,5 +252,3 @@ export class GroupedFoodDatabase {
     };
   }
 }
-
-export { GroupedFoodDatabase };
