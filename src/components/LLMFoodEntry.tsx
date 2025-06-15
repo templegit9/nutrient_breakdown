@@ -73,7 +73,15 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setError('');
 
     try {
-      const { data, error: dbError } = await GroupedFoodDatabase.saveGroupedFoodEntry(previewEntry);
+      console.log('GroupedFoodDatabase:', GroupedFoodDatabase);
+      console.log('saveGroupedFoodEntry method:', GroupedFoodDatabase.saveGroupedFoodEntry);
+      console.log('Preview entry to save:', previewEntry);
+      
+      // Try to bind the method properly
+      const saveMethod = GroupedFoodDatabase.saveGroupedFoodEntry.bind(GroupedFoodDatabase);
+      console.log('Bound method:', saveMethod);
+      
+      const { data, error: dbError } = await saveMethod(previewEntry);
       
       if (dbError) {
         setError('Failed to save food entry to database');
@@ -92,6 +100,7 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
       }
     } catch (err) {
       console.error('Save error:', err);
+      console.error('Error details:', err);
       setError('Failed to save food entry');
     } finally {
       setLoading(false);
