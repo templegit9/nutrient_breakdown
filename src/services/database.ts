@@ -195,28 +195,40 @@ export class DatabaseService {
     const user = await supabase.auth.getUser()
     if (!user.data.user) throw new Error('User not authenticated')
 
+    console.log('DatabaseService: Saving user profile for user:', user.data.user.id)
+    console.log('DatabaseService: Profile data:', profile)
+
+    const profileData = {
+      user_id: user.data.user.id,
+      name: profile.name,
+      age: profile.age,
+      gender: profile.gender,
+      height_cm: profile.height,
+      weight_kg: profile.weight,
+      activity_level: profile.activityLevel,
+      health_conditions: profile.healthConditions,
+      dietary_restrictions: profile.dietaryRestrictions,
+      target_calories: profile.targetCalories,
+      target_protein_g: profile.targetProtein,
+      target_carbs_g: profile.targetCarbs,
+      target_fat_g: profile.targetFat,
+      target_fiber_g: profile.targetFiber
+    }
+
+    console.log('DatabaseService: Upserting profile data:', profileData)
+
     const { data, error } = await supabase
       .from('user_profiles')
-      .upsert({
-        user_id: user.data.user.id,
-        name: profile.name,
-        age: profile.age,
-        gender: profile.gender,
-        height_cm: profile.height,
-        weight_kg: profile.weight,
-        activity_level: profile.activityLevel,
-        health_conditions: profile.healthConditions,
-        dietary_restrictions: profile.dietaryRestrictions,
-        target_calories: profile.targetCalories,
-        target_protein_g: profile.targetProtein,
-        target_carbs_g: profile.targetCarbs,
-        target_fat_g: profile.targetFat,
-        target_fiber_g: profile.targetFiber
-      })
+      .upsert(profileData)
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('DatabaseService: Error saving user profile:', error)
+      throw error
+    }
+    
+    console.log('DatabaseService: Successfully saved user profile:', data)
     return data
   }
 
@@ -224,14 +236,25 @@ export class DatabaseService {
     const user = await supabase.auth.getUser()
     if (!user.data.user) throw new Error('User not authenticated')
 
+    console.log('DatabaseService: Getting user profile for user:', user.data.user.id)
+
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.data.user.id)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error
-    if (!data) return null
+    if (error && error.code !== 'PGRST116') {
+      console.error('DatabaseService: Error getting user profile:', error)
+      throw error
+    }
+    
+    if (!data) {
+      console.log('DatabaseService: No user profile found')
+      return null
+    }
+
+    console.log('DatabaseService: Found user profile:', data)
 
     return {
       id: data.id,

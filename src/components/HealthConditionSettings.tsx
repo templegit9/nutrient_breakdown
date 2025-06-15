@@ -113,7 +113,9 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = (props) 
       }
       
       console.log('Saving user profile with health conditions:', profileToSave);
-      const savedProfile = await DatabaseService.saveUserProfile(profileToSave);
+      // Remove id from profile before saving (saveUserProfile expects Omit<UserProfile, 'id'>)
+      const { id, ...profileWithoutId } = profileToSave;
+      const savedProfile = await DatabaseService.saveUserProfile(profileWithoutId);
       console.log('Successfully saved profile:', savedProfile);
       
       setUserProfile(savedProfile);

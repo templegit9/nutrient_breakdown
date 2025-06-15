@@ -79,7 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           targetFiber: 25
         }
         
-        await DatabaseService.saveUserProfile(defaultProfile)
+        // Remove id from profile before saving (saveUserProfile expects Omit<UserProfile, 'id'>)
+        const { id, ...profileWithoutId } = defaultProfile;
+        await DatabaseService.saveUserProfile(profileWithoutId)
         console.log('Default user profile created successfully')
       }
     } catch (error) {
