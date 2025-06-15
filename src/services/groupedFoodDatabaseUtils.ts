@@ -6,32 +6,60 @@ import type { GroupedFoodEntry, GroupedFoodEntryDB } from '../types/food';
  */
 export async function saveGroupedFoodEntry(entry: GroupedFoodEntry): Promise<{ data: any; error: any }> {
   try {
-    console.log('saveGroupedFoodEntry function called with:', entry);
+    console.log('=== INSIDE saveGroupedFoodEntry ===');
+    console.log('Function start - entry received:', entry);
+    console.log('supabase object:', supabase);
+    console.log('supabase.auth:', supabase.auth);
     
-    const user = await supabase.auth.getUser();
+    console.log('About to call supabase.auth.getUser()');
+    let user;
+    try {
+      user = await supabase.auth.getUser();
+      console.log('getUser result:', user);
+    } catch (authError) {
+      console.error('Auth error:', authError);
+      throw authError;
+    }
+    
     if (!user.data.user) {
+      console.log('User not authenticated');
       return { data: null, error: 'User not authenticated' };
     }
 
-    const { data, error } = await supabase
-      .from('grouped_food_entries')
-      .insert({
-        user_id: user.data.user.id,
-        description: entry.combinedName,
-        individual_items: entry.individualItems,
-        total_calories: entry.totalCalories,
-        total_protein: entry.totalNutrients.protein,
-        total_carbs: entry.totalNutrients.carbohydrates,
-        total_fat: entry.totalNutrients.fat,
-        time_of_day: entry.timeOfDay
-      })
-      .select()
-      .single();
+    console.log('Building insert data...');
+    const insertData = {
+      user_id: user.data.user.id,
+      description: entry.combinedName,
+      individual_items: entry.individualItems,
+      total_calories: entry.totalCalories,
+      total_protein: entry.totalNutrients.protein,
+      total_carbs: entry.totalNutrients.carbohydrates,
+      total_fat: entry.totalNutrients.fat,
+      time_of_day: entry.timeOfDay
+    };
+    console.log('Insert data:', insertData);
 
-    console.log('Database insert result:', { data, error });
+    console.log('About to call supabase.from().insert()');
+    let insertResult;
+    try {
+      insertResult = await supabase
+        .from('grouped_food_entries')
+        .insert(insertData)
+        .select()
+        .single();
+      console.log('Insert completed, result:', insertResult);
+    } catch (insertError) {
+      console.error('Insert error:', insertError);
+      throw insertError;
+    }
+
+    const { data, error } = insertResult;
+    console.log('Final result - data:', data, 'error:', error);
     return { data, error };
   } catch (error) {
-    console.error('Error saving grouped food entry:', error);
+    console.error('=== FUNCTION ERROR ===');
+    console.error('Error in saveGroupedFoodEntry:', error);
+    console.error('Error stack:', error?.stack);
     return { data: null, error };
   }
 }

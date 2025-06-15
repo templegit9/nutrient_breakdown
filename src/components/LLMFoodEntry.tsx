@@ -74,8 +74,28 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setError('');
 
     try {
-      console.log('About to call saveGroupedFoodEntry function');
-      const { data, error: dbError } = await saveGroupedFoodEntry(previewEntry);
+      console.log('=== DEBUGGING START ===');
+      console.log('previewEntry:', previewEntry);
+      console.log('saveGroupedFoodEntry function:', saveGroupedFoodEntry);
+      console.log('typeof saveGroupedFoodEntry:', typeof saveGroupedFoodEntry);
+      
+      // Try to call the function step by step
+      console.log('Step 1: About to call saveGroupedFoodEntry');
+      
+      let result;
+      try {
+        result = saveGroupedFoodEntry(previewEntry);
+        console.log('Step 2: Function called, result:', result);
+        console.log('Result type:', typeof result);
+        console.log('Is Promise?:', result instanceof Promise);
+      } catch (syncError) {
+        console.error('Synchronous error in function call:', syncError);
+        throw syncError;
+      }
+      
+      console.log('Step 3: About to await result');
+      const { data, error: dbError } = await result;
+      console.log('Step 4: Await completed, data:', data, 'error:', dbError);
       
       if (dbError) {
         setError('Failed to save food entry to database');
@@ -93,8 +113,11 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
+      console.error('=== CATCH BLOCK ===');
       console.error('Save error:', err);
-      console.error('Error details:', err);
+      console.error('Error stack:', err?.stack);
+      console.error('Error name:', err?.name);
+      console.error('Error message:', err?.message);
       setError('Failed to save food entry');
     } finally {
       setLoading(false);
