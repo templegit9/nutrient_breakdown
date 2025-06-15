@@ -5,7 +5,7 @@ export class DatabaseService {
   // Test database connection
   static async testConnection() {
     try {
-      const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
+      const { error } = await supabase.from('user_profiles').select('id').limit(1).maybeSingle();
       if (error) {
         console.error('Database connection test failed:', error);
         return false;
@@ -257,9 +257,9 @@ export class DatabaseService {
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.data.user.id)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('DatabaseService: Error getting user profile:', error)
       throw error
     }
