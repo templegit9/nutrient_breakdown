@@ -1,4 +1,37 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Grid,
+  LinearProgress,
+  Chip,
+  Alert,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Button,
+  FormControlLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  useTheme,
+  Divider,
+  Paper,
+  CircularProgress,
+  Dialog
+} from '@mui/material';
+import {
+  Settings as SettingsIcon,
+  ExpandMore as ExpandMoreIcon,
+  CheckCircle as SuccessIcon,
+  LocalHospital as RecommendationIcon,
+  TrendingUp as TrendIcon,
+  Warning as WarningIcon,
+  Favorite as HeartIcon
+} from '@mui/icons-material';
 import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
 import {
   EXPANDED_HEALTH_CONDITIONS,
@@ -12,6 +45,7 @@ import {
 import { DatabaseService } from '../services/database';
 import { UserProfile } from '../types';
 import HealthConditionSettings from './HealthConditionSettings';
+import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils';
 
 interface HealthConditionDashboardProps {
   userId: string;
@@ -24,6 +58,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
 
   // Load user profile and health conditions
   useEffect(() => {
@@ -71,11 +106,34 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   const currentCondition = getHealthConditionById(selectedCondition);
   const conditionScore = currentCondition ? calculateConditionScore(currentCondition, todayEntries) : 0;
   const recommendations = currentCondition ? getConditionRecommendations(currentCondition, todayEntries) : [];
+  
+  // Calculate statistics for today's entries
+  const totalCalories = todayEntries.reduce((sum, entry) => sum + (entry.totalNutrients.calories || 0), 0);
+  const beneficialFoodCount = todayEntries.filter(entry => {
+    if (!currentCondition) return false;
+    const encouragedFoods = currentCondition.foodRecommendations
+      .filter(rec => rec.type === 'encourage')
+      .flatMap(rec => rec.foods);
+    return encouragedFoods.some(food => 
+      entry.foodName.toLowerCase().includes(food.toLowerCase()) ||
+      food.toLowerCase().includes(entry.foodName.toLowerCase())
+    );
+  }).length;
+  const cautionFoodCount = todayEntries.filter(entry => {
+    if (!currentCondition) return false;
+    const limitFoods = currentCondition.foodRecommendations
+      .filter(rec => rec.type === 'limit' || rec.type === 'avoid')
+      .flatMap(rec => rec.foods);
+    return limitFoods.some(food => 
+      entry.foodName.toLowerCase().includes(food.toLowerCase()) ||
+      food.toLowerCase().includes(entry.foodName.toLowerCase())
+    );
+  }).length;
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-500';
-    if (score >= 60) return 'text-yellow-500';
-    return 'text-red-500';
+    if (score >= 80) return theme.palette.success.main;
+    if (score >= 60) return theme.palette.warning.main;
+    return theme.palette.error.main;
   };
 
   const getScoreDescription = (score: number) => {
@@ -85,246 +143,300 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
     return 'Needs significant dietary modifications';
   };
 
-  // Handle settings modal
-  if (showSettings) {
-    return (
-      <HealthConditionSettings
-        userId={userId}
-        onClose={() => {
-          setShowSettings(false);
-          loadUserProfile(); // Reload profile after settings change
-        }}
-      />
-    );
-  }
 
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
+      <Box display="flex" alignItems="center" justifyContent="center" p={4}>
+        <CircularProgress size={24} />
+        <Typography variant="body2" sx={{ ml: 2 }}>Loading health analysis...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Health Condition Analysis</h2>
-        <button
+    <Box maxWidth="lg" sx={{ mx: 'auto', p: 3 }}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={4}>
+        <Typography variant="h3" component="h2" fontWeight="bold">
+          Health Condition Analysis
+        </Typography>
+        <Button
+          variant="contained"
           onClick={() => setShowSettings(true)}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+          startIcon={<SettingsIcon />}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>Manage Conditions</span>
-        </button>
-      </div>
+          Manage Conditions
+        </Button>
+      </Box>
       
       {/* Category Selection */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3 text-gray-700">Condition Categories</h3>
-        <div className="flex flex-wrap gap-2">
+      <Box mb={4}>
+        <Typography variant="h5" fontWeight="semibold" gutterBottom color="text.secondary">
+          Condition Categories
+        </Typography>
+        <Box display="flex" flexWrap="wrap" gap={1}>
           {HEALTH_CONDITION_CATEGORIES.map(category => {
             const categoryConditions = conditionsByCategory[category];
             if (categoryConditions.length === 0) return null;
             
             return (
-              <button
+              <Chip
                 key={category}
+                label={`${category} (${categoryConditions.length})`}
                 onClick={() => {
                   setSelectedCategory(category);
                   if (categoryConditions.length > 0) {
                     setSelectedCondition(categoryConditions[0].id);
                   }
                 }}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCategory === category
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category}
-                <span className="ml-1 text-xs opacity-75">({categoryConditions.length})</span>
-              </button>
+                variant={selectedCategory === category ? "filled" : "outlined"}
+                color={selectedCategory === category ? "primary" : "default"}
+                sx={{ fontWeight: 'medium' }}
+              />
             );
           })}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Condition Selection */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3 text-gray-700">
+      <Box mb={4}>
+        <Typography variant="h5" fontWeight="semibold" gutterBottom color="text.secondary">
           {selectedCategory} Conditions
-        </h3>
-        <div className="flex flex-wrap gap-2">
+        </Typography>
+        <Box display="flex" flexWrap="wrap" gap={1}>
           {conditionsByCategory[selectedCategory]?.map(condition => (
-            <button
+            <Chip
               key={condition.id}
+              label={condition.name}
               onClick={() => setSelectedCondition(condition.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedCondition === condition.id
-                  ? 'bg-indigo-500 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {condition.name}
-            </button>
+              variant={selectedCondition === condition.id ? "filled" : "outlined"}
+              color={selectedCondition === condition.id ? "secondary" : "default"}
+              sx={{ fontWeight: 'medium' }}
+            />
           ))}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {currentCondition && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Grid container spacing={3}>
           {/* Condition Overview */}
-          <div className="lg:col-span-1">
-            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-              <h3 className="text-xl font-semibold mb-3 text-gray-800">
-                {currentCondition.name}
-              </h3>
-              <p className="text-gray-600 text-sm mb-4">
-                {currentCondition.description}
-              </p>
-              
-              {/* Health Score */}
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Today's Adherence Score</div>
-                <div className={`text-4xl font-bold ${getScoreColor(conditionScore)} mb-2`}>
-                  {conditionScore.toFixed(1)}%
-                </div>
-                <div className="text-xs text-gray-500">
-                  {getScoreDescription(conditionScore)}
-                </div>
-              </div>
+          <Grid item xs={12} lg={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h5" fontWeight="semibold" gutterBottom>
+                  {currentCondition.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  {currentCondition.description}
+                </Typography>
+                
+                {/* Health Score */}
+                <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Today's Adherence Score
+                  </Typography>
+                  <Typography 
+                    variant="h3" 
+                    fontWeight="bold" 
+                    sx={{ color: getScoreColor(conditionScore) }}
+                    gutterBottom
+                  >
+                    {conditionScore.toFixed(1)}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {getScoreDescription(conditionScore)}
+                  </Typography>
+                </Paper>
 
-              {/* Key Nutrients */}
-              <div className="mt-4">
-                <h4 className="font-semibold text-gray-700 mb-2">Key Nutrients</h4>
-                <div className="space-y-2">
-                  {currentCondition.keyNutrients.slice(0, 3).map((nutrient, index) => (
-                    <div key={index} className="text-xs bg-blue-50 p-2 rounded">
-                      <div className="font-medium text-blue-800">
-                        {nutrient.nutrient.replace('_', ' ').toUpperCase()}
-                      </div>
-                      <div className="text-blue-600">
-                        Target: {nutrient.target}{nutrient.unit}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+                {/* Key Nutrients */}
+                <Box mt={3}>
+                  <Typography variant="subtitle1" fontWeight="semibold" gutterBottom>
+                    Key Nutrients
+                  </Typography>
+                  <Box>
+                    {currentCondition.keyNutrients.slice(0, 3).map((nutrient, index) => (
+                      <Paper key={index} sx={{ p: 1.5, mb: 1, bgcolor: 'primary.light' }}>
+                        <Typography variant="caption" fontWeight="medium" color="primary.dark">
+                          {nutrient.nutrient.replace('_', ' ').toUpperCase()}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="primary.main">
+                          Target: {nutrient.target}{nutrient.unit}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
 
           {/* Recommendations */}
-          <div className="lg:col-span-2">
-            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-              <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                Today's Recommendations
-              </h3>
-              
-              {recommendations.length > 0 ? (
-                <ul className="space-y-3">
-                  {recommendations.map((rec, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                      <span className="text-gray-700">{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <div className="text-lg mb-2">🎉 Great job!</div>
-                  <div>You're meeting all recommendations for {currentCondition.name} today.</div>
-                </div>
-              )}
-
-              {/* Food Recommendations */}
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentCondition.foodRecommendations.map((foodRec, index) => (
-                  <div key={index} className={`p-4 rounded-lg ${
-                    foodRec.type === 'encourage' ? 'bg-green-50 border border-green-200' :
-                    foodRec.type === 'limit' ? 'bg-yellow-50 border border-yellow-200' :
-                    'bg-red-50 border border-red-200'
-                  }`}>
-                    <h4 className={`font-semibold mb-2 ${
-                      foodRec.type === 'encourage' ? 'text-green-800' :
-                      foodRec.type === 'limit' ? 'text-yellow-800' :
-                      'text-red-800'
-                    }`}>
-                      {foodRec.type === 'encourage' ? '✅ Encourage' :
-                       foodRec.type === 'limit' ? '⚠️ Limit' : '❌ Avoid'}
-                    </h4>
-                    <div className="text-sm text-gray-600 mb-2">
-                      {foodRec.reasoning}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {foodRec.foods.slice(0, 5).map((food, foodIndex) => (
-                        <span key={foodIndex} className={`px-2 py-1 text-xs rounded ${
-                          foodRec.type === 'encourage' ? 'bg-green-100 text-green-700' :
-                          foodRec.type === 'limit' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {food}
-                        </span>
-                      ))}
-                      {foodRec.foods.length > 5 && (
-                        <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">
-                          +{foodRec.foods.length - 5} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Clinical Notes */}
-              {currentCondition.clinicalNotes && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 mb-2">Clinical Notes</h4>
-                  <p className="text-sm text-blue-700">{currentCondition.clinicalNotes}</p>
-                </div>
-              )}
-
-              {/* Drug Interactions */}
-              {currentCondition.drugInteractions && currentCondition.drugInteractions.length > 0 && (
-                <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <h4 className="font-semibold text-orange-800 mb-2">⚠️ Drug Interactions</h4>
-                  <ul className="text-sm text-orange-700">
-                    {currentCondition.drugInteractions.map((interaction, index) => (
-                      <li key={index}>• {interaction}</li>
+          <Grid item xs={12} lg={8}>
+            <Card>
+              <CardContent>
+                <Typography variant="h5" fontWeight="semibold" gutterBottom>
+                  Today's Recommendations
+                </Typography>
+                
+                {recommendations.length > 0 ? (
+                  <List>
+                    {recommendations.map((rec, index) => (
+                      <ListItem key={index} alignItems="flex-start">
+                        <ListItemIcon sx={{ minWidth: 24, mt: 1 }}>
+                          <Box 
+                            sx={{ 
+                              width: 8, 
+                              height: 8, 
+                              bgcolor: 'primary.main', 
+                              borderRadius: '50%' 
+                            }} 
+                          />
+                        </ListItemIcon>
+                        <ListItemText primary={rec} />
+                      </ListItem>
                     ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                  </List>
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <Typography variant="h6" gutterBottom>🎉 Great job!</Typography>
+                    <Typography color="text.secondary">
+                      You're meeting all recommendations for {currentCondition.name} today.
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Food Recommendations */}
+                <Grid container spacing={2} sx={{ mt: 2 }}>
+                  {currentCondition.foodRecommendations.map((foodRec, index) => (
+                    <Grid item xs={12} md={6} key={index}>
+                      <Paper 
+                        sx={{
+                          p: 2,
+                          bgcolor: foodRec.type === 'encourage' ? 'success.light' :
+                                 foodRec.type === 'limit' ? 'warning.light' : 'error.light',
+                          border: 1,
+                          borderColor: foodRec.type === 'encourage' ? 'success.main' :
+                                      foodRec.type === 'limit' ? 'warning.main' : 'error.main'
+                        }}
+                      >
+                        <Typography 
+                          variant="subtitle1" 
+                          fontWeight="semibold" 
+                          sx={{
+                            color: foodRec.type === 'encourage' ? 'success.dark' :
+                                  foodRec.type === 'limit' ? 'warning.dark' : 'error.dark'
+                          }}
+                          gutterBottom
+                        >
+                          {foodRec.type === 'encourage' ? '✅ Encourage' :
+                           foodRec.type === 'limit' ? '⚠️ Limit' : '❌ Avoid'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" paragraph>
+                          {foodRec.reasoning}
+                        </Typography>
+                        <Box display="flex" flexWrap="wrap" gap={0.5}>
+                          {foodRec.foods.slice(0, 5).map((food, foodIndex) => (
+                            <Chip
+                              key={foodIndex}
+                              label={food}
+                              size="small"
+                              sx={{
+                                bgcolor: foodRec.type === 'encourage' ? 'success.main' :
+                                        foodRec.type === 'limit' ? 'warning.main' : 'error.main',
+                                color: 'white',
+                                fontSize: '0.75rem'
+                              }}
+                            />
+                          ))}
+                          {foodRec.foods.length > 5 && (
+                            <Chip
+                              label={`+${foodRec.foods.length - 5} more`}
+                              size="small"
+                              sx={{ bgcolor: 'grey.200', fontSize: '0.75rem' }}
+                            />
+                          )}
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                {/* Clinical Notes */}
+                {currentCondition.clinicalNotes && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="semibold" gutterBottom>
+                      Clinical Notes
+                    </Typography>
+                    <Typography variant="body2">{currentCondition.clinicalNotes}</Typography>
+                  </Alert>
+                )}
+
+                {/* Drug Interactions */}
+                {currentCondition.drugInteractions && currentCondition.drugInteractions.length > 0 && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="semibold" gutterBottom>
+                      ⚠️ Drug Interactions
+                    </Typography>
+                    <List dense>
+                      {currentCondition.drugInteractions.map((interaction, index) => (
+                        <ListItem key={index} sx={{ py: 0 }}>
+                          <ListItemText 
+                            primary={`• ${interaction}`} 
+                            primaryTypographyProps={{ variant: 'body2' }} 
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
 
       {/* No conditions selected */}
       {availableConditions.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <div className="text-gray-500 mb-4">
-            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No Health Conditions Selected</h3>
-          <p className="text-gray-600 mb-4">
-            Select your health conditions to receive personalized nutrition recommendations and track your dietary adherence.
-          </p>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-          >
-            Select Health Conditions
-          </button>
-        </div>
+        <Card sx={{ textAlign: 'center', py: 6, bgcolor: 'grey.50' }}>
+          <CardContent>
+            <Box color="text.secondary" mb={2}>
+              <SettingsIcon sx={{ fontSize: 64, mb: 2 }} />
+            </Box>
+            <Typography variant="h5" fontWeight="semibold" gutterBottom>
+              No Health Conditions Selected
+            </Typography>
+            <Typography color="text.secondary" paragraph>
+              Select your health conditions to receive personalized nutrition recommendations and track your dietary adherence.
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => setShowSettings(true)}
+              startIcon={<SettingsIcon />}
+            >
+              Select Health Conditions
+            </Button>
+          </CardContent>
+        </Card>
       )}
-    </div>
+
+      {/* Settings Dialog */}
+      <Dialog
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <HealthConditionSettings 
+          userId={userId} 
+          onClose={() => setShowSettings(false)}
+          onSave={() => {
+            setShowSettings(false);
+            loadUserProfile();
+          }}
+        />
+      </Dialog>
+    </Box>
   );
 };
 

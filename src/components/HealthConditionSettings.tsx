@@ -1,4 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  CircularProgress,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Badge,
+  Paper
+} from '@mui/material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Close as CloseIcon,
+  Check as CheckIcon
+} from '@mui/icons-material';
 import { 
   EXPANDED_HEALTH_CONDITIONS, 
   HEALTH_CONDITION_CATEGORIES,
@@ -10,9 +37,11 @@ import { UserProfile } from '../types';
 interface HealthConditionSettingsProps {
   userId: string;
   onClose?: () => void;
+  onSave?: () => void;
 }
 
-const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = ({ userId, onClose }) => {
+const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = (props) => {
+  const { userId, onClose } = props;
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +96,9 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = ({ userI
       if (onClose) {
         onClose();
       }
+      if (props.onSave) {
+        props.onSave();
+      }
     } catch (error) {
       console.error('Error saving health conditions:', error);
       alert('Failed to save health conditions. Please try again.');
@@ -83,201 +115,218 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = ({ userI
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
+      <Box display="flex" alignItems="center" justifyContent="center" p={4}>
+        <CircularProgress size={24} />
+        <Typography variant="body2" sx={{ ml: 2 }}>Loading health conditions...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-        {/* Header */}
-        <div className="border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Health Condition Settings</h2>
-              <p className="text-gray-600 mt-1">
-                Select your health conditions to receive personalized nutrition recommendations.
-              </p>
-            </div>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+    <Box>
+      {/* Header */}
+      <DialogTitle>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box>
+            <Typography variant="h4" component="h2" fontWeight="bold">
+              Health Condition Settings
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Select your health conditions to receive personalized nutrition recommendations.
+            </Typography>
+          </Box>
+          {onClose && (
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          )}
+        </Box>
+        
+        {/* Selected Count */}
+        <Box mt={2}>
+          <Chip
+            label={`${getSelectedConditionsCount()} condition${getSelectedConditionsCount() !== 1 ? 's' : ''} selected`}
+            color="primary"
+            variant="outlined"
+          />
+        </Box>
+      </DialogTitle>
+
+      {/* Content */}
+      <DialogContent>
+        <Box>
+          {HEALTH_CONDITION_CATEGORIES.map(category => {
+            const categoryConditions = getConditionsByCategory(category);
+            if (categoryConditions.length === 0) return null;
+
+            const isExpanded = expandedCategories.includes(category);
+            const selectedInCategory = categoryConditions.filter(c => selectedConditions.includes(c.id)).length;
+
+            return (
+              <Accordion 
+                key={category} 
+                expanded={isExpanded}
+                onChange={() => handleCategoryToggle(category)}
+                sx={{ mb: 2 }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-          
-          {/* Selected Count */}
-          <div className="mt-4 flex items-center space-x-4">
-            <div className="bg-blue-50 px-3 py-1 rounded-full">
-              <span className="text-blue-700 text-sm font-medium">
-                {getSelectedConditionsCount()} condition{getSelectedConditionsCount() !== 1 ? 's' : ''} selected
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <div className="space-y-6">
-            {HEALTH_CONDITION_CATEGORIES.map(category => {
-              const categoryConditions = getConditionsByCategory(category);
-              if (categoryConditions.length === 0) return null;
-
-              const isExpanded = expandedCategories.includes(category);
-              const selectedInCategory = categoryConditions.filter(c => selectedConditions.includes(c.id)).length;
-
-              return (
-                <div key={category} className="border border-gray-200 rounded-lg">
-                  {/* Category Header */}
-                  <button
-                    onClick={() => handleCategoryToggle(category)}
-                    className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        selectedInCategory > 0 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {selectedInCategory || categoryConditions.length}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{category}</h3>
-                        <p className="text-sm text-gray-500">
-                          {selectedInCategory > 0 ? `${selectedInCategory} selected` : `${categoryConditions.length} available`}
-                        </p>
-                      </div>
-                    </div>
-                    <svg 
-                      className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box display="flex" alignItems="center" width="100%">
+                    <Badge 
+                      badgeContent={selectedInCategory || categoryConditions.length}
+                      color={selectedInCategory > 0 ? "primary" : "default"}
+                      sx={{ mr: 2 }}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                      <Box 
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: selectedInCategory > 0 ? 'primary.main' : 'grey.300',
+                          color: selectedInCategory > 0 ? 'white' : 'text.secondary',
+                          fontWeight: 'medium',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {selectedInCategory || categoryConditions.length}
+                      </Box>
+                    </Badge>
+                    <Box>
+                      <Typography variant="h6" fontWeight="semibold">{category}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {selectedInCategory > 0 ? `${selectedInCategory} selected` : `${categoryConditions.length} available`}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </AccordionSummary>
 
-                  {/* Category Conditions */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-200 p-4 bg-gray-50">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {categoryConditions.map(condition => {
-                          const isSelected = selectedConditions.includes(condition.id);
-                          
-                          return (
-                            <div
-                              key={condition.id}
-                              className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                                isSelected 
-                                  ? 'border-blue-500 bg-blue-50 shadow-sm' 
-                                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                              }`}
-                              onClick={() => handleConditionToggle(condition.id)}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className="flex-shrink-0 mt-1">
-                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                    isSelected 
-                                      ? 'border-blue-500 bg-blue-500' 
-                                      : 'border-gray-300'
-                                  }`}>
-                                    {isSelected && (
-                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className={`text-sm font-medium ${
-                                    isSelected ? 'text-blue-900' : 'text-gray-900'
-                                  }`}>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    {categoryConditions.map(condition => {
+                      const isSelected = selectedConditions.includes(condition.id);
+                      
+                      return (
+                        <Grid item xs={12} md={6} key={condition.id}>
+                          <Paper
+                            sx={{
+                              p: 2,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              border: 1,
+                              borderColor: isSelected ? 'primary.main' : 'grey.300',
+                              bgcolor: isSelected ? 'primary.light' : 'background.paper',
+                              '&:hover': {
+                                borderColor: isSelected ? 'primary.dark' : 'grey.400',
+                                boxShadow: 1
+                              }
+                            }}
+                            onClick={() => handleConditionToggle(condition.id)}
+                          >
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={isSelected}
+                                  onChange={() => handleConditionToggle(condition.id)}
+                                  icon={<Box sx={{ width: 20, height: 20, border: 2, borderColor: 'grey.400', borderRadius: 0.5 }} />}
+                                  checkedIcon={<CheckIcon sx={{ color: 'primary.main' }} />}
+                                />
+                              }
+                              label={
+                                <Box>
+                                  <Typography 
+                                    variant="body2" 
+                                    fontWeight="medium"
+                                    sx={{ color: isSelected ? 'primary.dark' : 'text.primary' }}
+                                  >
                                     {condition.name}
-                                  </h4>
-                                  <p className={`text-xs mt-1 ${
-                                    isSelected ? 'text-blue-700' : 'text-gray-600'
-                                  }`}>
+                                  </Typography>
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                      display: 'block',
+                                      color: isSelected ? 'primary.dark' : 'text.secondary',
+                                      mt: 0.5
+                                    }}
+                                  >
                                     {condition.description}
-                                  </p>
+                                  </Typography>
                                   
                                   {/* Key Nutrients Preview */}
                                   {condition.keyNutrients.length > 0 && (
-                                    <div className="mt-2">
-                                      <div className="flex flex-wrap gap-1">
-                                        {condition.keyNutrients.slice(0, 3).map((nutrient, index) => (
-                                          <span
-                                            key={index}
-                                            className={`inline-block px-2 py-1 text-xs rounded ${
-                                              isSelected 
-                                                ? 'bg-blue-100 text-blue-800' 
-                                                : 'bg-gray-100 text-gray-600'
-                                            }`}
-                                          >
-                                            {nutrient.nutrient.replace('_', ' ')}
-                                          </span>
-                                        ))}
-                                        {condition.keyNutrients.length > 3 && (
-                                          <span className={`inline-block px-2 py-1 text-xs rounded ${
-                                            isSelected 
-                                              ? 'bg-blue-100 text-blue-800' 
-                                              : 'bg-gray-100 text-gray-600'
-                                          }`}>
-                                            +{condition.keyNutrients.length - 3} more
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
+                                    <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
+                                      {condition.keyNutrients.slice(0, 3).map((nutrient, index) => (
+                                        <Chip
+                                          key={index}
+                                          label={nutrient.nutrient.replace('_', ' ')}
+                                          size="small"
+                                          sx={{
+                                            fontSize: '0.65rem',
+                                            height: 20,
+                                            bgcolor: isSelected ? 'primary.main' : 'grey.200',
+                                            color: isSelected ? 'white' : 'text.secondary'
+                                          }}
+                                        />
+                                      ))}
+                                      {condition.keyNutrients.length > 3 && (
+                                        <Chip
+                                          label={`+${condition.keyNutrients.length - 3} more`}
+                                          size="small"
+                                          sx={{
+                                            fontSize: '0.65rem',
+                                            height: 20,
+                                            bgcolor: isSelected ? 'primary.main' : 'grey.200',
+                                            color: isSelected ? 'white' : 'text.secondary'
+                                          }}
+                                        />
+                                      )}
+                                    </Box>
                                   )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                                </Box>
+                              }
+                              sx={{ margin: 0, width: '100%', alignItems: 'flex-start' }}
+                            />
+                          </Paper>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+            );
+          })}
+        </Box>
+      </DialogContent>
 
-        {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-xl">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <p>💡 Tip: You can select multiple conditions for comprehensive recommendations</p>
-            </div>
-            <div className="flex space-x-3">
-              {onClose && (
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              )}
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+      {/* Footer */}
+      <DialogActions sx={{ bgcolor: 'grey.50', px: 3, py: 2 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+          <Alert severity="info" sx={{ flexGrow: 1, mr: 2 }}>
+            💡 Tip: You can select multiple conditions for comprehensive recommendations
+          </Alert>
+          <Box display="flex" gap={1}>
+            {onClose && (
+              <Button
+                onClick={onClose}
+                variant="outlined"
+                color="inherit"
               >
-                {saving && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                )}
-                <span>{saving ? 'Saving...' : 'Save Settings'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                Cancel
+              </Button>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              variant="contained"
+              startIcon={saving && <CircularProgress size={16} />}
+            >
+              {saving ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </Box>
+        </Box>
+      </DialogActions>
+    </Box>
   );
 };
 
