@@ -24,48 +24,13 @@ import {
 } from '@mui/icons-material';
 import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
-import { supabase } from '../config/supabase';
 
-// Inline database function to isolate import issues
-const inlineSaveGroupedFoodEntry = async (entry: GroupedFoodEntry) => {
-  console.log('=== INLINE FUNCTION START ===');
-  console.log('Entry received:', entry);
-  
-  try {
-    console.log('Getting user...');
-    const user = await supabase.auth.getUser();
-    console.log('User result:', user);
-    
-    if (!user.data.user) {
-      return { data: null, error: 'User not authenticated' };
-    }
+console.log('=== COMPONENT FILE LOADING ===');
 
-    console.log('Preparing insert...');
-    const insertData = {
-      user_id: user.data.user.id,
-      description: entry.combinedName,
-      individual_items: entry.individualItems,
-      total_calories: entry.totalCalories,
-      total_protein: entry.totalNutrients.protein,
-      total_carbs: entry.totalNutrients.carbohydrates,
-      total_fat: entry.totalNutrients.fat,
-      time_of_day: entry.timeOfDay
-    };
-    console.log('Insert data prepared:', insertData);
-
-    console.log('Calling supabase insert...');
-    const result = await supabase
-      .from('grouped_food_entries')
-      .insert(insertData)
-      .select()
-      .single();
-    
-    console.log('Insert result:', result);
-    return result;
-  } catch (error) {
-    console.error('Inline function error:', error);
-    return { data: null, error };
-  }
+// Test with no imports at all first
+const simpleTestFunction = async (entry: any) => {
+  console.log('=== SIMPLE TEST FUNCTION ===');
+  return { data: 'test', error: null };
 };
 
 interface LLMFoodEntryProps {
@@ -73,6 +38,8 @@ interface LLMFoodEntryProps {
 }
 
 export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
+  console.log('=== COMPONENT INITIALIZING ===');
+  
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -110,26 +77,36 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
   };
 
   const handleConfirm = async () => {
-    if (!previewEntry) return;
+    console.log('=== HANDLE CONFIRM CALLED ===');
+    
+    if (!previewEntry) {
+      console.log('No preview entry, returning');
+      return;
+    }
 
+    console.log('Setting loading state...');
     setLoading(true);
     setError('');
 
     try {
-      console.log('=== DEBUGGING START ===');
+      console.log('=== INSIDE TRY BLOCK ===');
       console.log('previewEntry:', previewEntry);
       
-      // Use inline function to bypass import issues
-      console.log('Calling inline function...');
-      const { data, error: dbError } = await inlineSaveGroupedFoodEntry(previewEntry);
+      console.log('About to call simpleTestFunction...');
+      const { data, error: dbError } = await simpleTestFunction(previewEntry);
+      console.log('Simple test function completed:', { data, dbError });
       
       if (dbError) {
         setError('Failed to save food entry to database');
         console.error('Database error:', dbError);
       } else {
+        console.log('Success! Setting success message...');
         setSuccess('Food entry saved successfully!');
+        
+        console.log('Calling onFoodAdded callback...');
         onFoodAdded(previewEntry);
         
+        console.log('Resetting form...');
         // Reset form
         setInput('');
         setPreviewEntry(null);
