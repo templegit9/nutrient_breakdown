@@ -73,7 +73,8 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setError('');
 
     try {
-      const { data, error: dbError } = await GroupedFoodDatabase.saveGroupedFoodEntry(previewEntry);
+      const groupedDb = new GroupedFoodDatabase();
+      const { data, error: dbError } = await groupedDb.saveGroupedFoodEntry(previewEntry);
       
       if (dbError) {
         setError('Failed to save food entry to database');
