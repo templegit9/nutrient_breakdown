@@ -1,451 +1,261 @@
+import React, { useState, useEffect } from 'react';
+import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
 import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Grid,
-  LinearProgress,
-  Chip,
-  Alert,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Switch,
-  FormControlLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  useTheme,
-  Divider,
-  Paper
-} from '@mui/material'
-import {
-  Favorite as PCOSIcon,
-  Bloodtype as DiabetesIcon,
-  ExpandMore as ExpandMoreIcon,
-  Schedule as TimingIcon,
-  Warning as WarningIcon,
-  CheckCircle as SuccessIcon,
-  LocalHospital as RecommendationIcon,
-  TrendingUp as TrendIcon,
-  Restaurant as PortionIcon
-} from '@mui/icons-material'
-import { useState } from 'react'
-import { FoodItem } from '../types'
-import { healthAnalyzer } from '../utils/healthConditions'
-import HealthConditionRecommendations from './HealthConditionRecommendations'
-import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils'
+  EXPANDED_HEALTH_CONDITIONS,
+  HEALTH_CONDITION_CATEGORIES,
+  calculateConditionScore,
+  getConditionRecommendations,
+  getHealthConditionById,
+  getHealthConditionsByCategory,
+  type HealthConditionData
+} from '../utils/healthConditionsExpanded';
 
 interface HealthConditionDashboardProps {
-  foods: FoodItem[];
+  userId: string;
+  enabledConditions?: string[];
 }
 
-export default function HealthConditionDashboard({ foods }: HealthConditionDashboardProps) {
-  const [pcosMode, setPcosMode] = useState(true);
-  const [diabetesMode, setDiabetesMode] = useState(true);
-  const theme = useTheme();
+const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ 
+  userId, 
+  enabledConditions = ['type2_diabetes', 'pcos'] 
+}) => {
+  const { data: entries } = useGroupedFoodData(userId);
+  const [selectedCondition, setSelectedCondition] = useState<string>(enabledConditions[0] || 'type2_diabetes');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Metabolic');
 
-  const pcosAnalysis = healthAnalyzer.analyzePCOS(foods);
-  const diabetesAnalysis = healthAnalyzer.analyzeDiabetes(foods);
-  const generalHealth = healthAnalyzer.analyzeGeneralHealth(foods);
+  const todayEntries = entries?.filter(entry => {
+    const entryDate = new Date(entry.date);
+    const today = new Date();
+    return entryDate.toDateString() === today.toDateString();
+  }) || [];
 
-  if (foods.length === 0) {
-    return (
-      <Card>
-        <CardContent>
-          <Typography variant="h6" align="center" color="text.secondary">
-            Add foods to see health condition insights
-          </Typography>
-        </CardContent>
-      </Card>
-    );
-  }
+  const availableConditions = EXPANDED_HEALTH_CONDITIONS.filter(condition => 
+    enabledConditions.includes(condition.id)
+  );
+
+  const conditionsByCategory = HEALTH_CONDITION_CATEGORIES.reduce((acc, category) => {
+    acc[category] = availableConditions.filter(condition => condition.category === category);
+    return acc;
+  }, {} as Record<string, HealthConditionData[]>);
+
+  const currentCondition = getHealthConditionById(selectedCondition);
+  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, todayEntries) : 0;
+  const recommendations = currentCondition ? getConditionRecommendations(currentCondition, todayEntries) : [];
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return theme.palette.success.main;
-    if (score >= 60) return theme.palette.warning.main;
-    return theme.palette.error.main;
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-yellow-500';
+    return 'text-red-500';
   };
 
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case 'low':
-      case 'minimal':
-        return theme.palette.success.main;
-      case 'moderate':
-        return theme.palette.warning.main;
-      case 'high':
-      case 'significant':
-        return theme.palette.error.main;
-      default:
-        return theme.palette.info.main;
-    }
+  const getScoreDescription = (score: number) => {
+    if (score >= 80) return 'Excellent adherence to recommendations';
+    if (score >= 60) return 'Good progress with room for improvement';
+    if (score >= 40) return 'Moderate adherence - consider adjustments';
+    return 'Needs significant dietary modifications';
   };
 
   return (
-    <Box sx={{ space: 2 }}>
-      {/* Health Mode Toggles */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Health Condition Tracking
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={pcosMode}
-                  onChange={(e) => setPcosMode(e.target.checked)}
-                  color="error"
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PCOSIcon color="error" />
-                  <Typography>PCOS Management</Typography>
-                </Box>
-              }
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={diabetesMode}
-                  onChange={(e) => setDiabetesMode(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <DiabetesIcon color="primary" />
-                  <Typography>Diabetes Management</Typography>
-                </Box>
-              }
-            />
-          </Box>
-        </CardContent>
-      </Card>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">Health Condition Analysis</h2>
+      
+      {/* Category Selection */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-3 text-gray-700">Condition Categories</h3>
+        <div className="flex flex-wrap gap-2">
+          {HEALTH_CONDITION_CATEGORIES.map(category => {
+            const categoryConditions = conditionsByCategory[category];
+            if (categoryConditions.length === 0) return null;
+            
+            return (
+              <button
+                key={category}
+                onClick={() => {
+                  setSelectedCategory(category);
+                  if (categoryConditions.length > 0) {
+                    setSelectedCondition(categoryConditions[0].id);
+                  }
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedCategory === category
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category}
+                <span className="ml-1 text-xs opacity-75">({categoryConditions.length})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      <Grid container spacing={3}>
-        {/* PCOS Analysis */}
-        {pcosMode && (
-          <Grid item xs={12} lg={6}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <PCOSIcon color="error" />
-                  <Typography variant="h6">PCOS Management Score</Typography>
-                </Box>
+      {/* Condition Selection */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-3 text-gray-700">
+          {selectedCategory} Conditions
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {conditionsByCategory[selectedCategory]?.map(condition => (
+            <button
+              key={condition.id}
+              onClick={() => setSelectedCondition(condition.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedCondition === condition.id
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {condition.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2">Overall Score</Typography>
-                    <Typography variant="h5" sx={{ color: getScoreColor(pcosAnalysis.score), fontWeight: 'bold' }}>
-                      {roundToInteger(pcosAnalysis.score)}/100
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={pcosAnalysis.score}
-                    sx={{
-                      height: 8,
-                      borderRadius: 4,
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: getScoreColor(pcosAnalysis.score)
-                      }
-                    }}
-                  />
-                </Box>
+      {currentCondition && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Condition Overview */}
+          <div className="lg:col-span-1">
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+              <h3 className="text-xl font-semibold mb-3 text-gray-800">
+                {currentCondition.name}
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                {currentCondition.description}
+              </p>
+              
+              {/* Health Score */}
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-sm text-gray-600 mb-1">Today's Adherence Score</div>
+                <div className={`text-4xl font-bold ${getScoreColor(conditionScore)} mb-2`}>
+                  {conditionScore.toFixed(1)}%
+                </div>
+                <div className="text-xs text-gray-500">
+                  {getScoreDescription(conditionScore)}
+                </div>
+              </div>
 
-                {/* Key Metrics */}
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={6}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
-                      <Typography variant="h6" color={getImpactColor(pcosAnalysis.insulinImpact)}>
-                        {roundToOneDecimal(pcosAnalysis.glycemicLoad)}
-                      </Typography>
-                      <Typography variant="caption">Glycemic Load</Typography>
-                      <Chip
-                        label={`${pcosAnalysis.insulinImpact} insulin impact`}
-                        size="small"
-                        color={pcosAnalysis.insulinImpact === 'low' ? 'success' : 
-                               pcosAnalysis.insulinImpact === 'moderate' ? 'warning' : 'error'}
-                        sx={{ mt: 1, display: 'block' }}
-                      />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
-                      <Typography variant="h6" color="success.main">
-                        {roundToInteger(pcosAnalysis.antiInflammatoryScore)}
-                      </Typography>
-                      <Typography variant="caption">Anti-Inflammatory</Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        Score
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                </Grid>
+              {/* Key Nutrients */}
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-2">Key Nutrients</h4>
+                <div className="space-y-2">
+                  {currentCondition.keyNutrients.slice(0, 3).map((nutrient, index) => (
+                    <div key={index} className="text-xs bg-blue-50 p-2 rounded">
+                      <div className="font-medium text-blue-800">
+                        {nutrient.nutrient.replace('_', ' ').toUpperCase()}
+                      </div>
+                      <div className="text-blue-600">
+                        Target: {nutrient.target}{nutrient.unit}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Warnings */}
-                {pcosAnalysis.warnings.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    {pcosAnalysis.warnings.map((warning, index) => (
-                      <Alert key={index} severity="warning" sx={{ mb: 1 }}>
-                        {warning}
-                      </Alert>
-                    ))}
-                  </Box>
-                )}
-
-                {/* Expandable Sections */}
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <RecommendationIcon color="primary" />
-                      <Typography>PCOS Recommendations</Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List dense>
-                      {pcosAnalysis.recommendations.map((rec, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <SuccessIcon color="success" fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText primary={rec} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
-
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TimingIcon color="secondary" />
-                      <Typography>Meal Timing Tips</Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List dense>
-                      {pcosAnalysis.mealTiming.map((tip, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <TimingIcon color="secondary" fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText primary={tip} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
-
-        {/* Diabetes Analysis */}
-        {diabetesMode && (
-          <Grid item xs={12} lg={6}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <DiabetesIcon color="primary" />
-                  <Typography variant="h6">Blood Sugar Management</Typography>
-                </Box>
-
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2">Diabetes Score</Typography>
-                    <Typography variant="h5" sx={{ color: getScoreColor(diabetesAnalysis.score), fontWeight: 'bold' }}>
-                      {roundToInteger(diabetesAnalysis.score)}/100
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={diabetesAnalysis.score}
-                    sx={{
-                      height: 8,
-                      borderRadius: 4,
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: getScoreColor(diabetesAnalysis.score)
-                      }
-                    }}
-                  />
-                </Box>
-
-                {/* Key Metrics */}
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={4}>
-                    <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'grey.50' }}>
-                      <Typography variant="h6" color={getImpactColor(
-                        diabetesAnalysis.glycemicIndex < 55 ? 'low' :
-                        diabetesAnalysis.glycemicIndex < 70 ? 'moderate' : 'high'
-                      )}>
-                        {roundToInteger(diabetesAnalysis.glycemicIndex)}
-                      </Typography>
-                      <Typography variant="caption">Glycemic Index</Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'grey.50' }}>
-                      <Typography variant="h6" color="primary">
-                        {roundToOneDecimal(diabetesAnalysis.carbLoad)}g
-                      </Typography>
-                      <Typography variant="caption">Total Carbs</Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'grey.50' }}>
-                      <Chip
-                        label={diabetesAnalysis.bloodSugarImpact}
-                        size="small"
-                        color={
-                          diabetesAnalysis.bloodSugarImpact === 'minimal' ? 'success' :
-                          diabetesAnalysis.bloodSugarImpact === 'moderate' ? 'warning' : 'error'
-                        }
-                      />
-                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                        Blood Sugar Impact
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                </Grid>
-
-                {/* Warnings */}
-                {diabetesAnalysis.warnings.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    {diabetesAnalysis.warnings.map((warning, index) => (
-                      <Alert key={index} severity="error" sx={{ mb: 1 }}>
-                        {warning}
-                      </Alert>
-                    ))}
-                  </Box>
-                )}
-
-                {/* Expandable Sections */}
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <RecommendationIcon color="primary" />
-                      <Typography>Diabetes Recommendations</Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List dense>
-                      {diabetesAnalysis.recommendations.map((rec, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <SuccessIcon color="success" fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText primary={rec} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
-
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PortionIcon color="secondary" />
-                      <Typography>Portion Control Tips</Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List dense>
-                      {diabetesAnalysis.portionAdvice.map((advice, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <PortionIcon color="secondary" fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText primary={advice} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
-
-        {/* General Health Insights */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <TrendIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Overall Health Insights
-              </Typography>
-
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
-                  <Box textAlign="center">
-                    <Typography variant="h5" sx={{ color: getImpactColor(generalHealth.inflammationLevel) }}>
-                      {generalHealth.inflammationLevel.toUpperCase()}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Inflammation Level
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Box textAlign="center">
-                    <Typography variant="h5" sx={{ color: getImpactColor(generalHealth.oxidativeStress) }}>
-                      {generalHealth.oxidativeStress.toUpperCase()}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Oxidative Stress
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Box textAlign="center">
-                    <Typography variant="h5" sx={{ color: getScoreColor(generalHealth.metabolicHealth) }}>
-                      {roundToInteger(generalHealth.metabolicHealth)}/100
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Metabolic Health
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-
-              {generalHealth.recommendations.length > 0 && (
-                <Box sx={{ mt: 3 }}>
-                  <Divider sx={{ mb: 2 }} />
-                  <Typography variant="subtitle2" gutterBottom>
-                    General Health Recommendations:
-                  </Typography>
-                  <List dense>
-                    {generalHealth.recommendations.map((rec, index) => (
-                      <ListItem key={index}>
-                        <ListItemIcon>
-                          <RecommendationIcon color="info" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary={rec} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Box>
+          {/* Recommendations */}
+          <div className="lg:col-span-2">
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                Today's Recommendations
+              </h3>
+              
+              {recommendations.length > 0 ? (
+                <ul className="space-y-3">
+                  {recommendations.map((rec, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-gray-700">{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-lg mb-2">🎉 Great job!</div>
+                  <div>You're meeting all recommendations for {currentCondition.name} today.</div>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
 
-        {/* Food Recommendations */}
-        <Grid item xs={12}>
-          <HealthConditionRecommendations 
-            condition={
-              pcosMode && diabetesMode ? 'both' :
-              pcosMode ? 'pcos' : 
-              diabetesMode ? 'diabetes' : 'both'
-            } 
-          />
-        </Grid>
-      </Grid>
-    </Box>
+              {/* Food Recommendations */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentCondition.foodRecommendations.map((foodRec, index) => (
+                  <div key={index} className={`p-4 rounded-lg ${
+                    foodRec.type === 'encourage' ? 'bg-green-50 border border-green-200' :
+                    foodRec.type === 'limit' ? 'bg-yellow-50 border border-yellow-200' :
+                    'bg-red-50 border border-red-200'
+                  }`}>
+                    <h4 className={`font-semibold mb-2 ${
+                      foodRec.type === 'encourage' ? 'text-green-800' :
+                      foodRec.type === 'limit' ? 'text-yellow-800' :
+                      'text-red-800'
+                    }`}>
+                      {foodRec.type === 'encourage' ? '✅ Encourage' :
+                       foodRec.type === 'limit' ? '⚠️ Limit' : '❌ Avoid'}
+                    </h4>
+                    <div className="text-sm text-gray-600 mb-2">
+                      {foodRec.reasoning}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {foodRec.foods.slice(0, 5).map((food, foodIndex) => (
+                        <span key={foodIndex} className={`px-2 py-1 text-xs rounded ${
+                          foodRec.type === 'encourage' ? 'bg-green-100 text-green-700' :
+                          foodRec.type === 'limit' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {food}
+                        </span>
+                      ))}
+                      {foodRec.foods.length > 5 && (
+                        <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">
+                          +{foodRec.foods.length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Clinical Notes */}
+              {currentCondition.clinicalNotes && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">Clinical Notes</h4>
+                  <p className="text-sm text-blue-700">{currentCondition.clinicalNotes}</p>
+                </div>
+              )}
+
+              {/* Drug Interactions */}
+              {currentCondition.drugInteractions && currentCondition.drugInteractions.length > 0 && (
+                <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <h4 className="font-semibold text-orange-800 mb-2">⚠️ Drug Interactions</h4>
+                  <ul className="text-sm text-orange-700">
+                    {currentCondition.drugInteractions.map((interaction, index) => (
+                      <li key={index}>• {interaction}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No conditions enabled */}
+      {availableConditions.length === 0 && (
+        <div className="text-center py-12 bg-gray-50 rounded-xl">
+          <div className="text-gray-500 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">No Health Conditions Selected</h3>
+          <p className="text-gray-600">
+            Configure your health conditions in the settings to see personalized recommendations.
+          </p>
+        </div>
+      )}
+    </div>
   );
-}
+};
+
+export default HealthConditionDashboard;
