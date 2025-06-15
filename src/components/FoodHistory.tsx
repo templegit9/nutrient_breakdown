@@ -86,6 +86,9 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
   const [nutrientSettingsOpen, setNutrientSettingsOpen] = useState(false);
   
+  // Create database instance
+  const groupedDb = new GroupedFoodDatabase();
+  
   useEffect(() => {
     loadGroupedEntries();
   }, [refreshTrigger]);
@@ -94,7 +97,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     try {
       setLoading(true);
       setError(null);
-      const { data: entries, error } = await GroupedFoodDatabase.getUserGroupedFoodEntries();
+      const { data: entries, error } = await groupedDb.getUserGroupedFoodEntries();
       if (error) {
         throw error;
       }

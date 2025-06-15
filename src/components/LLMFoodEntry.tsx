@@ -26,6 +26,19 @@ import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
 import { GroupedFoodDatabase } from '../services/groupedFoodDatabase';
 
+// Create a wrapper function to isolate the database call
+const saveGroupedEntry = async (entry: GroupedFoodEntry) => {
+  console.log('saveGroupedEntry wrapper called with:', entry);
+  console.log('GroupedFoodDatabase class:', GroupedFoodDatabase);
+  
+  // Create instance and call method
+  const db = new GroupedFoodDatabase();
+  console.log('Database instance:', db);
+  console.log('Instance method:', db.saveGroupedFoodEntry);
+  
+  return await db.saveGroupedFoodEntry(entry);
+};
+
 interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
 }
@@ -74,15 +87,8 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setError('');
 
     try {
-      console.log('GroupedFoodDatabase:', GroupedFoodDatabase);
-      console.log('saveGroupedFoodEntry method:', GroupedFoodDatabase.saveGroupedFoodEntry);
-      console.log('Preview entry to save:', previewEntry);
-      
-      // Try to bind the method properly
-      const saveMethod = GroupedFoodDatabase.saveGroupedFoodEntry.bind(GroupedFoodDatabase);
-      console.log('Bound method:', saveMethod);
-      
-      const { data, error: dbError } = await saveMethod(previewEntry);
+      console.log('About to call saveGroupedEntry wrapper');
+      const { data, error: dbError } = await saveGroupedEntry(previewEntry);
       
       if (dbError) {
         setError('Failed to save food entry to database');
