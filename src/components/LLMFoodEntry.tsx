@@ -182,12 +182,6 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
   return (
     <Card sx={{ maxWidth: 800, mx: 'auto', mt: 2 }}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <AIIcon color="primary" sx={{ mr: 1, fontSize: 28 }} />
-          <Typography variant="h5" component="h2" color="primary" fontWeight={600}>
-            AI Food Analysis
-          </Typography>
-        </Box>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Describe what you ate in natural language. The AI will analyze and break it down into individual foods with complete nutrition data.
