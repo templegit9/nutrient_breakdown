@@ -126,13 +126,29 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
         }
         
         console.log('Resetting form...');
-        // Reset form
-        setInput('');
-        setPreviewEntry(null);
-        setCsvData('');
         
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(''), 3000);
+        try {
+          console.log('Form reset step 1: setInput');
+          setInput('');
+          
+          console.log('Form reset step 2: setPreviewEntry');
+          setPreviewEntry(null);
+          
+          console.log('Form reset step 3: setCsvData');
+          setCsvData('');
+          
+          console.log('Form reset step 4: setTimeout');
+          setTimeout(() => {
+            console.log('Timeout callback executing...');
+            setSuccess('');
+            console.log('Timeout callback completed');
+          }, 3000);
+          
+          console.log('Form reset completed successfully');
+        } catch (resetError) {
+          console.error('Error during form reset:', resetError);
+          throw resetError;
+        }
       }
     } catch (err) {
       console.error('=== CATCH BLOCK ===');
