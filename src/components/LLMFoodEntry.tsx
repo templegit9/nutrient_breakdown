@@ -24,7 +24,49 @@ import {
 } from '@mui/icons-material';
 import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
-import { saveGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
+import { supabase } from '../config/supabase';
+
+// Inline database function to isolate import issues
+const inlineSaveGroupedFoodEntry = async (entry: GroupedFoodEntry) => {
+  console.log('=== INLINE FUNCTION START ===');
+  console.log('Entry received:', entry);
+  
+  try {
+    console.log('Getting user...');
+    const user = await supabase.auth.getUser();
+    console.log('User result:', user);
+    
+    if (!user.data.user) {
+      return { data: null, error: 'User not authenticated' };
+    }
+
+    console.log('Preparing insert...');
+    const insertData = {
+      user_id: user.data.user.id,
+      description: entry.combinedName,
+      individual_items: entry.individualItems,
+      total_calories: entry.totalCalories,
+      total_protein: entry.totalNutrients.protein,
+      total_carbs: entry.totalNutrients.carbohydrates,
+      total_fat: entry.totalNutrients.fat,
+      time_of_day: entry.timeOfDay
+    };
+    console.log('Insert data prepared:', insertData);
+
+    console.log('Calling supabase insert...');
+    const result = await supabase
+      .from('grouped_food_entries')
+      .insert(insertData)
+      .select()
+      .single();
+    
+    console.log('Insert result:', result);
+    return result;
+  } catch (error) {
+    console.error('Inline function error:', error);
+    return { data: null, error };
+  }
+};
 
 interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
@@ -76,26 +118,10 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     try {
       console.log('=== DEBUGGING START ===');
       console.log('previewEntry:', previewEntry);
-      console.log('saveGroupedFoodEntry function:', saveGroupedFoodEntry);
-      console.log('typeof saveGroupedFoodEntry:', typeof saveGroupedFoodEntry);
       
-      // Try to call the function step by step
-      console.log('Step 1: About to call saveGroupedFoodEntry');
-      
-      let result;
-      try {
-        result = saveGroupedFoodEntry(previewEntry);
-        console.log('Step 2: Function called, result:', result);
-        console.log('Result type:', typeof result);
-        console.log('Is Promise?:', result instanceof Promise);
-      } catch (syncError) {
-        console.error('Synchronous error in function call:', syncError);
-        throw syncError;
-      }
-      
-      console.log('Step 3: About to await result');
-      const { data, error: dbError } = await result;
-      console.log('Step 4: Await completed, data:', data, 'error:', dbError);
+      // Use inline function to bypass import issues
+      console.log('Calling inline function...');
+      const { data, error: dbError } = await inlineSaveGroupedFoodEntry(previewEntry);
       
       if (dbError) {
         setError('Failed to save food entry to database');
