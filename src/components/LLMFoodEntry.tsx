@@ -24,14 +24,9 @@ import {
 } from '@mui/icons-material';
 import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
+import { saveGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
 
 console.log('=== COMPONENT FILE LOADING ===');
-
-// Test with no imports at all first
-const simpleTestFunction = async (entry: any) => {
-  console.log('=== SIMPLE TEST FUNCTION ===');
-  return { data: 'test', error: null };
-};
 
 interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
@@ -94,9 +89,9 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
       console.log('=== INSIDE TRY BLOCK ===');
       console.log('previewEntry:', previewEntry);
       
-      console.log('About to call simpleTestFunction...');
-      const { data, error: dbError } = await simpleTestFunction(previewEntry);
-      console.log('Simple test function completed:', { data, dbError });
+      console.log('About to call saveGroupedFoodEntry...');
+      const { data, error: dbError } = await saveGroupedFoodEntry(previewEntry);
+      console.log('Database save completed:', { data, dbError });
       
       if (dbError) {
         setError('Failed to save food entry to database');
