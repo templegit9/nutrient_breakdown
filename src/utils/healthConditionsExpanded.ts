@@ -543,7 +543,7 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
   // Enhanced scoring algorithm based on condition-specific recommendations
   condition.keyNutrients.forEach(nutrient => {
     const dailyIntake = entries.reduce((sum, entry) => {
-      return sum + (entry.nutrition[nutrient.nutrient as keyof typeof entry.nutrition] || 0);
+      return sum + (entry.totalNutrients[nutrient.nutrient as keyof typeof entry.totalNutrients] || 0);
     }, 0);
 
     maxScore += 10;
@@ -565,7 +565,7 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
 
     rec.foods.forEach(food => {
       const hasFood = entries.some(entry => 
-        entry.food_name.toLowerCase().includes(food.toLowerCase())
+        entry.combinedName.toLowerCase().includes(food.toLowerCase())
       );
 
       if (rec.type === 'encourage' && hasFood) {
@@ -587,7 +587,7 @@ export function getConditionRecommendations(condition: HealthConditionData, entr
   // Check nutrient targets
   condition.keyNutrients.forEach(nutrient => {
     const dailyIntake = entries.reduce((sum, entry) => {
-      return sum + (entry.nutrition[nutrient.nutrient as keyof typeof entry.nutrition] || 0);
+      return sum + (entry.totalNutrients[nutrient.nutrient as keyof typeof entry.totalNutrients] || 0);
     }, 0);
 
     if (nutrient.nutrient === 'sodium' || nutrient.nutrient === 'saturated_fat') {
@@ -605,7 +605,7 @@ export function getConditionRecommendations(condition: HealthConditionData, entr
   const encouragedFoodsEaten = condition.foodRecommendations
     .filter(rec => rec.type === 'encourage')
     .flatMap(rec => rec.foods)
-    .filter(food => entries.some(entry => entry.food_name.toLowerCase().includes(food.toLowerCase())));
+    .filter(food => entries.some(entry => entry.combinedName.toLowerCase().includes(food.toLowerCase())));
 
   if (encouragedFoodsEaten.length < 3) {
     recommendations.push('Try to include more anti-inflammatory foods in your diet');

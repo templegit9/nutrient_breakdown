@@ -214,7 +214,7 @@ function AppContent() {
         </TabPanel>
         
         <TabPanel value={tabValue} index={2}>
-          <HealthConditionDashboard foods={foods} />
+          <HealthConditionDashboard userId={user?.id || ''} />
         </TabPanel>
         
         <TabPanel value={tabValue} index={3}>

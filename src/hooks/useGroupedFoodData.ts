@@ -3,15 +3,18 @@ import { getUserGroupedFoodEntries, deleteGroupedFoodEntry } from '../services/g
 import type { GroupedFoodEntry } from '../types/food';
 import { useAuth } from '../components/AuthProvider';
 
-export function useGroupedFoodData() {
+export function useGroupedFoodData(userId?: string) {
   const [groupedEntries, setGroupedEntries] = useState<GroupedFoodEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  // Use provided userId or current user
+  const effectiveUserId = userId || user?.id;
 
   // Load grouped food entries from database
   const loadGroupedEntries = async () => {
-    if (!user) {
+    if (!effectiveUserId) {
       setGroupedEntries([]);
       setLoading(false);
       return;
@@ -65,7 +68,7 @@ export function useGroupedFoodData() {
   // Load data when user changes
   useEffect(() => {
     loadGroupedEntries();
-  }, [user]);
+  }, [effectiveUserId]);
 
   return {
     groupedEntries,
