@@ -106,16 +106,23 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
         setSuccess('Food entry saved successfully!');
         
         console.log('Calling onFoodAdded callback...');
-        console.log('onFoodAdded function:', onFoodAdded);
-        console.log('typeof onFoodAdded:', typeof onFoodAdded);
         
-        if (typeof onFoodAdded === 'function') {
-          console.log('onFoodAdded is a function, calling it...');
-          onFoodAdded(previewEntry);
-          console.log('onFoodAdded called successfully');
-        } else {
-          console.error('onFoodAdded is not a function!', onFoodAdded);
-          throw new Error(`onFoodAdded is not a function, it's a ${typeof onFoodAdded}`);
+        try {
+          console.log('Step 1: About to check onFoodAdded');
+          const callbackType = typeof onFoodAdded;
+          console.log('Step 2: onFoodAdded type is:', callbackType);
+          
+          if (callbackType === 'function') {
+            console.log('Step 3: onFoodAdded is a function, calling it...');
+            onFoodAdded(previewEntry);
+            console.log('Step 4: onFoodAdded called successfully');
+          } else {
+            console.log('Step 3: onFoodAdded is NOT a function, it is:', callbackType);
+            throw new Error(`onFoodAdded is not a function, it's a ${callbackType}`);
+          }
+        } catch (callbackError) {
+          console.error('Error in callback section:', callbackError);
+          throw callbackError;
         }
         
         console.log('Resetting form...');
