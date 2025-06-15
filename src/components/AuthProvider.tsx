@@ -58,6 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const ensureUserProfileExists = async () => {
     try {
+      // Test database connection first
+      const connectionWorking = await DatabaseService.testConnection();
+      if (!connectionWorking) {
+        console.error('Database connection is not working');
+        return;
+      }
+
       const existingProfile = await DatabaseService.getUserProfile()
       
       if (!existingProfile) {

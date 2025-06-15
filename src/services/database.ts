@@ -2,6 +2,21 @@ import { supabase } from '../config/supabase'
 import type { FoodEntry, BloodGlucoseReading, UserProfile, DatabaseFood } from '../types'
 
 export class DatabaseService {
+  // Test database connection
+  static async testConnection() {
+    try {
+      const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
+      if (error) {
+        console.error('Database connection test failed:', error);
+        return false;
+      }
+      console.log('Database connection test successful');
+      return true;
+    } catch (error) {
+      console.error('Database connection test error:', error);
+      return false;
+    }
+  }
   // Food Entries
   static async saveFoodEntry(entry: Omit<FoodEntry, 'id'>) {
     const { data, error } = await supabase
