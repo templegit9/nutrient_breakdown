@@ -40,11 +40,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { getUserGroupedFoodEntries, deleteGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
 import type { GroupedFoodEntry } from '../types/food';
-import { supabase } from '../config/supabase';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
 import { DatabaseService } from '../services/database';
+import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
 
 interface FoodHistoryProps {
   refreshTrigger?: number;
@@ -69,10 +68,10 @@ const AVAILABLE_NUTRIENTS = [
 const DEFAULT_VISIBLE_NUTRIENTS = AVAILABLE_NUTRIENTS.filter(n => n.default).map(n => n.key);
 
 export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
-  const [groupedEntries, setGroupedEntries] = useState<GroupedFoodEntry[]>([]);
+  // Use global hook instead of local state for food entries
+  const { groupedEntries, loading, error, deleteEntry, refreshData } = useGroupedFoodData();
+  
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; entry: GroupedFoodEntry | null }>({
     open: false,
     entry: null
@@ -89,9 +88,11 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [userProfile, setUserProfile] = useState<any>(null);
   
   useEffect(() => {
-    loadGroupedEntries();
     loadUserPreferences();
-  }, [refreshTrigger]);
+    if (refreshTrigger) {
+      refreshData(); // Use global refresh when refreshTrigger changes
+    }
+  }, [refreshTrigger, refreshData]);
 
   const loadUserPreferences = async () => {
     try {
@@ -128,25 +129,6 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     }
   };
 
-  const loadGroupedEntries = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const { data: entries, error } = await getUserGroupedFoodEntries();
-      if (error) {
-        throw error;
-      }
-      // Ensure entries is always an array
-      setGroupedEntries(Array.isArray(entries) ? entries : []);
-    } catch (err) {
-      console.error('Error loading grouped entries:', err);
-      setError('Failed to load food history');
-      setGroupedEntries([]); // Set empty array on error
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDeleteClick = (entry: GroupedFoodEntry) => {
     setDeleteDialog({ open: true, entry });
   };
@@ -154,14 +136,11 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const handleDeleteConfirm = async () => {
     if (deleteDialog.entry) {
       try {
-        const { error } = await deleteGroupedFoodEntry(deleteDialog.entry.id!);
-        
-        if (error) throw error;
-        
-        await loadGroupedEntries();
+        // Use global deleteEntry function instead of local deletion
+        await deleteEntry(deleteDialog.entry.id!);
       } catch (err) {
         console.error('Error deleting entry:', err);
-        setError('Failed to delete entry');
+        // Error handling is now managed by the global hook
       }
     }
     setDeleteDialog({ open: false, entry: null });
@@ -207,21 +186,15 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const handleBulkDelete = async () => {
     if (selectedEntries.size > 0) {
       try {
-        // Delete each entry individually using our function
-        const deletePromises = Array.from(selectedEntries).map(id => deleteGroupedFoodEntry(id));
-        const results = await Promise.all(deletePromises);
-        
-        // Check if any deletions failed
-        const errors = results.filter(result => result.error);
-        if (errors.length > 0) {
-          throw new Error(`Failed to delete ${errors.length} entries`);
-        }
+        // Delete each entry individually using global deleteEntry function
+        const deletePromises = Array.from(selectedEntries).map(id => deleteEntry(id));
+        await Promise.all(deletePromises);
         
         setSelectedEntries(new Set());
-        await loadGroupedEntries();
+        // No need to manually refresh - global hook handles state updates
       } catch (err) {
         console.error('Error deleting entries:', err);
-        setError('Failed to delete entries');
+        // Error handling is now managed by the global hook
       }
     }
   };
@@ -334,7 +307,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
             {error}
           </Typography>
           <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Button onClick={loadGroupedEntries} variant="outlined">
+            <Button onClick={refreshData} variant="outlined">
               Retry
             </Button>
           </Box>
