@@ -716,7 +716,7 @@ export class DatabaseService {
   }
 
   static onAuthStateChange(callback: (user: any) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session?.user || null)
     })
   }

@@ -6,10 +6,6 @@ import {
   CardContent,
   Grid,
   Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   Chip,
   Alert,
@@ -18,12 +14,10 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField
+  DialogActions
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Restaurant as FoodIcon
 } from '@mui/icons-material'

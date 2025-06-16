@@ -45,7 +45,7 @@ export function convertGroupedEntryToFoodItem(entry: GroupedFoodEntry): FoodItem
     ],
     category: entry.mealType || 'meal',
     dateAdded: entry.dateAdded,
-    timeOfDay: entry.timeOfDay as any
+    timeOfDay: entry.timeOfDay || undefined
   }));
 }
 
@@ -434,7 +434,6 @@ function identifyEatingPattern(
   const snackMeals = mealsByType.find(m => m.mealType === 'snack')?.count || 0;
   
   const morningEating = mealsByTime.find(t => t.timeOfDay === 'morning')?.count || 0;
-  const eveningEating = mealsByTime.find(t => t.timeOfDay === 'evening')?.count || 0;
   const lateNightEating = mealsByTime.find(t => t.timeOfDay === 'late-night')?.count || 0;
   
   if (breakfastMeals >= 1 && lunchMeals >= 1 && dinnerMeals >= 1) {

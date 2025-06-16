@@ -149,7 +149,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
         });
         
         // Use converted amount or apply reasonable fallback based on unit type
-        let gramsAmount = convertedAmount.grams;
+        let gramsAmount = convertedAmount.grams ?? 0;
         
         if (!convertedAmount.isValid) {
           console.warn(`Unit conversion failed for ${unit}. Using fallback calculation which may be inaccurate.`);
@@ -404,7 +404,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const quantity = parsedFood.quantity || 1;
     const unit = parsedFood.unit || 'g';
     
-    console.log(`Processing matched food: ${parsedFood.name}`, {
+    console.log(`Processing matched food: ${parsedFood.food}`, {
       quantity,
       unit,
       dbFood: {
@@ -419,7 +419,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     const convertedAmount = safeConvertToBaseUnit(quantity, unit, dbFood.name.toLowerCase());
     console.log('Unit conversion result:', convertedAmount);
     
-    let gramsAmount = convertedAmount.grams;
+    let gramsAmount = convertedAmount.grams ?? 0;
     
     // Use the same fallback logic as form submission
     if (!convertedAmount.isValid) {
@@ -508,18 +508,18 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
     
     // Use basic nutrition estimation based on food type and unit
     let baseCalories = 100;
-    let gramsAmount = quantity;
+    let gramsAmount: number = quantity;
     
     // Better estimates based on unit and food type
     if (unit === 'piece') {
       gramsAmount = quantity * 50; // Average piece size
-      if (parsedFood.name.toLowerCase().includes('egg')) {
+      if (parsedFood.food.toLowerCase().includes('egg')) {
         baseCalories = 70; // Calories per egg (50g)
         gramsAmount = quantity * 50; // Average egg weight
       }
     } else if (unit === 'serving') {
       gramsAmount = quantity * 200; // Average serving size
-      if (parsedFood.name.toLowerCase().includes('coffee')) {
+      if (parsedFood.food.toLowerCase().includes('coffee')) {
         baseCalories = 2; // Coffee is very low calorie
         gramsAmount = quantity * 240; // Cup of coffee
       }

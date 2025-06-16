@@ -69,8 +69,8 @@ export interface DatabaseFood {
   calcium_per_100g: number;
   vitamin_c_per_100g: number;
   vitamin_d_per_100g: number;
-  glycemic_index: number;
-  glycemic_load: number;
+  glycemic_index: number | null;
+  glycemic_load: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -94,6 +94,25 @@ export interface FoodEntry {
   calcium?: number;
   vitamin_c?: number;
   vitamin_d?: number;
+  // Additional micronutrients
+  magnesium?: number;
+  phosphorus?: number;
+  zinc?: number;
+  copper?: number;
+  manganese?: number;
+  selenium?: number;
+  vitamin_a?: number;
+  vitamin_e?: number;
+  vitamin_k?: number;
+  thiamin?: number;
+  riboflavin?: number;
+  niacin?: number;
+  pantothenic_acid?: number;
+  vitamin_b6?: number;
+  biotin?: number;
+  folate?: number;
+  vitamin_b12?: number;
+  choline?: number;
   glycemic_index?: number;
   glycemic_load?: number;
   date: string;

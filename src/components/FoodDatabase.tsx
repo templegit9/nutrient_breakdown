@@ -376,9 +376,9 @@ export default function FoodDatabase() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
                     {food.isCustom ? (
-                      <PersonIcon color="primary" fontSize="small" title="Custom Food" />
+                      <PersonIcon color="primary" fontSize="small" titleAccess="Custom Food" />
                     ) : (
-                      <FoodBankIcon color="action" fontSize="small" title="Database Food" />
+                      <FoodBankIcon color="action" fontSize="small" titleAccess="Database Food" />
                     )}
                     <Typography variant="h6" component="h3">
                       {food.name}
@@ -498,13 +498,13 @@ export default function FoodDatabase() {
                   )}
                   
                   {/* Glycemic Data for Diabetes Support */}
-                  {food.glycemic_index > 0 && (
+                  {(food.glycemic_index ?? 0) > 0 && (
                     <Grid item xs={12}>
                       <Typography variant="body2" color="info.main">
                         <strong>Glycemic Index:</strong> {food.glycemic_index} 
-                        {food.glycemic_load > 0 && ` | Load: ${food.glycemic_load}`}
+                        {((food.glycemic_load ?? 0) > 0) && ` | Load: ${food.glycemic_load}`}
                         <Typography component="span" variant="caption" sx={{ ml: 1 }}>
-                          ({food.glycemic_index <= 55 ? 'Low' : food.glycemic_index <= 70 ? 'Medium' : 'High'} GI)
+                          ({(food.glycemic_index ?? 0) <= 55 ? 'Low' : (food.glycemic_index ?? 0) <= 70 ? 'Medium' : 'High'} GI)
                         </Typography>
                       </Typography>
                     </Grid>
@@ -550,9 +550,9 @@ export default function FoodDatabase() {
                   <TableCell component="th" scope="row">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {food.isCustom ? (
-                        <PersonIcon color="primary" fontSize="small" title="Custom Food" />
+                        <PersonIcon color="primary" fontSize="small" titleAccess="Custom Food" />
                       ) : (
-                        <FoodBankIcon color="action" fontSize="small" title="Database Food" />
+                        <FoodBankIcon color="action" fontSize="small" titleAccess="Database Food" />
                       )}
                       <Typography variant="body2" fontWeight="medium">
                         {food.name}
@@ -633,12 +633,12 @@ export default function FoodDatabase() {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    {food.glycemic_index > 0 ? (
+                    {(food.glycemic_index ?? 0) > 0 ? (
                       <Typography 
                         variant="body2" 
                         color={
-                          food.glycemic_index <= 55 ? 'success.main' : 
-                          food.glycemic_index <= 70 ? 'warning.main' : 'error.main'
+                          (food.glycemic_index ?? 0) <= 55 ? 'success.main' : 
+                          (food.glycemic_index ?? 0) <= 70 ? 'warning.main' : 'error.main'
                         }
                         fontWeight="bold"
                       >
