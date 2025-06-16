@@ -15,13 +15,21 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Alert
 } from '@mui/material'
 import GetAppIcon from '@mui/icons-material/GetApp'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import TableChartIcon from '@mui/icons-material/TableChart'
 import ImageIcon from '@mui/icons-material/Image'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import InfoIcon from '@mui/icons-material/Info'
 import { 
   PieChart, 
   Pie, 
@@ -62,6 +70,45 @@ interface NutritionDashboardProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
+// Help content for each component
+const HELP_CONTENT = {
+  calorieProgress: {
+    title: "Daily Calorie Progress",
+    description: "Shows how many calories you've consumed today versus your daily target.",
+    importance: "Tracking calories helps you maintain a healthy weight. Too few calories can slow metabolism, while too many can lead to weight gain."
+  },
+  macroProgress: {
+    title: "Macronutrient Progress vs Daily Targets", 
+    description: "Displays your intake of protein, carbohydrates, fat, and fiber as percentages of your daily targets.",
+    importance: "Each macronutrient has a specific role: Protein builds muscle, carbs provide energy, fat supports hormone production, and fiber aids digestion."
+  },
+  macroBreakdown: {
+    title: "Macronutrient Breakdown",
+    description: "Shows the proportion of calories coming from protein, carbs, and fat in your diet.",
+    importance: "A balanced macro split helps optimize energy levels, satiety, and body composition. Generally aim for 20-30% protein, 45-65% carbs, 20-35% fat."
+  },
+  keyNutrients: {
+    title: "Key Nutrients",
+    description: "Progress bars showing your intake of essential nutrients compared to recommended daily values.",
+    importance: "These nutrients are critical for health. Consistent intake helps prevent deficiencies and supports optimal body function."
+  },
+  vitaminMinerals: {
+    title: "Vitamin & Mineral Progress",
+    description: "Charts showing your vitamin and mineral intake as percentages of Daily Values (DV).",
+    importance: "Vitamins and minerals support immune function, energy production, and disease prevention. Aim for 100% DV of most nutrients."
+  },
+  mealTiming: {
+    title: "Meal Timing Analysis",
+    description: "Shows when you eat throughout the day and how calories are distributed across meals.",
+    importance: "Meal timing can affect metabolism, sleep quality, and energy levels. Regular meal patterns often support better health outcomes."
+  },
+  detailedInsights: {
+    title: "Detailed Nutrition Insights",
+    description: "Comprehensive breakdown of all nutrients, health condition analysis, and food recommendations.",
+    importance: "Advanced metrics help identify specific nutritional gaps and provide personalized recommendations for your health goals."
+  }
+};
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -87,6 +134,10 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
   const [selectedDateRange, setSelectedDateRange] = useState<DateRangeType>('today');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  
+  // Help dialog state
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [activeHelpContent, setActiveHelpContent] = useState<keyof typeof HELP_CONTENT | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -118,6 +169,32 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
   const handleExportClose = () => {
     setExportMenuAnchor(null);
   };
+
+  // Help dialog handlers
+  const handleHelpClick = (contentKey: keyof typeof HELP_CONTENT) => {
+    setActiveHelpContent(contentKey);
+    setHelpDialogOpen(true);
+  };
+
+  const handleHelpClose = () => {
+    setHelpDialogOpen(false);
+    setActiveHelpContent(null);
+  };
+
+  // Reusable help button component
+  const HelpButton = ({ contentKey, size = 'small' }: { contentKey: keyof typeof HELP_CONTENT; size?: 'small' | 'medium' }) => (
+    <IconButton
+      size={size}
+      onClick={() => handleHelpClick(contentKey)}
+      sx={{ 
+        color: theme.palette.text.secondary,
+        '&:hover': { color: theme.palette.primary.main }
+      }}
+      title={`Learn about ${HELP_CONTENT[contentKey].title}`}
+    >
+      <HelpOutlineIcon fontSize={size} />
+    </IconButton>
+  );
 
   const handleExportCSV = () => {
     const csvData = foods.map(food => ({
@@ -420,9 +497,12 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
       <Grid item xs={12} md={4}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Daily Calories
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="h6">
+                Daily Calories
+              </Typography>
+              <HelpButton contentKey="calorieProgress" />
+            </Box>
             <Typography variant="h3" color="primary">
               {formatNutritionValue(analysis.totalCalories, 'calorie')}
             </Typography>
@@ -436,9 +516,12 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
       <Grid item xs={12} md={8}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Macronutrient Progress vs Daily Targets
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">
+                Macronutrient Progress vs Daily Targets
+              </Typography>
+              <HelpButton contentKey="macroProgress" />
+            </Box>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={macroRadialData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <XAxis dataKey="name" />
@@ -460,9 +543,12 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
       <Grid item xs={12}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Key Nutrients
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">
+                Key Nutrients
+              </Typography>
+              <HelpButton contentKey="keyNutrients" />
+            </Box>
             <Grid container spacing={2}>
               {[
                 { label: 'Protein', value: analysis.macronutrients.protein, unit: 'g', target: 50 },
@@ -495,9 +581,12 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Vitamin & Mineral Progress
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6">
+                  Vitamin & Mineral Progress
+                </Typography>
+                <HelpButton contentKey="vitaminMinerals" />
+              </Box>
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={vitaminData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <XAxis 
@@ -600,12 +689,56 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Detailed Nutrition Insights
+          </Typography>
+          <HelpButton contentKey="detailedInsights" />
+        </Box>
         <DetailedNutritionInsights foods={foods} />
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Meal Timing Analysis
+          </Typography>
+          <HelpButton contentKey="mealTiming" />
+        </Box>
         <MealTimingAnalysis entries={filteredEntries} />
       </TabPanel>
+      
+      {/* Help Dialog */}
+      <Dialog 
+        open={helpDialogOpen} 
+        onClose={handleHelpClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoIcon color="primary" />
+          {activeHelpContent && HELP_CONTENT[activeHelpContent].title}
+        </DialogTitle>
+        <DialogContent>
+          {activeHelpContent && (
+            <>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  {HELP_CONTENT[activeHelpContent].description}
+                </Typography>
+              </Alert>
+              <Typography variant="body1" sx={{ mt: 2 }}>
+                <strong>Why it matters:</strong> {HELP_CONTENT[activeHelpContent].importance}
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleHelpClose} variant="contained">
+            Got it!
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
