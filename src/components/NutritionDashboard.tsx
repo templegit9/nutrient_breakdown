@@ -440,21 +440,18 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
               Macronutrient Progress vs Daily Targets
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={macroRadialData}>
-                <RadialBar
-                  dataKey="percentage"
-                  cornerRadius={10}
-                  fill="#8884d8"
-                />
+              <BarChart data={macroRadialData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <XAxis dataKey="name" />
+                <YAxis label={{ value: '% of Target', angle: -90, position: 'insideLeft' }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  iconSize={10}
-                  wrapperStyle={{ fontSize: '12px' }}
-                  formatter={(value, entry: any) => 
-                    `${value}: ${roundToOneDecimal(entry.payload.value)}g / ${entry.payload.target}g`
-                  }
+                <Legend />
+                <Bar 
+                  dataKey="percentage" 
+                  fill={theme.palette.primary.main}
+                  name="% of Daily Target"
+                  radius={[4, 4, 0, 0]}
                 />
-              </RadialBarChart>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
