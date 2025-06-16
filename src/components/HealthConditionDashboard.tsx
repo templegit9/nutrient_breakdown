@@ -25,7 +25,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton
+  IconButton,
+  Alert
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -64,27 +65,32 @@ const HELP_CONTENT = {
   adherenceScore: {
     title: "Adherence Score",
     description: "Shows how well your current nutrition aligns with recommendations for your selected health condition.",
-    importance: "Higher scores indicate better management of your condition through nutrition. Scores are personalized based on your profile (age, BMI, gender, activity level)."
+    importance: "Higher scores indicate better management of your condition through nutrition. Scores are personalized based on your profile (age, BMI, gender, activity level).",
+    ranges: "🎯 Excellent: 80-100% - Optimal condition management • 🟢 Good: 60-79% - Well-managed with room for improvement • 🟡 Fair: 40-59% - Moderate adherence, focus needed • 🔴 Poor: <40% - Significant dietary changes recommended • Scores adjust based on BMI, age, and gender"
   },
   keyNutrients: {
     title: "Key Nutrients",
     description: "Critical nutrients that significantly impact your selected health condition, with evidence-based target ranges.",
-    importance: "Focusing on these specific nutrients can help manage symptoms and improve health outcomes for your condition."
+    importance: "Focusing on these specific nutrients can help manage symptoms and improve health outcomes for your condition.",
+    ranges: "🎯 Target: Meet 90-110% of condition-specific targets • 🟢 Good: 80-120% of targets • 🟡 Adequate: 70-130% • 🔴 Concern: <70% or >150% • Example: Diabetes sodium <2300mg, PCOS omega-3 >1g daily"
   },
   recommendations: {
     title: "Personalized Recommendations",
     description: "Specific, actionable advice based on your current food intake and individual health profile.",
-    importance: "These recommendations are tailored to your age, BMI, gender, and activity level for maximum effectiveness."
+    importance: "These recommendations are tailored to your age, BMI, gender, and activity level for maximum effectiveness.",
+    ranges: "🎯 High Priority: Address immediately for health • 🟢 Beneficial: Improve when convenient • 🟡 Maintenance: Continue current good habits • Fewer recommendations = better adherence • BMI >25 triggers weight management advice"
   },
   foodRecommendations: {
     title: "Food Recommendations",
     description: "Evidence-based food guidance categorized by encourage (beneficial), limit (moderate), and avoid (harmful) for your condition.",
-    importance: "Following these food guidelines can help reduce inflammation, manage symptoms, and support overall health for your specific condition."
+    importance: "Following these food guidelines can help reduce inflammation, manage symptoms, and support overall health for your specific condition.",
+    ranges: "🟢 Encourage: Eat regularly, aim for 5+ servings weekly • 🟡 Limit: 1-2 servings per week maximum • 🔴 Avoid: Eliminate or <1 serving monthly • Anti-inflammatory foods score higher • Processed foods typically limited/avoided"
   },
   healthStats: {
     title: "Health Statistics",
     description: "Key metrics about your nutrition choices and their impact on your health condition over the selected time period.",
-    importance: "Track progress and identify patterns in your nutrition that correlate with better health outcomes."
+    importance: "Track progress and identify patterns in your nutrition that correlate with better health outcomes.",
+    ranges: "🎯 Beneficial Foods: Aim for >50% of entries • 🟡 Caution Foods: Keep <25% of entries • 📊 Total Entries: 3-6 per day optimal • 🔄 Consistency: Track daily for best results • Higher beneficial:caution ratio = better outcomes"
   }
 };
 
@@ -609,12 +615,24 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
         <DialogContent>
           {activeHelpContent && (
             <>
-              <Typography variant="body1" paragraph>
-                {HELP_CONTENT[activeHelpContent].description}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  {HELP_CONTENT[activeHelpContent].description}
+                </Typography>
+              </Alert>
+              <Typography variant="body1" sx={{ mb: 2 }}>
                 <strong>Why this matters:</strong> {HELP_CONTENT[activeHelpContent].importance}
               </Typography>
+              {HELP_CONTENT[activeHelpContent].ranges && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    📊 Target Ranges & What's Normal:
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                    {HELP_CONTENT[activeHelpContent].ranges.replace(/•/g, '\n•')}
+                  </Typography>
+                </Alert>
+              )}
             </>
           )}
         </DialogContent>

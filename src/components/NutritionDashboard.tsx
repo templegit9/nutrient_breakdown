@@ -76,38 +76,45 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 const HELP_CONTENT = {
   calorieProgress: {
     title: "Daily Calorie Progress",
-    description: "Shows how many calories you've consumed today versus your daily target.",
-    importance: "Tracking calories helps you maintain a healthy weight. Too few calories can slow metabolism, while too many can lead to weight gain."
+    description: "Shows how many calories you've consumed today versus your daily target based on your personalized TDEE (Total Daily Energy Expenditure).",
+    importance: "Tracking calories helps you maintain a healthy weight. Your target is calculated from your age, gender, height, weight, and activity level.",
+    ranges: "🎯 Target Range: 90-110% of your TDEE • 🟢 Good: Within 100-200 calories of target • 🟡 Caution: 200-500 calories over/under • 🔴 Concern: >500 calories over/under target"
   },
   macroProgress: {
     title: "Macronutrient Progress vs Daily Targets", 
-    description: "Displays your intake of protein, carbohydrates, fat, and fiber as percentages of your daily targets.",
-    importance: "Each macronutrient has a specific role: Protein builds muscle, carbs provide energy, fat supports hormone production, and fiber aids digestion."
+    description: "Displays your intake of protein, carbohydrates, fat, and fiber as percentages of your personalized daily targets.",
+    importance: "Each macronutrient has a specific role: Protein builds muscle, carbs provide energy, fat supports hormone production, and fiber aids digestion.",
+    ranges: "🎯 Optimal: 90-110% of target • 🟢 Good: 80-120% • 🟡 Adequate: 70-130% • 🔴 Concern: <70% or >150% • Protein: 0.8-2.2g/kg body weight • Fiber: 25-35g daily"
   },
   macroBreakdown: {
     title: "Macronutrient Breakdown",
     description: "Shows the proportion of calories coming from protein, carbs, and fat in your diet.",
-    importance: "A balanced macro split helps optimize energy levels, satiety, and body composition. Generally aim for 20-30% protein, 45-65% carbs, 20-35% fat."
+    importance: "A balanced macro split helps optimize energy levels, satiety, and body composition.",
+    ranges: "🎯 Balanced Diet: Protein 15-25%, Carbs 45-65%, Fat 20-35% • 🟢 Athletic: Protein 20-30%, Carbs 40-60%, Fat 20-30% • 🟡 Low-Carb: Protein 20-30%, Carbs 20-40%, Fat 35-50%"
   },
   keyNutrients: {
     title: "Key Nutrients",
     description: "Progress bars showing your intake of essential nutrients compared to recommended daily values.",
-    importance: "These nutrients are critical for health. Consistent intake helps prevent deficiencies and supports optimal body function."
+    importance: "These nutrients are critical for health. Consistent intake helps prevent deficiencies and supports optimal body function.",
+    ranges: "🎯 Target: 100% DV • 🟢 Excellent: 80-200% DV • 🟡 Adequate: 50-80% DV • 🔴 Deficient: <50% DV • ⚠️ Excess: >300% DV (except water-soluble vitamins)"
   },
   vitaminMinerals: {
     title: "Vitamin & Mineral Progress",
     description: "Charts showing your vitamin and mineral intake as percentages of Daily Values (DV).",
-    importance: "Vitamins and minerals support immune function, energy production, and disease prevention. Aim for 100% DV of most nutrients."
+    importance: "Vitamins and minerals support immune function, energy production, and disease prevention.",
+    ranges: "🎯 Optimal: 100-200% DV • 🟢 Good: 80-150% DV • 🟡 Low: 50-80% DV • 🔴 Deficient: <50% DV • ⚠️ Very High: >300% DV (monitor fat-soluble vitamins A,D,E,K)"
   },
   mealTiming: {
     title: "Meal Timing Analysis",
     description: "Shows when you eat throughout the day and how calories are distributed across meals.",
-    importance: "Meal timing can affect metabolism, sleep quality, and energy levels. Regular meal patterns often support better health outcomes."
+    importance: "Meal timing can affect metabolism, sleep quality, and energy levels. Regular meal patterns often support better health outcomes.",
+    ranges: "🎯 Balanced: 25% breakfast, 35% lunch, 30% dinner, 10% snacks • 🟢 Good: Even distribution without >40% in one meal • 🟡 Acceptable: Slight irregularity • 🔴 Concern: >50% calories in one meal or eating >2hrs before bed"
   },
   detailedInsights: {
     title: "Detailed Nutrition Insights",
     description: "Comprehensive breakdown of all nutrients, health condition analysis, and food recommendations.",
-    importance: "Advanced metrics help identify specific nutritional gaps and provide personalized recommendations for your health goals."
+    importance: "Advanced metrics help identify specific nutritional gaps and provide personalized recommendations for your health goals.",
+    ranges: "🎯 Comprehensive: Meeting 90%+ of micronutrient targets • 🟢 Good: 80-90% targets met • 🟡 Improving: 70-80% targets met • 🔴 Gaps: <70% targets met • Focus on consistent variety over perfect numbers"
   }
 };
 
@@ -793,9 +800,19 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
                   {HELP_CONTENT[activeHelpContent].description}
                 </Typography>
               </Alert>
-              <Typography variant="body1" sx={{ mt: 2 }}>
+              <Typography variant="body1" sx={{ mb: 2 }}>
                 <strong>Why it matters:</strong> {HELP_CONTENT[activeHelpContent].importance}
               </Typography>
+              {HELP_CONTENT[activeHelpContent].ranges && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    📊 Target Ranges & What's Normal:
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                    {HELP_CONTENT[activeHelpContent].ranges.replace(/•/g, '\n•')}
+                  </Typography>
+                </Alert>
+              )}
             </>
           )}
         </DialogContent>
