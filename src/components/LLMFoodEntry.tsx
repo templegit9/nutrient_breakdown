@@ -25,6 +25,7 @@ import {
 import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
 import { saveGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
+import { parseConversationalInput } from '../utils/conversationalParser';
 
 console.log('=== COMPONENT FILE LOADING ===');
 
@@ -56,7 +57,14 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setPreviewEntry(null);
 
     try {
-      const result = await llmFoodBrain.processFoodInput(input.trim());
+      // Extract timeOfDay from the input using conversational parser
+      const conversationalResult = await parseConversationalInput(input.trim());
+      const timeOfDay = conversationalResult.timeOfDay;
+      
+      console.log('Extracted timeOfDay from input:', timeOfDay);
+      
+      // Pass the extracted timeOfDay to the LLM Food Brain
+      const result = await llmFoodBrain.processFoodInput(input.trim(), timeOfDay);
       
       if (result.success && result.groupedEntry) {
         setPreviewEntry(result.groupedEntry);

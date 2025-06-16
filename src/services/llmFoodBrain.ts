@@ -30,13 +30,13 @@ export class LLMFoodBrain {
   /**
    * Main function to process food input using LLM
    */
-  async processFoodInput(input: string): Promise<LLMResponse> {
+  async processFoodInput(input: string, timeOfDay?: string): Promise<LLMResponse> {
     try {
       const prompt = this.createNutritionPrompt(input);
       const response = await this.callLLMAPI(prompt);
       
       if (response.success && response.data) {
-        const parsedData = this.parseLLMResponse(response.data, input);
+        const parsedData = this.parseLLMResponse(response.data, input, timeOfDay);
         return parsedData;
       } else {
         return {
@@ -188,7 +188,7 @@ RESPOND WITH JSON ONLY:`;
     }
   }
 
-  private parseLLMResponse(responseText: string, originalInput: string): LLMResponse {
+  private parseLLMResponse(responseText: string, originalInput: string, timeOfDay?: string): LLMResponse {
     try {
       // Clean and extract JSON
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -217,7 +217,7 @@ RESPOND WITH JSON ONLY:`;
         totalNutrients,
         individualItems: parsed.individualItems,
         dateAdded: new Date(),
-        timeOfDay: this.determineTimeOfDay(),
+        timeOfDay: timeOfDay || this.determineTimeOfDay(), // Use passed timeOfDay or fallback to current time
         mealType: this.determineMealType(originalInput)
       };
 
