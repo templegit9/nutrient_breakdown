@@ -9,9 +9,11 @@ interface User {
 interface AuthContextType {
   user: User | null
   loading: boolean
+  needsOnboarding: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  completeOnboarding: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -27,16 +29,19 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
     // Check current auth state
     DatabaseService.getCurrentUser().then(async (user) => {
       if (user) {
         setUser({ id: user.id, email: user.email! })
-        // Ensure user profile exists
-        await ensureUserProfileExists()
+        // Ensure user profile exists and check if onboarding is needed
+        const onboardingNeeded = await ensureUserProfileExists()
+        setNeedsOnboarding(onboardingNeeded)
       } else {
         setUser(null)
+        setNeedsOnboarding(false)
       }
       setLoading(false)
     })
@@ -45,10 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = DatabaseService.onAuthStateChange(async (user) => {
       if (user) {
         setUser({ id: user.id, email: user.email })
-        // Ensure user profile exists when user signs in
-        await ensureUserProfileExists()
+        // Ensure user profile exists when user signs in and check if onboarding is needed
+        const onboardingNeeded = await ensureUserProfileExists()
+        setNeedsOnboarding(onboardingNeeded)
       } else {
         setUser(null)
+        setNeedsOnboarding(false)
       }
       setLoading(false)
     })
@@ -56,13 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const ensureUserProfileExists = async () => {
+  const ensureUserProfileExists = async (): Promise<boolean> => {
     try {
       // Test database connection first
       const connectionWorking = await DatabaseService.testConnection();
       if (!connectionWorking) {
         console.error('Database connection is not working');
-        return;
+        return false;
       }
 
       // Clean up any duplicate profiles first
@@ -94,9 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { id, ...profileWithoutId } = defaultProfile;
         await DatabaseService.saveUserProfile(profileWithoutId)
         console.log('Default user profile created successfully')
+        return true; // New user needs onboarding
       }
+
+      // Check if profile is incomplete (name is empty, indicating default profile)
+      const needsOnboarding = !existingProfile.name || existingProfile.name.trim() === '';
+      return needsOnboarding;
     } catch (error) {
       console.error('Error ensuring user profile exists:', error)
+      return false;
     }
   }
 
@@ -112,12 +125,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await DatabaseService.signOut()
   }
 
+  const completeOnboarding = () => {
+    setNeedsOnboarding(false)
+  }
+
   const value = {
     user,
     loading,
+    needsOnboarding,
     signIn,
     signUp,
-    signOut
+    signOut,
+    completeOnboarding
   }
 
   return (

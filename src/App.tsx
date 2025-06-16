@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Container, Typography, Box, Tab, Tabs, useTheme, useMediaQuery, AppBar, Toolbar, Button } from '@mui/material'
+import { Container, Typography, Box, Tab, Tabs, useTheme, useMediaQuery, AppBar, Toolbar, Button, IconButton } from '@mui/material'
+import { AccountCircle as AccountIcon } from '@mui/icons-material'
 import LLMFoodEntry from './components/LLMFoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
+import UserProfileSettings from './components/UserProfileSettings'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
 import { useFoodData } from './hooks/useFoodData'
@@ -40,10 +42,11 @@ function TabPanel(props: TabPanelProps) {
 function AppContent() {
   const [tabValue, setTabValue] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [profileOpen, setProfileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, signOut } = useAuth();
-  const { foods, loading, addFood, updateFood, deleteFood } = useFoodData();
+  const { user, signOut, needsOnboarding, completeOnboarding } = useAuth();
+  const { loading } = useFoodData();
   const { groupedEntries, loading: groupedLoading, addEntryToState } = useGroupedFoodData();
   const { isConnected, isChecking } = useConnectionStatus();
 
@@ -85,6 +88,14 @@ function AppContent() {
               <Typography variant="body2" color="text.secondary">
                 {user.email}
               </Typography>
+              <IconButton
+                color="inherit"
+                onClick={() => setProfileOpen(true)}
+                sx={{ color: 'text.secondary' }}
+                title="User Profile Settings"
+              >
+                <AccountIcon />
+              </IconButton>
               <Button
                 color="inherit"
                 onClick={signOut}
@@ -206,17 +217,36 @@ function AppContent() {
         </TabPanel>
         </Box>
       </Container>
+
+      {/* User Profile Settings Dialog */}
+      <UserProfileSettings 
+        open={profileOpen} 
+        onClose={() => setProfileOpen(false)}
+        onSave={(profile) => {
+          console.log('Profile saved:', profile);
+          // Refresh dashboards if needed
+          setRefreshTrigger(prev => prev + 1);
+        }}
+      />
+
+      {/* Onboarding Profile Setup Dialog */}
+      <UserProfileSettings 
+        open={needsOnboarding}
+        onClose={() => {
+          // Don't allow closing during onboarding - user must complete it
+        }}
+        onSave={(profile) => {
+          console.log('Onboarding profile completed:', profile);
+          completeOnboarding();
+          setRefreshTrigger(prev => prev + 1);
+        }}
+        isOnboarding={true}
+      />
     </>
   )
 }
 
-function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  )
-}
+// Removed unused App function
 
 function AppWithAuth() {
   const { user, loading } = useAuth()

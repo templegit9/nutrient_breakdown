@@ -62,7 +62,9 @@ import DateRangeSelector from './DateRangeSelector'
 import DetailedNutritionInsights from './DetailedNutritionInsights'
 import MealTimingAnalysis from './MealTimingAnalysis'
 import { roundToInteger, calculatePercentage, formatNutritionValue, roundToOneDecimal, roundToPercentage } from '../utils/roundingUtils'
-import { useState } from 'react'
+import { DatabaseService } from '../services/database'
+import type { UserProfile } from '../types'
+import { useState, useEffect } from 'react'
 
 interface NutritionDashboardProps {
   groupedEntries: GroupedFoodEntry[];
@@ -138,9 +140,56 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
   // Help dialog state
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [activeHelpContent, setActiveHelpContent] = useState<keyof typeof HELP_CONTENT | null>(null);
+  
+  // User profile state
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // Load user profile on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const profile = await DatabaseService.getUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        setUserProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
+
+  // Get nutrition targets from user profile with fallbacks
+  const getNutritionTargets = () => {
+    if (userProfile) {
+      return {
+        calories: userProfile.targetCalories || 2000,
+        protein: userProfile.targetProtein || 150,
+        carbs: userProfile.targetCarbs || 250,
+        fat: userProfile.targetFat || 65,
+        fiber: userProfile.targetFiber || 25
+      };
+    }
+    
+    // Fallback defaults if no profile
+    return {
+      calories: 2000,
+      protein: 150,
+      carbs: 250,
+      fat: 65,
+      fiber: 25
+    };
+  };
+
+  const nutritionTargets = getNutritionTargets();
+
   // Defensive programming for data safety
   const safeGroupedEntries = groupedEntries || [];
   
@@ -303,34 +352,34 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
     };
   });
 
-  // Enhanced macro data for radial chart
+  // Enhanced macro data for radial chart using user-specific targets
   const macroRadialData = [
     {
       name: 'Protein',
       value: formatNutritionValue(analysis.macronutrients.protein, 'macro'),
-      target: 50, // example daily target
-      percentage: Math.min(calculatePercentage(analysis.macronutrients.protein, 50), 200),
+      target: nutritionTargets.protein,
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.protein, nutritionTargets.protein), 200),
       fill: theme.palette.primary.main
     },
     {
       name: 'Carbs',
       value: formatNutritionValue(analysis.macronutrients.carbs, 'macro'),
-      target: 225,
-      percentage: Math.min(calculatePercentage(analysis.macronutrients.carbs, 225), 200),
+      target: nutritionTargets.carbs,
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.carbs, nutritionTargets.carbs), 200),
       fill: theme.palette.secondary.main
     },
     {
       name: 'Fat',
       value: formatNutritionValue(analysis.macronutrients.fat, 'macro'),
-      target: 65,
-      percentage: Math.min(calculatePercentage(analysis.macronutrients.fat, 65), 200),
+      target: nutritionTargets.fat,
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.fat, nutritionTargets.fat), 200),
       fill: theme.palette.warning.main
     },
     {
       name: 'Fiber',
       value: formatNutritionValue(analysis.macronutrients.fiber, 'macro'),
-      target: 25,
-      percentage: Math.min(calculatePercentage(analysis.macronutrients.fiber, 25), 200),
+      target: nutritionTargets.fiber,
+      percentage: Math.min(calculatePercentage(analysis.macronutrients.fiber, nutritionTargets.fiber), 200),
       fill: theme.palette.success.main
     }
   ];
@@ -506,8 +555,25 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
             <Typography variant="h3" color="primary">
               {formatNutritionValue(analysis.totalCalories, 'calorie')}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              kcal
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              of {nutritionTargets.calories} kcal target
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(calculatePercentage(analysis.totalCalories, nutritionTargets.calories), 100)}
+              sx={{ 
+                height: 8, 
+                borderRadius: 4,
+                bgcolor: theme.palette.grey[200],
+                '& .MuiLinearProgress-bar': {
+                  bgcolor: analysis.totalCalories > nutritionTargets.calories 
+                    ? theme.palette.warning.main 
+                    : theme.palette.primary.main
+                }
+              }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              {calculatePercentage(analysis.totalCalories, nutritionTargets.calories).toFixed(1)}% of daily target
             </Typography>
           </CardContent>
         </Card>
@@ -551,10 +617,10 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
             </Box>
             <Grid container spacing={2}>
               {[
-                { label: 'Protein', value: analysis.macronutrients.protein, unit: 'g', target: 50 },
-                { label: 'Carbs', value: analysis.macronutrients.carbs, unit: 'g', target: 300 },
-                { label: 'Fat', value: analysis.macronutrients.fat, unit: 'g', target: 65 },
-                { label: 'Fiber', value: analysis.macronutrients.fiber, unit: 'g', target: 25 },
+                { label: 'Protein', value: analysis.macronutrients.protein, unit: 'g', target: nutritionTargets.protein },
+                { label: 'Carbs', value: analysis.macronutrients.carbs, unit: 'g', target: nutritionTargets.carbs },
+                { label: 'Fat', value: analysis.macronutrients.fat, unit: 'g', target: nutritionTargets.fat },
+                { label: 'Fiber', value: analysis.macronutrients.fiber, unit: 'g', target: nutritionTargets.fiber },
               ].map((nutrient) => (
                 <Grid item xs={12} sm={6} md={3} key={nutrient.label}>
                   <Box>

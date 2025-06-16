@@ -536,7 +536,7 @@ export const EXPANDED_HEALTH_CONDITIONS: HealthConditionData[] = [
   }
 ];
 
-export function calculateConditionScore(condition: HealthConditionData, entries: GroupedFoodEntry[]): number {
+export function calculateConditionScore(condition: HealthConditionData, entries: GroupedFoodEntry[], userProfile?: any): number {
   let score = 0;
   let maxScore = 0;
 
@@ -578,10 +578,58 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
     score += Math.min(10, recScore);
   });
 
-  return maxScore > 0 ? (score / maxScore) * 100 : 0;
+  // Apply user profile adjustments if available
+  if (userProfile) {
+    // Calculate BMI for additional context
+    const bmi = userProfile.height && userProfile.weight 
+      ? userProfile.weight / Math.pow(userProfile.height / 100, 2) 
+      : null;
+
+    // Age-based adjustments for certain conditions
+    if (userProfile.age) {
+      if (condition.id === 'type2_diabetes' && userProfile.age > 65) {
+        // Older adults with diabetes need stricter glucose control
+        score *= 0.95;
+      }
+      if (condition.id === 'hypertension' && userProfile.age > 60) {
+        // Stricter sodium limits for older adults
+        score *= 0.95;
+      }
+    }
+
+    // BMI-based adjustments
+    if (bmi) {
+      if (condition.id === 'type2_diabetes' && bmi > 25) {
+        // Weight management is crucial for diabetes
+        score *= 0.9;
+      }
+      if (condition.id === 'hypertension' && bmi > 25) {
+        // Weight affects blood pressure
+        score *= 0.92;
+      }
+      if (condition.id === 'metabolic_syndrome' && bmi > 30) {
+        // BMI is a key component of metabolic syndrome
+        score *= 0.85;
+      }
+    }
+
+    // Gender-specific adjustments
+    if (userProfile.gender === 'female') {
+      if (condition.id === 'pcos') {
+        // PCOS requires specific nutrition approach for women
+        if (bmi && bmi > 25) score *= 0.9;
+      }
+      if (condition.id === 'iron_deficiency_anemia') {
+        // Women have higher iron needs
+        score *= 0.95;
+      }
+    }
+  }
+
+  return maxScore > 0 ? Math.max(0, (score / maxScore) * 100) : 0;
 }
 
-export function getConditionRecommendations(condition: HealthConditionData, entries: GroupedFoodEntry[]): string[] {
+export function getConditionRecommendations(condition: HealthConditionData, entries: GroupedFoodEntry[], userProfile?: any): string[] {
   const recommendations: string[] = [];
 
   // Check nutrient targets
@@ -614,6 +662,48 @@ export function getConditionRecommendations(condition: HealthConditionData, entr
   // Add meal timing advice if available
   if (condition.mealTimingAdvice && recommendations.length < 3) {
     recommendations.push(condition.mealTimingAdvice);
+  }
+
+  // Add user profile-based personalized recommendations
+  if (userProfile) {
+    const bmi = userProfile.height && userProfile.weight 
+      ? userProfile.weight / Math.pow(userProfile.height / 100, 2) 
+      : null;
+
+    // BMI-based recommendations
+    if (bmi) {
+      if (bmi > 25 && ['type2_diabetes', 'hypertension', 'metabolic_syndrome', 'pcos'].includes(condition.id)) {
+        recommendations.push(`Weight management recommended (current BMI: ${bmi.toFixed(1)}). Consider reducing calorie intake and increasing physical activity.`);
+      }
+      if (bmi < 18.5) {
+        recommendations.push(`Underweight status may affect health management. Consider consulting a dietitian for healthy weight gain strategies.`);
+      }
+    }
+
+    // Age-based recommendations
+    if (userProfile.age) {
+      if (userProfile.age > 65 && condition.id === 'type2_diabetes') {
+        recommendations.push('Older adults with diabetes should monitor blood sugar more frequently and consider gentler exercise routines.');
+      }
+      if (userProfile.age > 50 && condition.id === 'hypertension') {
+        recommendations.push('Consider increasing calcium and magnesium intake as blood pressure management becomes more important with age.');
+      }
+    }
+
+    // Gender-specific recommendations
+    if (userProfile.gender === 'female') {
+      if (condition.id === 'iron_deficiency_anemia') {
+        recommendations.push('Women of reproductive age have higher iron needs. Consider pairing iron-rich foods with vitamin C sources.');
+      }
+      if (condition.id === 'pcos') {
+        recommendations.push('Focus on low glycemic index foods and consider omega-3 fatty acids for hormone balance.');
+      }
+    }
+
+    // Activity level considerations
+    if (userProfile.activityLevel === 'very_active' && condition.id === 'type2_diabetes') {
+      recommendations.push('High activity levels may require carbohydrate timing adjustments. Monitor blood glucose before and after exercise.');
+    }
   }
 
   return recommendations.slice(0, 5); // Limit to 5 recommendations
