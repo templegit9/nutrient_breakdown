@@ -21,7 +21,11 @@ import {
   Divider,
   Paper,
   CircularProgress,
-  Dialog
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -30,7 +34,9 @@ import {
   LocalHospital as RecommendationIcon,
   TrendingUp as TrendIcon,
   Warning as WarningIcon,
-  Favorite as HeartIcon
+  Favorite as HeartIcon,
+  HelpOutline as HelpOutlineIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
 import {
@@ -53,6 +59,35 @@ interface HealthConditionDashboardProps {
   userId: string;
 }
 
+// Help content for each component
+const HELP_CONTENT = {
+  adherenceScore: {
+    title: "Adherence Score",
+    description: "Shows how well your current nutrition aligns with recommendations for your selected health condition.",
+    importance: "Higher scores indicate better management of your condition through nutrition. Scores are personalized based on your profile (age, BMI, gender, activity level)."
+  },
+  keyNutrients: {
+    title: "Key Nutrients",
+    description: "Critical nutrients that significantly impact your selected health condition, with evidence-based target ranges.",
+    importance: "Focusing on these specific nutrients can help manage symptoms and improve health outcomes for your condition."
+  },
+  recommendations: {
+    title: "Personalized Recommendations",
+    description: "Specific, actionable advice based on your current food intake and individual health profile.",
+    importance: "These recommendations are tailored to your age, BMI, gender, and activity level for maximum effectiveness."
+  },
+  foodRecommendations: {
+    title: "Food Recommendations",
+    description: "Evidence-based food guidance categorized by encourage (beneficial), limit (moderate), and avoid (harmful) for your condition.",
+    importance: "Following these food guidelines can help reduce inflammation, manage symptoms, and support overall health for your specific condition."
+  },
+  healthStats: {
+    title: "Health Statistics",
+    description: "Key metrics about your nutrition choices and their impact on your health condition over the selected time period.",
+    importance: "Track progress and identify patterns in your nutrition that correlate with better health outcomes."
+  }
+};
+
 const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ userId }) => {
   const { data: entries } = useGroupedFoodData(userId);
   const [selectedCondition, setSelectedCondition] = useState<string>('');
@@ -63,6 +98,11 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   const [selectedDateRange, setSelectedDateRange] = useState<DateRangeType>('today');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  
+  // Help dialog state
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [activeHelpContent, setActiveHelpContent] = useState<keyof typeof HELP_CONTENT | null>(null);
+  
   const theme = useTheme();
 
   // Load user profile and health conditions
@@ -94,6 +134,25 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
     } finally {
       setLoading(false);
     }
+  };
+
+  // Help button component
+  const HelpButton = ({ contentKey }: { contentKey: keyof typeof HELP_CONTENT }) => (
+    <IconButton
+      size="small"
+      onClick={() => {
+        setActiveHelpContent(contentKey);
+        setHelpDialogOpen(true);
+      }}
+      sx={{ ml: 1 }}
+    >
+      <HelpOutlineIcon fontSize="small" />
+    </IconButton>
+  );
+
+  const handleHelpClose = () => {
+    setHelpDialogOpen(false);
+    setActiveHelpContent(null);
   };
 
   const handleDateRangeChange = (rangeType: DateRangeType, customStart?: Date, customEnd?: Date) => {
@@ -256,9 +315,12 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                 
                 {/* Health Score */}
                 <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {dateRange.label} Adherence Score
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {dateRange.label} Adherence Score
+                    </Typography>
+                    <HelpButton contentKey="adherenceScore" />
+                  </Box>
                   <Typography 
                     variant="h3" 
                     fontWeight="bold" 
@@ -274,9 +336,12 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
 
                 {/* Key Nutrients */}
                 <Box mt={3}>
-                  <Typography variant="subtitle1" fontWeight="semibold" gutterBottom>
-                    Key Nutrients
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="semibold">
+                      Key Nutrients
+                    </Typography>
+                    <HelpButton contentKey="keyNutrients" />
+                  </Box>
                   <Box>
                     {currentCondition.keyNutrients.slice(0, 3).map((nutrient, index) => (
                       <Paper key={index} sx={{ p: 1.5, mb: 1, bgcolor: 'primary.light' }}>
@@ -298,9 +363,12 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
           <Grid item xs={12} lg={8}>
             <Card>
               <CardContent>
-                <Typography variant="h5" fontWeight="semibold" gutterBottom>
-                  {dateRange.label} Recommendations
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h5" fontWeight="semibold">
+                    {dateRange.label} Recommendations
+                  </Typography>
+                  <HelpButton contentKey="recommendations" />
+                </Box>
                 
                 {recommendations.length > 0 ? (
                   <List>
@@ -330,7 +398,13 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                 )}
 
                 {/* Food Recommendations */}
-                <Grid container spacing={2} sx={{ mt: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mt: 3, mb: 2 }}>
+                  <Typography variant="h6" fontWeight="semibold">
+                    Food Recommendations
+                  </Typography>
+                  <HelpButton contentKey="foodRecommendations" />
+                </Box>
+                <Grid container spacing={2}>
                   {currentCondition.foodRecommendations.map((foodRec, index) => (
                     <Grid item xs={12} md={6} key={index}>
                       <Paper 
@@ -416,6 +490,66 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
               </CardContent>
             </Card>
           </Grid>
+
+          {/* Health Statistics */}
+          <Grid item xs={12} sx={{ mt: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h5" fontWeight="semibold">
+                    {dateRange.label} Health Statistics
+                  </Typography>
+                  <HelpButton contentKey="healthStats" />
+                </Box>
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
+                      <Typography variant="h4" fontWeight="bold" color="primary.main">
+                        {roundToInteger(totalCalories)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Calories
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
+                      <Typography variant="h4" fontWeight="bold" color="success.main">
+                        {beneficialFoodCount}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Beneficial Foods
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light' }}>
+                      <Typography variant="h4" fontWeight="bold" color="warning.main">
+                        {cautionFoodCount}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Caution Foods
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100' }}>
+                      <Typography variant="h4" fontWeight="bold" color="text.primary">
+                        {dateFilteredEntries.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Entries
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       )}
 
@@ -459,6 +593,34 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
             loadUserProfile();
           }}
         />
+      </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog
+        open={helpDialogOpen}
+        onClose={handleHelpClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoIcon color="primary" />
+          {activeHelpContent ? HELP_CONTENT[activeHelpContent]?.title : 'Help'}
+        </DialogTitle>
+        <DialogContent>
+          {activeHelpContent && (
+            <>
+              <Typography variant="body1" paragraph>
+                {HELP_CONTENT[activeHelpContent].description}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Why this matters:</strong> {HELP_CONTENT[activeHelpContent].importance}
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleHelpClose}>Close</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
