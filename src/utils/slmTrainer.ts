@@ -29,7 +29,7 @@ export class SLMTrainer {
   // Use a more capable instruction-following model
   private readonly HUGGING_FACE_API_URL = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-large';
   private readonly BACKUP_API_URL = 'https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill';
-  private readonly API_KEY = import.meta.env.VITE_HUGGING_FACE_TOKEN || 'hf_placeholder';
+  // Note: Hugging Face API not currently used, token removed for security
   private isInitialized = false;
 
   constructor() {
@@ -211,10 +211,14 @@ export class SLMTrainer {
   }
 
   private async callHuggingFaceAPI(apiUrl: string, prompt: string, originalInput: string): Promise<SmartParsedFood[]> {
+    // Hugging Face API currently disabled for security - no API key exposed
+    throw new Error('Hugging Face API not configured - using pattern matching only');
+    
+    /*
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.API_KEY}`,
+        'Authorization': `Bearer YOUR_API_KEY_HERE`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -240,6 +244,7 @@ export class SLMTrainer {
     }
     
     return [];
+    */
   }
 
   private createFoodExtractionPrompt(mealDescription: string): string {
