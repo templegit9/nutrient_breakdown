@@ -227,7 +227,8 @@ export class DatabaseService {
       target_protein_g: profile.targetProtein,
       target_carbs_g: profile.targetCarbs,
       target_fat_g: profile.targetFat,
-      target_fiber_g: profile.targetFiber
+      target_fiber_g: profile.targetFiber,
+      preferred_nutrients: profile.preferredNutrients
     }
 
     console.log('DatabaseService: Upserting profile data:', profileData)
@@ -287,7 +288,8 @@ export class DatabaseService {
       targetProtein: profile.target_protein_g || 150,
       targetCarbs: profile.target_carbs_g || 250,
       targetFat: profile.target_fat_g || 65,
-      targetFiber: profile.target_fiber_g || 25
+      targetFiber: profile.target_fiber_g || 25,
+      preferredNutrients: profile.preferred_nutrients || ['calories', 'protein', 'carbs', 'fat', 'fiber']
     }
   }
 

@@ -103,7 +103,8 @@ const HealthConditionSettings: React.FC<HealthConditionSettingsProps> = (props) 
           targetProtein: 150,
           targetCarbs: 250,
           targetFat: 65,
-          targetFiber: 25
+          targetFiber: 25,
+          preferredNutrients: ['calories', 'protein', 'carbs', 'fat', 'fiber']
         };
       } else {
         profileToSave = {

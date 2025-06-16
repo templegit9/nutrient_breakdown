@@ -18,7 +18,6 @@ import {
   Check as CheckIcon,
   Edit as EditIcon
 } from '@mui/icons-material';
-import { parseSmartFood } from '../utils/smartFoodParser';
 import { parseConversationalInput } from '../utils/conversationalParser';
 import type { SmartParseResult, SmartParsedFood } from '../utils/smartFoodParser';
 
@@ -66,8 +65,26 @@ export default function ConversationalInput({ onFoodsConfirmed, disabled }: Conv
     setIsProcessing(true);
 
     try {
-      // Parse the user input
-      const parseResult = await parseSmartFood(inputText.trim());
+      // Parse the user input using conversational parser first (includes time-of-day extraction)
+      const conversationalResult = await parseConversationalInput(inputText.trim());
+      
+      // Convert to SmartParseResult format, preserving timeOfDay
+      const parseResult = {
+        foods: conversationalResult.foods.map(food => ({
+          food: food.foodName,
+          quantity: food.quantity,
+          unit: food.unit,
+          cookingMethod: food.cookingMethod,
+          confidence: food.confidence,
+          originalText: food.rawText,
+          timeOfDay: conversationalResult.timeOfDay  // Pass through the parsed timeOfDay
+        })),
+        originalText: conversationalResult.originalText,
+        processingMethod: 'hybrid' as const,
+        needsClarification: conversationalResult.needsClarification,
+        suggestions: conversationalResult.clarificationPrompts,
+        mealType: conversationalResult.mealContext as any
+      };
       
       // Create assistant response
       const assistantMessage = createAssistantResponse(parseResult);

@@ -44,6 +44,7 @@ import { getUserGroupedFoodEntries, deleteGroupedFoodEntry } from '../services/g
 import type { GroupedFoodEntry } from '../types/food';
 import { supabase } from '../config/supabase';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
+import { DatabaseService } from '../services/database';
 
 interface FoodHistoryProps {
   refreshTrigger?: number;
@@ -85,10 +86,47 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   // Nutrient selection state
   const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
   const [nutrientSettingsOpen, setNutrientSettingsOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   useEffect(() => {
     loadGroupedEntries();
+    loadUserPreferences();
   }, [refreshTrigger]);
+
+  const loadUserPreferences = async () => {
+    try {
+      const profile = await DatabaseService.getUserProfile();
+      setUserProfile(profile);
+      
+      if (profile?.preferredNutrients && profile.preferredNutrients.length > 0) {
+        // Map stored nutrient names to available nutrients
+        const validNutrients = profile.preferredNutrients.filter(nutrient => 
+          AVAILABLE_NUTRIENTS.find(n => n.key === nutrient)
+        );
+        if (validNutrients.length > 0) {
+          setVisibleNutrients(validNutrients);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user preferences:', error);
+    }
+  };
+
+  const saveNutrientPreferences = async (nutrients: string[]) => {
+    try {
+      if (userProfile) {
+        const updatedProfile = {
+          ...userProfile,
+          preferredNutrients: nutrients
+        };
+        const { id, ...profileWithoutId } = updatedProfile;
+        await DatabaseService.saveUserProfile(profileWithoutId);
+        setUserProfile(updatedProfile);
+      }
+    } catch (error) {
+      console.error('Error saving nutrient preferences:', error);
+    }
+  };
 
   const loadGroupedEntries = async () => {
     try {
@@ -190,18 +228,30 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
 
   const handleNutrientToggle = (nutrientKey: string) => {
     setVisibleNutrients(prev => {
+      let newNutrients: string[];
       if (prev.includes(nutrientKey)) {
         // Don't allow removing all nutrients
         if (prev.length <= 1) return prev;
-        return prev.filter(key => key !== nutrientKey);
+        newNutrients = prev.filter(key => key !== nutrientKey);
       } else {
-        return [...prev, nutrientKey];
+        newNutrients = [...prev, nutrientKey];
       }
+      
+      // Save preferences
+      saveNutrientPreferences(newNutrients);
+      return newNutrients;
     });
+  };
+
+  const selectAllNutrients = () => {
+    const allNutrients = AVAILABLE_NUTRIENTS.map(n => n.key);
+    setVisibleNutrients(allNutrients);
+    saveNutrientPreferences(allNutrients);
   };
 
   const resetToDefaults = () => {
     setVisibleNutrients(DEFAULT_VISIBLE_NUTRIENTS);
+    saveNutrientPreferences(DEFAULT_VISIBLE_NUTRIENTS);
   };
 
   const getNutrientValue = (entry: GroupedFoodEntry, nutrientKey: string): number => {
@@ -699,6 +749,9 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
             </FormGroup>
           </DialogContent>
           <DialogActions>
+            <Button onClick={selectAllNutrients}>
+              Select All
+            </Button>
             <Button onClick={resetToDefaults}>
               Reset to Defaults
             </Button>

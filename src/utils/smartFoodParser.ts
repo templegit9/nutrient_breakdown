@@ -12,6 +12,7 @@ export interface SmartParsedFood {
   cookingMethod?: string;
   confidence: number;
   originalText?: string;
+  timeOfDay?: 'early-morning' | 'morning' | 'late-morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
 }
 
 export interface SmartParseResult {
@@ -206,7 +207,7 @@ export class SmartFoodParser {
       
       for (const match of matches) {
         const food = this.extractFoodFromMatch(match, section);
-        if (food && this.isValidFood(food.name)) {
+        if (food && this.isValidFood(food.food)) {
           foods.push(food);
           matched = true;
         }
@@ -236,7 +237,7 @@ export class SmartFoodParser {
   /**
    * Extract food information from regex match
    */
-  private extractFoodFromMatch(match: RegExpMatchArray, originalText: string): SmartParsedFood | null {
+  private extractFoodFromMatch(match: RegExpMatchArray, _originalText: string): SmartParsedFood | null {
     if (match.length < 2) return null;
 
     let quantity: number | undefined;

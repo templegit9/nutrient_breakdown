@@ -86,7 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           targetProtein: 150,
           targetCarbs: 250,
           targetFat: 65,
-          targetFiber: 25
+          targetFiber: 25,
+          preferredNutrients: ['calories', 'protein', 'carbs', 'fat', 'fiber']
         }
         
         // Remove id from profile before saving (saveUserProfile expects Omit<UserProfile, 'id'>)

@@ -488,7 +488,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       unit,
       category: dbFood.category || 'other',
       dateAdded: currentTime,
-      timeOfDay: getTimeOfDay(currentTime),
+      timeOfDay: parsedFood.timeOfDay || getTimeOfDay(currentTime), // Use parsed timeOfDay or fallback to current time
       cookingState: cookingStateToUse as any,
       calories: adjustedNutrition.calories,
       nutrients
@@ -558,7 +558,7 @@ export default function FoodEntry({ onAddFood }: FoodEntryProps) {
       unit,
       category: categorizeFoodByName(parsedFood.food),
       dateAdded: currentTime,
-      timeOfDay: getTimeOfDay(currentTime),
+      timeOfDay: parsedFood.timeOfDay || getTimeOfDay(currentTime), // Use parsed timeOfDay or fallback to current time
       cookingState: cookingStateToUse as any,
       calories: adjustedNutrition.calories,
       nutrients

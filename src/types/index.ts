@@ -127,6 +127,7 @@ export interface UserProfile {
   targetCarbs: number;
   targetFat: number;
   targetFiber: number;
+  preferredNutrients: string[];
 }
 
 export interface NutritionAnalysis {

@@ -13,6 +13,7 @@ export interface ParsedMessage {
   foods: ParsedFood[];
   mealContext?: string; // breakfast, lunch, dinner, snack
   timeContext?: string; // this morning, yesterday, etc.
+  timeOfDay?: 'early-morning' | 'morning' | 'late-morning' | 'afternoon' | 'evening' | 'night' | 'late-night'; // Parsed time of day
   confidence: number;
   needsClarification: boolean;
   clarificationPrompts?: string[];
@@ -67,6 +68,59 @@ const mealContextMap: Record<string, string> = {
   'snack': 'snack', 'treat': 'snack', 'dessert': 'snack'
 };
 
+// Time of day keywords
+type TimeOfDay = 'early-morning' | 'morning' | 'late-morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
+
+const timeOfDayMap: Record<string, TimeOfDay> = {
+  // Early morning (5-7 AM)
+  'early morning': 'early-morning', 'dawn': 'early-morning', 'sunrise': 'early-morning',
+  'very early': 'early-morning', 'crack of dawn': 'early-morning',
+  
+  // Morning (7-10 AM)
+  'morning': 'morning', 'in the morning': 'morning', 'this morning': 'morning',
+  'am': 'morning', 'breakfast time': 'morning',
+  
+  // Late morning (10 AM-12 PM)
+  'late morning': 'late-morning', 'mid morning': 'late-morning', 'brunch time': 'late-morning',
+  'late am': 'late-morning', 'before noon': 'late-morning',
+  
+  // Afternoon (12-5 PM)
+  'afternoon': 'afternoon', 'in the afternoon': 'afternoon', 'this afternoon': 'afternoon',
+  'pm': 'afternoon', 'lunch time': 'afternoon', 'noon': 'afternoon',
+  'midday': 'afternoon', 'lunchtime': 'afternoon',
+  
+  // Evening (5-9 PM)
+  'evening': 'evening', 'in the evening': 'evening', 'this evening': 'evening',
+  'dinner time': 'evening', 'dinnertime': 'evening', 'supper time': 'evening',
+  'early evening': 'evening', 'after work': 'evening',
+  
+  // Night (9 PM-12 AM)
+  'night': 'night', 'at night': 'night', 'tonight': 'night',
+  'nighttime': 'night', 'before bed': 'night', 'late evening': 'night',
+  
+  // Late night (12-5 AM)
+  'late night': 'late-night', 'midnight': 'late-night', 'after midnight': 'late-night',
+  'very late': 'late-night', 'late at night': 'late-night'
+};
+
+/**
+ * Extract time of day from text
+ */
+function extractTimeOfDay(text: string): TimeOfDay | undefined {
+  const normalizedText = text.toLowerCase();
+  
+  // Look for time of day phrases (longer phrases first to avoid conflicts)
+  const sortedTimeKeys = Object.keys(timeOfDayMap).sort((a, b) => b.length - a.length);
+  
+  for (const timePhrase of sortedTimeKeys) {
+    if (normalizedText.includes(timePhrase)) {
+      return timeOfDayMap[timePhrase];
+    }
+  }
+  
+  return undefined;
+}
+
 /**
  * Main function to parse natural language food descriptions
  * Now uses SLM as primary parsing method with fallback to pattern matching
@@ -96,6 +150,7 @@ export async function parseConversationalInput(text: string): Promise<ParsedMess
         originalText: text,
         foods: convertedFoods,
         mealContext: smartResult.mealType,
+        timeOfDay: extractTimeOfDay(text),
         confidence,
         needsClarification: smartResult.needsClarification,
         clarificationPrompts: smartResult.suggestions || generateClarificationPrompts(convertedFoods)
@@ -121,6 +176,7 @@ export async function parseConversationalInput(text: string): Promise<ParsedMess
     originalText: text,
     foods,
     mealContext,
+    timeOfDay: extractTimeOfDay(text),
     confidence,
     needsClarification,
     clarificationPrompts: clarificationPrompts.length > 0 ? clarificationPrompts : undefined
