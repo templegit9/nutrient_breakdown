@@ -24,9 +24,21 @@ export interface DiabetesRecommendations {
   portionAdvice: string[];
 }
 
+export interface FertilityRecommendations {
+  score: number;
+  reproductiveHealth: number;
+  hormonalBalance: number;
+  nutritionalSupport: 'optimal' | 'good' | 'needs_improvement';
+  recommendations: string[];
+  warnings: string[];
+  supplementAdvice: string[];
+}
+
 export interface HealthConditionInsights {
   pcos: PCOSRecommendations;
   diabetes: DiabetesRecommendations;
+  femaleFertility?: FertilityRecommendations;
+  maleFertility?: FertilityRecommendations;
   generalHealth: {
     inflammationLevel: 'low' | 'moderate' | 'high';
     oxidativeStress: 'low' | 'moderate' | 'high';
@@ -558,6 +570,262 @@ export class HealthConditionAnalyzer {
     
     if (totalCalories === 0) return 0;
     return calculatePercentage(totalProtein * 4, totalCalories);
+  }
+
+  analyzeFemaleFertility(foods: FoodItem[]): FertilityRecommendations {
+    let score = 50;
+    const recommendations: string[] = [];
+    const warnings: string[] = [];
+    const supplementAdvice: string[] = [];
+
+    // Key nutrients for female fertility
+    const folate = this.getTotalNutrient(foods, 'folate');
+    const iron = this.getTotalNutrient(foods, 'iron');
+    const vitaminD = this.getTotalNutrient(foods, 'vitamin-d');
+    const omega3 = this.getTotalNutrient(foods, 'omega-3');
+    const antioxidants = this.calculateAntioxidantScore(foods);
+
+    // Folate assessment
+    if (folate < 400) {
+      score -= 15;
+      warnings.push('Low folate intake may affect egg quality and neural tube development');
+      recommendations.push('Include more folate-rich foods like leafy greens, legumes, and fortified grains');
+      supplementAdvice.push('Consider prenatal vitamin with 800mcg folate');
+    } else if (folate > 600) {
+      score += 10;
+      recommendations.push('Excellent folate intake for reproductive health');
+    }
+
+    // Iron assessment
+    if (iron < 18) {
+      score -= 10;
+      recommendations.push('Increase iron-rich foods to support ovulation');
+      recommendations.push('Pair iron sources with vitamin C for better absorption');
+    } else if (iron > 25) {
+      score += 5;
+    }
+
+    // Vitamin D assessment
+    if (vitaminD < 600) {
+      score -= 10;
+      warnings.push('Low vitamin D may affect ovulation and implantation');
+      supplementAdvice.push('Consider vitamin D3 supplementation (2000-4000 IU)');
+    }
+
+    // Omega-3 assessment
+    if (omega3 < 1000) {
+      score -= 8;
+      recommendations.push('Add fatty fish or omega-3 supplements for hormone balance');
+    } else if (omega3 > 2000) {
+      score += 8;
+      recommendations.push('Great omega-3 intake supporting reproductive health');
+    }
+
+    // Antioxidant assessment
+    if (antioxidants < 50) {
+      score -= 10;
+      recommendations.push('Increase colorful fruits and vegetables for egg protection');
+    } else if (antioxidants > 80) {
+      score += 10;
+    }
+
+    // Fertility-specific food recommendations
+    const fertilityFoods = ['avocado', 'nuts', 'seeds', 'berries', 'leafy greens', 'fatty fish'];
+    const fertilityFoodCount = fertilityFoods.filter(food => 
+      foods.some(f => f.name.toLowerCase().includes(food))
+    ).length;
+
+    if (fertilityFoodCount < 3) {
+      score -= 5;
+      recommendations.push('Include more fertility-supporting foods like avocados, nuts, and berries');
+    } else if (fertilityFoodCount >= 5) {
+      score += 10;
+    }
+
+    // Harmful foods assessment
+    const harmfulFoods = ['alcohol', 'excessive caffeine', 'trans fat', 'high mercury'];
+    const hasHarmfulFoods = harmfulFoods.some(food => 
+      foods.some(f => f.name.toLowerCase().includes(food.split(' ')[0]))
+    );
+
+    if (hasHarmfulFoods) {
+      score -= 15;
+      warnings.push('Avoid alcohol, excessive caffeine, and high-mercury fish when trying to conceive');
+    }
+
+    const reproductiveHealth = Math.max(0, Math.min(100, score + (antioxidants / 2)));
+    const hormonalBalance = Math.max(0, Math.min(100, score + (omega3 / 50)));
+    
+    let nutritionalSupport: 'optimal' | 'good' | 'needs_improvement';
+    if (score >= 80) nutritionalSupport = 'optimal';
+    else if (score >= 60) nutritionalSupport = 'good';
+    else nutritionalSupport = 'needs_improvement';
+
+    // General recommendations
+    recommendations.push('Maintain healthy weight with BMI 18.5-24.9');
+    recommendations.push('Limit processed foods and focus on whole foods');
+    
+    if (supplementAdvice.length === 0) {
+      supplementAdvice.push('Consider prenatal vitamins 3 months before conception');
+    }
+
+    return {
+      score: Math.max(0, Math.min(100, score)),
+      reproductiveHealth,
+      hormonalBalance,
+      nutritionalSupport,
+      recommendations,
+      warnings,
+      supplementAdvice
+    };
+  }
+
+  analyzeMaleFertility(foods: FoodItem[]): FertilityRecommendations {
+    let score = 50;
+    const recommendations: string[] = [];
+    const warnings: string[] = [];
+    const supplementAdvice: string[] = [];
+
+    // Key nutrients for male fertility
+    const zinc = this.getTotalNutrient(foods, 'zinc');
+    const selenium = this.getTotalNutrient(foods, 'selenium');
+    const vitaminC = this.getTotalNutrient(foods, 'vitamin-c');
+    const vitaminE = this.getTotalNutrient(foods, 'vitamin-e');
+    const folate = this.getTotalNutrient(foods, 'folate');
+    const antioxidants = this.calculateAntioxidantScore(foods);
+
+    // Zinc assessment (crucial for sperm production)
+    if (zinc < 11) {
+      score -= 20;
+      warnings.push('Low zinc intake may severely impact sperm production and testosterone');
+      recommendations.push('Include zinc-rich foods like oysters, beef, pumpkin seeds');
+      supplementAdvice.push('Consider zinc supplementation (15-30mg daily)');
+    } else if (zinc > 15) {
+      score += 15;
+      recommendations.push('Excellent zinc intake for sperm health');
+    }
+
+    // Selenium assessment
+    if (selenium < 55) {
+      score -= 15;
+      recommendations.push('Add selenium-rich foods like Brazil nuts and fish');
+      supplementAdvice.push('2-3 Brazil nuts daily provide adequate selenium');
+    } else if (selenium > 100) {
+      score += 10;
+    }
+
+    // Vitamin C assessment
+    if (vitaminC < 90) {
+      score -= 10;
+      recommendations.push('Increase vitamin C intake to protect sperm from DNA damage');
+    } else if (vitaminC > 500) {
+      score += 8;
+    }
+
+    // Vitamin E assessment
+    if (vitaminE < 15) {
+      score -= 8;
+      recommendations.push('Include vitamin E sources like nuts and seeds');
+    }
+
+    // Folate assessment
+    if (folate < 400) {
+      score -= 10;
+      recommendations.push('Adequate folate important for sperm DNA integrity');
+    }
+
+    // Antioxidant assessment
+    if (antioxidants < 50) {
+      score -= 12;
+      recommendations.push('Increase antioxidant-rich foods to protect sperm from oxidative stress');
+    } else if (antioxidants > 80) {
+      score += 12;
+    }
+
+    // Male fertility-specific foods
+    const maleFertilityFoods = ['oysters', 'pumpkin seeds', 'walnuts', 'tomatoes', 'brazil nuts'];
+    const maleFertilityFoodCount = maleFertilityFoods.filter(food => 
+      foods.some(f => f.name.toLowerCase().includes(food.replace(' ', '')))
+    ).length;
+
+    if (maleFertilityFoodCount < 2) {
+      score -= 8;
+      recommendations.push('Include more male fertility foods like oysters, nuts, and seeds');
+    } else if (maleFertilityFoodCount >= 4) {
+      score += 12;
+    }
+
+    // Harmful factors
+    const processedMeatIntake = foods.filter(f => 
+      f.name.toLowerCase().includes('processed') || 
+      f.name.toLowerCase().includes('sausage') ||
+      f.name.toLowerCase().includes('bacon')
+    ).length;
+
+    if (processedMeatIntake > 0) {
+      score -= 10;
+      warnings.push('Processed meats linked to poor sperm quality');
+    }
+
+    const reproductiveHealth = Math.max(0, Math.min(100, score + (zinc * 2)));
+    const hormonalBalance = Math.max(0, Math.min(100, score + (antioxidants / 3)));
+    
+    let nutritionalSupport: 'optimal' | 'good' | 'needs_improvement';
+    if (score >= 80) nutritionalSupport = 'optimal';
+    else if (score >= 60) nutritionalSupport = 'good';
+    else nutritionalSupport = 'needs_improvement';
+
+    // General recommendations
+    recommendations.push('Maintain healthy weight to optimize hormone levels');
+    recommendations.push('Stay hydrated and limit alcohol consumption');
+    recommendations.push('Focus on whole foods and minimize processed foods');
+    
+    if (supplementAdvice.length === 0) {
+      supplementAdvice.push('Consider male fertility supplement with zinc, selenium, and CoQ10');
+    }
+
+    return {
+      score: Math.max(0, Math.min(100, score)),
+      reproductiveHealth,
+      hormonalBalance,
+      nutritionalSupport,
+      recommendations,
+      warnings,
+      supplementAdvice
+    };
+  }
+
+  private calculateAntioxidantScore(foods: FoodItem[]): number {
+    let score = 0;
+    
+    // High antioxidant foods
+    const antioxidantFoods: Record<string, number> = {
+      'blueberry': 15,
+      'strawberry': 12,
+      'blackberry': 14,
+      'raspberry': 12,
+      'pomegranate': 18,
+      'dark chocolate': 10,
+      'green tea': 8,
+      'spinach': 10,
+      'kale': 12,
+      'broccoli': 8,
+      'tomato': 6,
+      'bell pepper': 6,
+      'carrot': 5,
+      'sweet potato': 7
+    };
+
+    foods.forEach(food => {
+      const foodName = food.name.toLowerCase();
+      Object.keys(antioxidantFoods).forEach(antioxFood => {
+        if (foodName.includes(antioxFood)) {
+          score += antioxidantFoods[antioxFood];
+        }
+      });
+    });
+
+    return Math.min(100, score);
   }
 }
 

@@ -54,6 +54,8 @@ export const HEALTH_CONDITION_CATEGORIES = [
   'Thyroid & Hormonal',
   'Cancer Support',
   'Pregnancy & Reproductive',
+  'Female Fertility & Health',
+  'Male Fertility & Health',
   'Aging & Cognitive'
 ] as const;
 
@@ -533,6 +535,498 @@ export const EXPANDED_HEALTH_CONDITIONS: HealthConditionData[] = [
     drugInteractions: ['ACE inhibitors may increase potassium - monitor closely'],
     monitoringMetrics: ['egfr', 'creatinine', 'bun', 'phosphorus', 'potassium'],
     clinicalNotes: 'Stage-specific nutrition. Refer to renal dietitian. Monitor for mineral bone disease.'
+  },
+
+  // FEMALE FERTILITY & HEALTH CONDITIONS
+  {
+    id: 'female_fertility_optimization',
+    name: 'Female Fertility Optimization',
+    category: 'Female Fertility & Health',
+    description: 'Nutritional support for optimal reproductive health, egg quality, and conception preparation.',
+    keyNutrients: [
+      {
+        nutrient: 'folate',
+        target: 800,
+        unit: 'mcg',
+        reasoning: 'Critical for neural tube development and DNA synthesis in developing eggs',
+        evidenceLevel: 'strong',
+        sources: ['Cochrane Review 2021', 'ACOG Guidelines 2022']
+      },
+      {
+        nutrient: 'coq10',
+        target: 300,
+        unit: 'mg',
+        reasoning: 'Improves mitochondrial function in eggs, especially for women over 35',
+        evidenceLevel: 'moderate',
+        sources: ['Fertil Steril 2021', 'Reprod Biomed Online 2020']
+      },
+      {
+        nutrient: 'vitamin_d',
+        target: 2000,
+        unit: 'IU',
+        reasoning: 'Deficiency linked to ovulatory dysfunction and implantation issues',
+        evidenceLevel: 'strong',
+        sources: ['Hum Reprod Update 2021']
+      },
+      {
+        nutrient: 'iron',
+        target: 27,
+        unit: 'mg',
+        reasoning: 'Iron deficiency associated with ovulatory infertility',
+        evidenceLevel: 'moderate',
+        sources: ['Obstet Gynecol 2019']
+      },
+      {
+        nutrient: 'omega3',
+        target: 2000,
+        unit: 'mg',
+        reasoning: 'DHA supports egg membrane health and hormonal balance',
+        evidenceLevel: 'moderate',
+        sources: ['Nutrients 2021']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['dark leafy greens', 'berries', 'avocados', 'nuts', 'seeds', 'fatty fish', 'eggs', 'quinoa'],
+        reasoning: 'Antioxidant-rich foods protect eggs from oxidative damage and support hormone production',
+        evidenceLevel: 'strong'
+      },
+      {
+        type: 'limit',
+        foods: ['trans fats', 'excessive caffeine', 'alcohol', 'high mercury fish', 'processed foods'],
+        reasoning: 'These can impair egg quality, hormone balance, and ovulation',
+        evidenceLevel: 'strong'
+      }
+    ],
+    mealTimingAdvice: 'Consistent meal timing supports hormonal balance. Include protein at each meal to stabilize blood sugar.',
+    supplementAdvice: 'Consider prenatal vitamins 3 months before conception. CoQ10 may benefit egg quality especially after age 35.',
+    monitoringMetrics: ['menstrual_cycle_regularity', 'ovulation_timing', 'bmi', 'inflammatory_markers'],
+    clinicalNotes: 'Optimize nutrition 3-6 months before conception. Address underlying conditions like PCOS or thyroid disorders.'
+  },
+
+  {
+    id: 'endometriosis',
+    name: 'Endometriosis',
+    category: 'Female Fertility & Health',
+    description: 'Chronic inflammatory condition where anti-inflammatory nutrition can help manage pain and symptoms.',
+    keyNutrients: [
+      {
+        nutrient: 'omega3',
+        target: 3000,
+        unit: 'mg',
+        reasoning: 'EPA/DHA reduce inflammatory prostaglandins associated with endometrial pain',
+        evidenceLevel: 'strong',
+        sources: ['Am J Clin Nutr 2021', 'Reprod Sci 2020']
+      },
+      {
+        nutrient: 'vitamin_d',
+        target: 2000,
+        unit: 'IU',
+        reasoning: 'Deficiency common in endometriosis; supplementation may reduce inflammation',
+        evidenceLevel: 'moderate',
+        sources: ['Gynecol Endocrinol 2020']
+      },
+      {
+        nutrient: 'antioxidants',
+        target: 5000,
+        unit: 'ORAC',
+        reasoning: 'Counter oxidative stress and inflammation associated with endometrial lesions',
+        evidenceLevel: 'moderate',
+        sources: ['Antioxidants 2021']
+      },
+      {
+        nutrient: 'magnesium',
+        target: 400,
+        unit: 'mg',
+        reasoning: 'May help reduce menstrual cramping and muscle tension',
+        evidenceLevel: 'moderate',
+        sources: ['Cochrane Review 2019']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['salmon', 'sardines', 'turmeric', 'ginger', 'berries', 'leafy greens', 'green tea'],
+        reasoning: 'Anti-inflammatory compounds may reduce endometrial inflammation and pain',
+        evidenceLevel: 'moderate'
+      },
+      {
+        type: 'limit',
+        foods: ['red meat', 'processed foods', 'caffeine', 'alcohol', 'high-fat dairy'],
+        reasoning: 'These foods may increase inflammatory markers and worsen symptoms',
+        evidenceLevel: 'moderate'
+      }
+    ],
+    mealTimingAdvice: 'Regular meals help maintain stable energy. Consider smaller, frequent meals during flare-ups.',
+    monitoringMetrics: ['pain_levels', 'menstrual_symptoms', 'inflammatory_markers', 'quality_of_life'],
+    clinicalNotes: 'Mediterranean diet pattern shows promise. Consider elimination diet to identify trigger foods.'
+  },
+
+  {
+    id: 'menopause_support',
+    name: 'Menopause Support',
+    category: 'Female Fertility & Health',
+    description: 'Nutritional support for managing menopausal symptoms and maintaining bone and heart health.',
+    keyNutrients: [
+      {
+        nutrient: 'calcium',
+        target: 1200,
+        unit: 'mg',
+        reasoning: 'Increased needs due to estrogen decline affecting bone density',
+        evidenceLevel: 'strong',
+        sources: ['NOF Guidelines 2021']
+      },
+      {
+        nutrient: 'vitamin_d',
+        target: 2000,
+        unit: 'IU',
+        reasoning: 'Essential for calcium absorption and bone health during menopause',
+        evidenceLevel: 'strong',
+        sources: ['Endocr Rev 2021']
+      },
+      {
+        nutrient: 'phytoestrogens',
+        target: 50,
+        unit: 'mg',
+        reasoning: 'Isoflavones may help reduce hot flashes and support bone health',
+        evidenceLevel: 'moderate',
+        sources: ['Menopause 2020']
+      },
+      {
+        nutrient: 'omega3',
+        target: 2000,
+        unit: 'mg',
+        reasoning: 'May reduce inflammation and support cardiovascular health',
+        evidenceLevel: 'moderate',
+        sources: ['Nutrients 2021']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['soy foods', 'flaxseeds', 'dairy products', 'canned fish with bones', 'dark leafy greens'],
+        reasoning: 'Provide phytoestrogens, calcium, and bone-supporting nutrients',
+        evidenceLevel: 'strong'
+      },
+      {
+        type: 'limit',
+        foods: ['alcohol', 'caffeine', 'spicy foods', 'sugar'],
+        reasoning: 'May trigger hot flashes and worsen menopausal symptoms',
+        evidenceLevel: 'moderate'
+      }
+    ],
+    mealTimingAdvice: 'Consistent meal timing helps manage mood and energy fluctuations.',
+    monitoringMetrics: ['bone_density', 'hot_flash_frequency', 'cardiovascular_markers', 'weight'],
+    clinicalNotes: 'Consider hormone therapy consultation. Monitor cardiovascular and bone health closely.'
+  },
+
+  {
+    id: 'iron_deficiency_anemia',
+    name: 'Iron Deficiency Anemia',
+    category: 'Female Fertility & Health',
+    description: 'Common in women due to menstrual losses, requiring strategic iron intake and absorption optimization.',
+    keyNutrients: [
+      {
+        nutrient: 'iron',
+        target: 27,
+        unit: 'mg',
+        reasoning: 'Higher needs in menstruating women, especially with heavy periods',
+        evidenceLevel: 'strong',
+        sources: ['WHO Guidelines 2021']
+      },
+      {
+        nutrient: 'vitamin_c',
+        target: 200,
+        unit: 'mg',
+        reasoning: 'Enhances non-heme iron absorption from plant sources',
+        evidenceLevel: 'strong',
+        sources: ['Am J Clin Nutr 2020']
+      },
+      {
+        nutrient: 'vitamin_b12',
+        target: 2.4,
+        unit: 'mcg',
+        reasoning: 'Often co-deficient and required for red blood cell formation',
+        evidenceLevel: 'strong',
+        sources: ['Blood 2019']
+      },
+      {
+        nutrient: 'folate',
+        target: 400,
+        unit: 'mcg',
+        reasoning: 'Essential for DNA synthesis in red blood cell production',
+        evidenceLevel: 'strong',
+        sources: ['Hematology 2020']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['lean red meat', 'poultry', 'fish', 'lentils', 'spinach', 'fortified cereals', 'citrus fruits'],
+        reasoning: 'Heme iron from meat is better absorbed than non-heme iron from plants',
+        evidenceLevel: 'strong'
+      },
+      {
+        type: 'limit',
+        foods: ['tea', 'coffee', 'calcium supplements with meals', 'whole grains with iron-rich foods'],
+        reasoning: 'These can inhibit iron absorption when consumed together',
+        evidenceLevel: 'strong'
+      }
+    ],
+    mealTimingAdvice: 'Take iron supplements on empty stomach when possible. Separate calcium and iron supplements by 2+ hours.',
+    monitoringMetrics: ['hemoglobin', 'ferritin', 'transferrin_saturation', 'energy_levels'],
+    clinicalNotes: 'Investigate underlying cause of iron loss. Monitor for GI side effects of supplementation.'
+  },
+
+  // MALE FERTILITY & HEALTH CONDITIONS
+  {
+    id: 'male_fertility_optimization',
+    name: 'Male Fertility Optimization',
+    category: 'Male Fertility & Health',
+    description: 'Nutritional support for optimal sperm production, quality, and reproductive health.',
+    keyNutrients: [
+      {
+        nutrient: 'zinc',
+        target: 15,
+        unit: 'mg',
+        reasoning: 'Essential for testosterone production and sperm development',
+        evidenceLevel: 'strong',
+        sources: ['Fertil Steril 2021', 'Andrologia 2020']
+      },
+      {
+        nutrient: 'selenium',
+        target: 200,
+        unit: 'mcg',
+        reasoning: 'Critical for sperm motility and protects against oxidative damage',
+        evidenceLevel: 'strong',
+        sources: ['Reprod Toxicol 2021']
+      },
+      {
+        nutrient: 'vitamin_c',
+        target: 1000,
+        unit: 'mg',
+        reasoning: 'Antioxidant that protects sperm from DNA damage',
+        evidenceLevel: 'moderate',
+        sources: ['Nutrients 2020']
+      },
+      {
+        nutrient: 'vitamin_e',
+        target: 400,
+        unit: 'IU',
+        reasoning: 'Works with selenium to protect sperm membrane integrity',
+        evidenceLevel: 'moderate',
+        sources: ['Asian J Androl 2019']
+      },
+      {
+        nutrient: 'coq10',
+        target: 300,
+        unit: 'mg',
+        reasoning: 'Improves sperm motility and energy production',
+        evidenceLevel: 'moderate',
+        sources: ['Cochrane Review 2019']
+      },
+      {
+        nutrient: 'folate',
+        target: 400,
+        unit: 'mcg',
+        reasoning: 'Low folate associated with decreased sperm count and DNA integrity',
+        evidenceLevel: 'moderate',
+        sources: ['Hum Reprod 2020']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['oysters', 'brazil nuts', 'pumpkin seeds', 'dark leafy greens', 'berries', 'tomatoes', 'walnuts'],
+        reasoning: 'Rich in antioxidants and nutrients critical for sperm health',
+        evidenceLevel: 'strong'
+      },
+      {
+        type: 'limit',
+        foods: ['processed meats', 'trans fats', 'excessive alcohol', 'high mercury fish', 'soy products'],
+        reasoning: 'These can negatively impact sperm concentration and quality',
+        evidenceLevel: 'moderate'
+      }
+    ],
+    mealTimingAdvice: 'Consistent nutrition for 74+ days (sperm production cycle). Include antioxidants at each meal.',
+    supplementAdvice: 'Consider comprehensive male fertility supplement 3+ months before conception attempts.',
+    monitoringMetrics: ['sperm_count', 'sperm_motility', 'sperm_morphology', 'testosterone_levels'],
+    clinicalNotes: 'Sperm production takes 74 days - nutrition changes take time. Address heat exposure and lifestyle factors.'
+  },
+
+  {
+    id: 'low_testosterone',
+    name: 'Low Testosterone (Hypogonadism)',
+    category: 'Male Fertility & Health',
+    description: 'Nutritional support for healthy testosterone production and male hormonal balance.',
+    keyNutrients: [
+      {
+        nutrient: 'zinc',
+        target: 15,
+        unit: 'mg',
+        reasoning: 'Zinc deficiency directly linked to low testosterone levels',
+        evidenceLevel: 'strong',
+        sources: ['Nutrition 2021', 'J Am Coll Nutr 2020']
+      },
+      {
+        nutrient: 'vitamin_d',
+        target: 3000,
+        unit: 'IU',
+        reasoning: 'Vitamin D receptors in reproductive tissues; deficiency lowers testosterone',
+        evidenceLevel: 'strong',
+        sources: ['Horm Metab Res 2021']
+      },
+      {
+        nutrient: 'magnesium',
+        target: 420,
+        unit: 'mg',
+        reasoning: 'Magnesium supplementation can increase free and total testosterone',
+        evidenceLevel: 'moderate',
+        sources: ['Biol Trace Elem Res 2020']
+      },
+      {
+        nutrient: 'omega3',
+        target: 2000,
+        unit: 'mg',
+        reasoning: 'Supports steroid hormone production and reduces inflammation',
+        evidenceLevel: 'moderate',
+        sources: ['Prostaglandins 2021']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['oysters', 'lean beef', 'eggs', 'fatty fish', 'nuts', 'seeds', 'pomegranates'],
+        reasoning: 'Foods that support testosterone production and hormonal health',
+        evidenceLevel: 'moderate'
+      },
+      {
+        type: 'limit',
+        foods: ['excessive alcohol', 'processed foods', 'sugar', 'soy products', 'mint'],
+        reasoning: 'These can suppress testosterone production or increase estrogen',
+        evidenceLevel: 'moderate'
+      }
+    ],
+    mealTimingAdvice: 'Adequate caloric intake important - severe calorie restriction lowers testosterone.',
+    monitoringMetrics: ['total_testosterone', 'free_testosterone', 'lh', 'fsh', 'estradiol'],
+    clinicalNotes: 'Rule out underlying causes. Consider sleep, stress, and exercise factors alongside nutrition.'
+  },
+
+  {
+    id: 'benign_prostatic_hyperplasia',
+    name: 'Benign Prostatic Hyperplasia (BPH)',
+    category: 'Male Fertility & Health',
+    description: 'Enlarged prostate condition where specific nutrients may help reduce symptoms and inflammation.',
+    keyNutrients: [
+      {
+        nutrient: 'lycopene',
+        target: 30,
+        unit: 'mg',
+        reasoning: 'Concentrated in prostate tissue; may reduce prostate size and symptoms',
+        evidenceLevel: 'moderate',
+        sources: ['Prostate 2021', 'Nutrients 2020']
+      },
+      {
+        nutrient: 'beta_sitosterol',
+        target: 130,
+        unit: 'mg',
+        reasoning: 'Plant sterol that may improve urinary flow and reduce BPH symptoms',
+        evidenceLevel: 'moderate',
+        sources: ['Cochrane Review 2019']
+      },
+      {
+        nutrient: 'zinc',
+        target: 15,
+        unit: 'mg',
+        reasoning: 'Prostate has highest zinc concentration; deficiency may worsen BPH',
+        evidenceLevel: 'moderate',
+        sources: ['Prostate Cancer Prostatic Dis 2020']
+      },
+      {
+        nutrient: 'saw_palmetto',
+        target: 320,
+        unit: 'mg',
+        reasoning: 'May inhibit 5-alpha reductase and reduce prostate inflammation',
+        evidenceLevel: 'limited',
+        sources: ['Cochrane Review 2020']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['tomatoes', 'watermelon', 'pumpkin seeds', 'green tea', 'soy foods', 'fish'],
+        reasoning: 'Rich in lycopene, phytosterols, and anti-inflammatory compounds',
+        evidenceLevel: 'moderate'
+      },
+      {
+        type: 'limit',
+        foods: ['red meat', 'high-fat dairy', 'alcohol', 'caffeine', 'spicy foods'],
+        reasoning: 'May worsen urinary symptoms or promote prostate inflammation',
+        evidenceLevel: 'limited'
+      }
+    ],
+    mealTimingAdvice: 'Limit fluids 2-3 hours before bedtime to reduce nighttime urination.',
+    monitoringMetrics: ['psa_levels', 'urinary_flow_rate', 'prostate_volume', 'symptom_scores'],
+    clinicalNotes: 'Monitor PSA levels regularly. Dietary changes complement but don\'t replace medical treatment.'
+  },
+
+  {
+    id: 'erectile_dysfunction',
+    name: 'Erectile Dysfunction',
+    category: 'Male Fertility & Health',
+    description: 'Vascular and hormonal condition where nutrition can support blood flow and sexual health.',
+    keyNutrients: [
+      {
+        nutrient: 'l_arginine',
+        target: 5000,
+        unit: 'mg',
+        reasoning: 'Precursor to nitric oxide which improves blood flow to reproductive organs',
+        evidenceLevel: 'moderate',
+        sources: ['Int J Impot Res 2021']
+      },
+      {
+        nutrient: 'flavonoids',
+        target: 500,
+        unit: 'mg',
+        reasoning: 'Improve endothelial function and blood flow',
+        evidenceLevel: 'moderate',
+        sources: ['Am J Clin Nutr 2020']
+      },
+      {
+        nutrient: 'vitamin_d',
+        target: 2000,
+        unit: 'IU',
+        reasoning: 'Deficiency associated with erectile dysfunction',
+        evidenceLevel: 'moderate',
+        sources: ['Int J Endocrinol 2021']
+      },
+      {
+        nutrient: 'omega3',
+        target: 2000,
+        unit: 'mg',
+        reasoning: 'Supports cardiovascular health and blood flow',
+        evidenceLevel: 'moderate',
+        sources: ['Nutrients 2020']
+      }
+    ],
+    foodRecommendations: [
+      {
+        type: 'encourage',
+        foods: ['watermelon', 'dark chocolate', 'pistachios', 'berries', 'leafy greens', 'fatty fish'],
+        reasoning: 'Rich in compounds that support vascular health and blood flow',
+        evidenceLevel: 'moderate'
+      },
+      {
+        type: 'limit',
+        foods: ['processed foods', 'excessive alcohol', 'high sodium foods', 'trans fats'],
+        reasoning: 'Can impair vascular function and blood flow',
+        evidenceLevel: 'moderate'
+      }
+    ],
+    mealTimingAdvice: 'Avoid large meals before sexual activity. Mediterranean diet pattern beneficial.',
+    monitoringMetrics: ['erectile_function_scores', 'cardiovascular_markers', 'testosterone_levels'],
+    clinicalNotes: 'Often related to cardiovascular health. Address underlying vascular risk factors.'
   }
 ];
 
