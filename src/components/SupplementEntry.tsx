@@ -89,11 +89,12 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
   const loadSupplements = async () => {
     setSearchLoading(true);
     try {
-      // This would be implemented in DatabaseService
       const data = await DatabaseService.searchSupplements({});
-      setSupplements(data);
+      setSupplements(data || []);
     } catch (error) {
       console.error('Error loading supplements:', error);
+      setErrors({ submit: 'Failed to load supplements. Please check your database connection.' });
+      setSupplements([]);
     } finally {
       setSearchLoading(false);
     }
@@ -444,13 +445,13 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
                 </Box>
 
                 {/* Safety Warnings */}
-                {selectedSupplement && (selectedSupplement.warnings.length > 0 || selectedSupplement.drug_interactions.length > 0) && (
+                {selectedSupplement && ((selectedSupplement.warnings && selectedSupplement.warnings.length > 0) || (selectedSupplement.drug_interactions && selectedSupplement.drug_interactions.length > 0)) && (
                   <Alert severity="warning" sx={{ mb: 3 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       <WarningIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                       Important Safety Information
                     </Typography>
-                    {selectedSupplement.warnings.length > 0 && (
+                    {selectedSupplement.warnings && selectedSupplement.warnings.length > 0 && (
                       <Box sx={{ mb: 1 }}>
                         <Typography variant="body2" fontWeight="medium">Warnings:</Typography>
                         <ul>
@@ -462,7 +463,7 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
                         </ul>
                       </Box>
                     )}
-                    {selectedSupplement.drug_interactions.length > 0 && (
+                    {selectedSupplement.drug_interactions && selectedSupplement.drug_interactions.length > 0 && (
                       <Box>
                         <Typography variant="body2" fontWeight="medium">Drug Interactions:</Typography>
                         <ul>

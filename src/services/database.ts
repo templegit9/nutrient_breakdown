@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase'
 import type { FoodEntry, BloodGlucoseReading, UserProfile, DatabaseFood } from '../types'
+import type { CreateSupplementEntryData, CreateSupplementScheduleData } from '../types/supplements'
 
 export class DatabaseService {
   // Test database connection
@@ -719,5 +720,357 @@ export class DatabaseService {
     return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session?.user || null)
     })
+  }
+
+  // Supplement Management Methods
+  static async addSupplement(supplement: any) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { data, error } = await supabase
+      .from('supplements')
+      .insert({
+        name: supplement.name,
+        brand: supplement.brand,
+        type: 'other', // Default type for user-added supplements
+        form: 'tablet', // Default form
+        serving_size: 1,
+        serving_unit: 'tablet',
+        description: supplement.notes,
+        is_user_added: true,
+        health_conditions: []
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error adding supplement:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  static async searchSupplements(filters: any = {}) {
+    let query = supabase
+      .from('supplements')
+      .select('*')
+      .order('name')
+
+    if (filters.type) {
+      query = query.eq('type', filters.type)
+    }
+
+    if (filters.health_condition) {
+      query = query.contains('health_conditions', [filters.health_condition])
+    }
+
+    if (filters.form) {
+      query = query.eq('form', filters.form)
+    }
+
+    if (filters.is_prescription !== undefined) {
+      query = query.eq('is_prescription', filters.is_prescription)
+    }
+
+    if (filters.search_term) {
+      const searchTerm = filters.search_term.toLowerCase()
+      query = query.or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+    }
+
+    const { data, error } = await query.limit(50)
+
+    if (error) {
+      console.error('Error searching supplements:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
+  static async createSupplementEntry(entry: any) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { data, error } = await supabase
+      .from('supplement_entries')
+      .insert({
+        user_id: user.data.user.id,
+        supplement_id: entry.supplement_id,
+        amount_taken: entry.amount_taken,
+        unit_taken: entry.unit_taken,
+        time_taken: entry.time_taken?.toISOString() || new Date().toISOString(),
+        time_of_day: entry.time_of_day,
+        taken_with_food: entry.taken_with_food,
+        meal_context: entry.meal_context,
+        notes: entry.notes,
+        side_effects: entry.side_effects,
+        effectiveness_rating: entry.effectiveness_rating
+      })
+      .select(`
+        *,
+        supplement:supplements(*)
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error creating supplement entry:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  static async getRecentSupplementEntries(userId: string, limit: number = 10) {
+    const { data, error } = await supabase
+      .from('supplement_entries')
+      .select(`
+        *,
+        supplement:supplements(*)
+      `)
+      .eq('user_id', userId)
+      .order('time_taken', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching recent supplement entries:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
+  static async getSupplementEntries(userId: string, filters: any = {}) {
+    let query = supabase
+      .from('supplement_entries')
+      .select(`
+        *,
+        supplement:supplements(*)
+      `)
+      .eq('user_id', userId)
+      .order('time_taken', { ascending: false })
+
+    if (filters.date_from) {
+      query = query.gte('time_taken', filters.date_from.toISOString())
+    }
+
+    if (filters.date_to) {
+      query = query.lte('time_taken', filters.date_to.toISOString())
+    }
+
+    if (filters.supplement_id) {
+      query = query.eq('supplement_id', filters.supplement_id)
+    }
+
+    if (filters.time_of_day) {
+      query = query.eq('time_of_day', filters.time_of_day)
+    }
+
+    if (filters.effectiveness_rating) {
+      query = query.eq('effectiveness_rating', filters.effectiveness_rating)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching supplement entries:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
+  static async createSupplementSchedule(schedule: any) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { data, error } = await supabase
+      .from('user_supplement_schedules')
+      .insert({
+        user_id: user.data.user.id,
+        supplement_id: schedule.supplement_id,
+        frequency: schedule.frequency,
+        times_per_day: schedule.times_per_day,
+        days_of_week: schedule.days_of_week,
+        dose_amount: schedule.dose_amount,
+        dose_unit: schedule.dose_unit,
+        preferred_times: schedule.preferred_times,
+        take_with_food: schedule.take_with_food,
+        start_date: schedule.start_date?.toISOString().split('T')[0],
+        end_date: schedule.end_date?.toISOString().split('T')[0],
+        health_goal: schedule.health_goal,
+        reminder_enabled: schedule.reminder_enabled,
+        reminder_times: schedule.reminder_times
+      })
+      .select(`
+        *,
+        supplement:supplements(*)
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error creating supplement schedule:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  static async getUserSupplementSchedules(userId: string) {
+    const { data, error } = await supabase
+      .from('user_supplement_schedules')
+      .select(`
+        *,
+        supplement:supplements(*)
+      `)
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching supplement schedules:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
+  static async updateSupplementSchedule(scheduleId: string, updates: any) {
+    const { data, error } = await supabase
+      .from('user_supplement_schedules')
+      .update(updates)
+      .eq('id', scheduleId)
+      .select(`
+        *,
+        supplement:supplements(*)
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error updating supplement schedule:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  static async deactivateSupplementSchedule(scheduleId: string) {
+    const { data, error } = await supabase
+      .from('user_supplement_schedules')
+      .update({ is_active: false })
+      .eq('id', scheduleId)
+      .single()
+
+    if (error) {
+      console.error('Error deactivating supplement schedule:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  static async createCustomSupplement(supplement: any) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { data, error } = await supabase
+      .from('supplements')
+      .insert({
+        name: supplement.name,
+        brand: supplement.brand,
+        type: supplement.type,
+        form: supplement.form,
+        serving_size: supplement.serving_size,
+        serving_unit: supplement.serving_unit,
+        active_ingredients: supplement.active_ingredients,
+        calories_per_serving: supplement.calories_per_serving,
+        protein_per_serving: supplement.protein_per_serving,
+        carbs_per_serving: supplement.carbs_per_serving,
+        fat_per_serving: supplement.fat_per_serving,
+        health_conditions: supplement.health_conditions,
+        max_daily_dose: supplement.max_daily_dose,
+        max_daily_unit: supplement.max_daily_unit,
+        drug_interactions: supplement.drug_interactions,
+        warnings: supplement.warnings,
+        description: supplement.description,
+        is_prescription: supplement.is_prescription,
+        is_user_added: true
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating custom supplement:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  static async getSupplementsByHealthCondition(conditionId: string) {
+    const { data, error } = await supabase
+      .from('supplements')
+      .select('*')
+      .contains('health_conditions', [conditionId])
+      .order('name')
+
+    if (error) {
+      console.error('Error fetching supplements by health condition:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
+  static async analyzeSupplementIntake(userId: string, dateFrom: Date, dateTo: Date) {
+    const entries = await this.getSupplementEntries(userId, { date_from: dateFrom, date_to: dateTo })
+    const schedules = await this.getUserSupplementSchedules(userId)
+
+    // Basic analysis
+    const totalSupplements = new Set(entries.map(e => e.supplement_id)).size
+    const supplementsByType = entries.reduce((acc, entry) => {
+      const type = entry.supplement?.type || 'unknown'
+      acc[type] = (acc[type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    // Calculate compliance rate
+    const totalScheduled = schedules.reduce((sum, schedule) => {
+      const daysInRange = Math.ceil((dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24))
+      return sum + (schedule.times_per_day * daysInRange)
+    }, 0)
+
+    const totalTaken = entries.length
+    const complianceRate = totalScheduled > 0 ? (totalTaken / totalScheduled) * 100 : 0
+
+    // Group supplements by health condition
+    const supplementsByCondition = entries.reduce((acc, entry) => {
+      entry.supplement?.health_conditions.forEach(condition => {
+        if (!acc[condition]) acc[condition] = []
+        if (!acc[condition].find(s => s.id === entry.supplement!.id)) {
+          acc[condition].push(entry.supplement!)
+        }
+      })
+      return acc
+    }, {} as Record<string, any[]>)
+
+    // Generate recommendations based on patterns
+    const recommendations = []
+    if (complianceRate < 80) {
+      recommendations.push('Consider setting up reminders to improve supplement compliance')
+    }
+    if (totalSupplements > 10) {
+      recommendations.push('You are taking many supplements - consider consulting with a healthcare provider')
+    }
+
+    return {
+      totalSupplements,
+      supplementsByType,
+      supplementsByCondition,
+      complianceRate,
+      recommendations,
+      potentialInteractions: [], // This would require more complex analysis
+      warnings: []
+    }
   }
 }
