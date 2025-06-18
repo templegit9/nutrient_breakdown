@@ -236,7 +236,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   }, {} as Record<string, HealthConditionData[]>);
 
   const currentCondition = getHealthConditionById(selectedCondition);
-  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, dateFilteredEntries, userProfile) : 0;
+  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, dateFilteredEntries, userProfile, supplementEntries) : 0;
   const recommendations = currentCondition ? getConditionRecommendations(currentCondition, dateFilteredEntries, userProfile) : [];
   
   // Calculate statistics for selected date range entries
@@ -882,7 +882,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                 conditionId,
                 condition ? {
                   name: condition.name,
-                  score: calculateConditionScore(condition, dateFilteredEntries, userProfile),
+                  score: calculateConditionScore(condition, dateFilteredEntries, userProfile, supplementEntries),
                   recommendations: getConditionRecommendations(condition, dateFilteredEntries, userProfile)
                 } : null
               ];

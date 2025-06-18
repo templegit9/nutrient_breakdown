@@ -1030,7 +1030,7 @@ export const EXPANDED_HEALTH_CONDITIONS: HealthConditionData[] = [
   }
 ];
 
-export function calculateConditionScore(condition: HealthConditionData, entries: GroupedFoodEntry[], userProfile?: any): number {
+export function calculateConditionScore(condition: HealthConditionData, entries: GroupedFoodEntry[], userProfile?: any, supplementEntries?: any[]): number {
   let score = 0;
   let maxScore = 0;
 
@@ -1071,6 +1071,69 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
 
     score += Math.min(10, recScore);
   });
+
+  // Supplement adherence scoring
+  if (supplementEntries && supplementEntries.length > 0) {
+    maxScore += 20; // Add weight for supplement adherence
+    let supplementScore = 0;
+    
+    // Check for condition-specific supplements
+    const conditionSupplements = supplementEntries.filter(entry => 
+      entry.supplement?.health_conditions?.includes(condition.id)
+    );
+    
+    if (conditionSupplements.length > 0) {
+      // Give points for taking condition-specific supplements
+      supplementScore += Math.min(15, conditionSupplements.length * 3);
+      
+      // Bonus points for consistent supplementation (recent entries)
+      const recentEntries = supplementEntries.filter(entry => {
+        const entryDate = new Date(entry.time_taken);
+        const daysDiff = (new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff <= 7; // Within last week
+      });
+      
+      if (recentEntries.length > 0) {
+        supplementScore += Math.min(5, recentEntries.length);
+      }
+    }
+    
+    // Check for general health supplements that benefit this condition
+    const beneficialSupplements = supplementEntries.filter(entry => {
+      const supplementName = entry.supplement?.name?.toLowerCase() || '';
+      
+      // Condition-specific beneficial supplements
+      if (condition.id === 'pcos') {
+        return supplementName.includes('inositol') || 
+               supplementName.includes('spearmint') || 
+               supplementName.includes('omega') ||
+               supplementName.includes('vitamin d');
+      } else if (condition.id === 'type2_diabetes') {
+        return supplementName.includes('chromium') || 
+               supplementName.includes('alpha lipoic') ||
+               supplementName.includes('omega') ||
+               supplementName.includes('magnesium');
+      } else if (condition.id === 'hypertension') {
+        return supplementName.includes('magnesium') ||
+               supplementName.includes('potassium') ||
+               supplementName.includes('omega') ||
+               supplementName.includes('coq10');
+      } else if (condition.id === 'osteoporosis') {
+        return supplementName.includes('calcium') ||
+               supplementName.includes('vitamin d') ||
+               supplementName.includes('magnesium') ||
+               supplementName.includes('vitamin k');
+      }
+      
+      return false;
+    });
+    
+    if (beneficialSupplements.length > 0) {
+      supplementScore += Math.min(10, beneficialSupplements.length * 2);
+    }
+    
+    score += supplementScore;
+  }
 
   // Apply user profile adjustments if available
   if (userProfile) {
