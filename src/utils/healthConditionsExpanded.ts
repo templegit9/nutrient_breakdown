@@ -1117,12 +1117,28 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
         return supplementName.includes('magnesium') ||
                supplementName.includes('potassium') ||
                supplementName.includes('omega') ||
-               supplementName.includes('coq10');
+               supplementName.includes('coq10') ||
+               supplementName.includes('coenzyme q10') ||
+               supplementName.includes('garlic');
       } else if (condition.id === 'osteoporosis') {
         return supplementName.includes('calcium') ||
                supplementName.includes('vitamin d') ||
                supplementName.includes('magnesium') ||
                supplementName.includes('vitamin k');
+      } else if (condition.id === 'hypothyroidism') {
+        return supplementName.includes('iodine') ||
+               supplementName.includes('selenium') ||
+               supplementName.includes('vitamin d');
+      } else if (condition.id === 'depression' || condition.id === 'anxiety') {
+        return supplementName.includes('vitamin d') ||
+               supplementName.includes('omega') ||
+               supplementName.includes('magnesium') ||
+               supplementName.includes('ashwagandha') ||
+               supplementName.includes('b complex');
+      } else if (condition.id === 'insomnia' || condition.id === 'sleep_disorders') {
+        return supplementName.includes('melatonin') ||
+               supplementName.includes('magnesium') ||
+               supplementName.includes('ashwagandha');
       }
       
       return false;

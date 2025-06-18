@@ -190,7 +190,49 @@ INSERT INTO supplements (name, brand, type, form, serving_size, serving_unit, ac
 -- Diabetes Specific
 ('Chromium Picolinate', 'Generic', 'mineral', 'tablet', 200, 'mcg', '[{"name": "Chromium", "amount": 200, "unit": "mcg"}]', '{"diabetes","blood_sugar","insulin_sensitivity"}', 'May help improve insulin sensitivity and glucose metabolism', 1000, 'mcg', '{"Monitor blood sugar closely","May enhance insulin effects","Consult doctor if diabetic"}'),
 
-('Alpha Lipoic Acid', 'Generic', 'other', 'capsule', 300, 'mg', '[{"name": "Alpha Lipoic Acid", "amount": 300, "unit": "mg"}]', '{"diabetes","neuropathy","antioxidant"}', 'Antioxidant that may help with blood sugar control and nerve health', 600, 'mg', '{"May lower blood sugar","Monitor glucose levels","Take on empty stomach"}');
+('Alpha Lipoic Acid', 'Generic', 'other', 'capsule', 300, 'mg', '[{"name": "Alpha Lipoic Acid", "amount": 300, "unit": "mg"}]', '{"diabetes","neuropathy","antioxidant"}', 'Antioxidant that may help with blood sugar control and nerve health', 600, 'mg', '{"May lower blood sugar","Monitor glucose levels","Take on empty stomach"}'),
+
+-- Heart Health & Antioxidants
+('Coenzyme Q10', 'Generic', 'other', 'capsule', 100, 'mg', '[{"name": "Ubiquinone", "amount": 100, "unit": "mg"}]', '{"hypertension","heart_health","statin_support","energy"}', 'Powerful antioxidant supporting heart health and cellular energy production', 300, 'mg', '{"Take with meals for better absorption","May interact with blood thinners","Generally well tolerated"}'),
+
+('CoQ10', 'Generic', 'other', 'capsule', 100, 'mg', '[{"name": "Ubiquinone", "amount": 100, "unit": "mg"}]', '{"hypertension","heart_health","statin_support","energy"}', 'Powerful antioxidant supporting heart health and cellular energy production', 300, 'mg', '{"Take with meals for better absorption","May interact with blood thinners","Generally well tolerated"}'),
+
+-- Additional B Vitamins
+('Vitamin B Complex', 'Generic', 'vitamin', 'tablet', 1, 'tablet', '[{"name": "B-Complex", "amount": 1, "unit": "tablet"}]', '{"energy","stress","nervous_system"}', 'Complete B-vitamin complex for energy and nervous system support', 1, 'tablet', '{"Generally safe","May cause bright yellow urine","Take with food"}'),
+
+('Vitamin B6', 'Generic', 'vitamin', 'tablet', 50, 'mg', '[{"name": "Pyridoxine", "amount": 50, "unit": "mg"}]', '{"pms","nausea","nervous_system"}', 'Important for protein metabolism and nervous system function', 100, 'mg', '{"Do not exceed 100mg daily long-term","May interact with certain medications"}'),
+
+-- Additional Minerals
+('Potassium', 'Generic', 'mineral', 'tablet', 99, 'mg', '[{"name": "Potassium", "amount": 99, "unit": "mg"}]', '{"hypertension","muscle_function","heart_health"}', 'Essential mineral for heart health and blood pressure regulation', 4700, 'mg', '{"Consult doctor if taking heart medications","May interact with ACE inhibitors","Take with food"}'),
+
+('Selenium', 'Generic', 'mineral', 'tablet', 200, 'mcg', '[{"name": "Selenium", "amount": 200, "unit": "mcg"}]', '{"thyroid","antioxidant","immune_support"}', 'Important antioxidant mineral supporting thyroid function', 400, 'mcg', '{"Do not exceed recommended dose","May interact with certain medications"}'),
+
+-- Women''s Health
+('Evening Primrose Oil', 'Generic', 'other', 'capsule', 1000, 'mg', '[{"name": "GLA", "amount": 90, "unit": "mg"}]', '{"pms","skin_health","hormone_balance"}', 'Source of gamma-linolenic acid for hormonal balance', 3000, 'mg', '{"May interact with blood thinners","Take with meals","Generally well tolerated"}'),
+
+('Vitamin E', 'Generic', 'vitamin', 'capsule', 400, 'IU', '[{"name": "Alpha-tocopherol", "amount": 400, "unit": "IU"}]', '{"antioxidant","skin_health","heart_health"}', 'Fat-soluble antioxidant vitamin for cellular protection', 1000, 'IU', '{"May interact with blood thinners","Take with meals","Natural form preferred"}'),
+
+-- Bone Health
+('Vitamin K2', 'Generic', 'vitamin', 'capsule', 100, 'mcg', '[{"name": "Menaquinone-7", "amount": 100, "unit": "mcg"}]', '{"bone_health","heart_health","osteoporosis"}', 'Important for bone metabolism and calcium regulation', 200, 'mcg', '{"May interact with blood thinners","Take with fats for absorption","Consult doctor if on warfarin"}'),
+
+-- Digestive Health
+('Digestive Enzymes', 'Generic', 'other', 'capsule', 1, 'capsule', '[{"name": "Mixed Enzymes", "amount": 1, "unit": "capsule"}]', '{"digestive_health","bloating","enzyme_deficiency"}', 'Comprehensive digestive enzyme blend for improved digestion', 3, 'capsule', '{"Take with meals","Start with one capsule","Generally safe"}'),
+
+-- Stress & Sleep
+('Ashwagandha', 'Generic', 'herb', 'capsule', 600, 'mg', '[{"name": "Withania somnifera", "amount": 600, "unit": "mg"}]', '{"stress","anxiety","sleep","cortisol"}', 'Adaptogenic herb for stress management and cortisol balance', 1200, 'mg', '{"May interact with thyroid medications","Start with lower dose","Take with food"}'),
+
+('Melatonin', 'Generic', 'other', 'tablet', 3, 'mg', '[{"name": "Melatonin", "amount": 3, "unit": "mg"}]', '{"sleep","jet_lag","insomnia"}', 'Natural sleep hormone for sleep regulation', 10, 'mg', '{"Start with lowest effective dose","Take 30 minutes before bed","May cause drowsiness"}'),
+
+-- Additional Heart Health
+('Garlic Extract', 'Generic', 'herb', 'capsule', 600, 'mg', '[{"name": "Allicin", "amount": 1.8, "unit": "mg"}]', '{"hypertension","cholesterol","heart_health"}', 'May help support cardiovascular health and cholesterol levels', 1200, 'mg', '{"May interact with blood thinners","Take with food","May cause garlic odor"}'),
+
+-- Immune Support
+('Vitamin A', 'Generic', 'vitamin', 'capsule', 10000, 'IU', '[{"name": "Retinol", "amount": 10000, "unit": "IU"}]', '{"immune_support","eye_health","skin_health"}', 'Fat-soluble vitamin important for immune function and vision', 25000, 'IU', '{"Do not exceed recommended dose during pregnancy","Take with fats","Can be toxic in high doses"}'),
+
+('Echinacea', 'Generic', 'herb', 'capsule', 400, 'mg', '[{"name": "Echinacea purpurea", "amount": 400, "unit": "mg"}]', '{"immune_support","cold_prevention"}', 'Traditional herb for immune system support', 1200, 'mg', '{"Use for short periods only","May interact with immunosuppressive drugs","Generally safe"}'),
+
+-- Thyroid Support
+('Iodine', 'Generic', 'mineral', 'tablet', 150, 'mcg', '[{"name": "Potassium Iodide", "amount": 150, "unit": "mcg"}]', '{"thyroid","iodine_deficiency"}', 'Essential mineral for thyroid hormone production', 1100, 'mcg', '{"Do not exceed recommended dose","May interact with thyroid medications","Consult doctor if thyroid issues"}');
 
 -- Add function to update updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
