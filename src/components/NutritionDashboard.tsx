@@ -65,6 +65,7 @@ import { roundToInteger, calculatePercentage, formatNutritionValue, roundToOneDe
 import { DatabaseService } from '../services/database'
 import type { UserProfile } from '../types'
 import { useState, useEffect } from 'react'
+import FloatingAssistant from './FloatingAssistant'
 
 interface NutritionDashboardProps {
   groupedEntries: GroupedFoodEntry[];
@@ -822,6 +823,31 @@ export default function NutritionDashboard({ groupedEntries }: NutritionDashboar
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Floating AI Assistant */}
+      <FloatingAssistant
+        contextData={{
+          dateRange: dateRange.label,
+          totalCalories: analysis.calories,
+          targetCalories: userProfile?.targetCalories || 2000,
+          macroBreakdown: {
+            protein: analysis.protein,
+            carbohydrates: analysis.carbohydrates,
+            fat: analysis.fat,
+            fiber: analysis.fiber
+          },
+          targetMacros: {
+            protein: userProfile?.targetProtein || 150,
+            carbohydrates: userProfile?.targetCarbs || 250,
+            fat: userProfile?.targetFat || 65,
+            fiber: userProfile?.targetFiber || 25
+          },
+          keyNutrients: analysis,
+          entriesCount: filteredEntries.length,
+          userProfile
+        }}
+        contextType="dashboard"
+      />
     </Box>
   );
 }

@@ -52,6 +52,7 @@ import {
 import { filterEntriesByDateRangeType, DateRangeType } from '../services/dashboardAggregation';
 import { DatabaseService } from '../services/database';
 import { UserProfile } from '../types';
+import FloatingAssistant from './FloatingAssistant';
 import HealthConditionSettings from './HealthConditionSettings';
 import DateRangeSelector from './DateRangeSelector';
 import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils';
@@ -640,6 +641,30 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
           <Button onClick={handleHelpClose}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Floating AI Assistant */}
+      <FloatingAssistant
+        contextData={{
+          selectedConditions: userProfile?.healthConditions || [],
+          conditionScores: Object.fromEntries(
+            (userProfile?.healthConditions || []).map(conditionId => {
+              const condition = getHealthConditionById(conditionId);
+              return [
+                conditionId,
+                condition ? {
+                  name: condition.name,
+                  score: calculateConditionScore(condition, filteredEntries, userProfile),
+                  recommendations: getConditionRecommendations(condition, filteredEntries, userProfile)
+                } : null
+              ];
+            }).filter(([_, data]) => data !== null)
+          ),
+          dateRange: dateRange.label,
+          entriesCount: filteredEntries.length,
+          userProfile
+        }}
+        contextType="health_conditions"
+      />
     </Box>
   );
 };

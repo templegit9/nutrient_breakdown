@@ -44,6 +44,7 @@ import type { GroupedFoodEntry } from '../types/food';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
 import { DatabaseService } from '../services/database';
 import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
+import FloatingAssistant from './FloatingAssistant';
 
 interface FoodHistoryProps {
   refreshTrigger?: number;
@@ -740,6 +741,27 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
           </DialogActions>
         </Dialog>
       </CardContent>
+
+      {/* Floating AI Assistant */}
+      <FloatingAssistant
+        contextData={{
+          totalEntries: groupedEntries.length,
+          filteredEntries: filteredAndSortedEntries.length,
+          recentEntries: filteredAndSortedEntries.slice(0, 10).map(entry => ({
+            name: entry.combinedName,
+            calories: entry.totalCalories,
+            date: entry.dateAdded,
+            timeOfDay: entry.timeOfDay,
+            mealType: entry.mealType
+          })),
+          searchTerm: searchTerm,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
+          selectedEntriesCount: selectedEntries.size,
+          visibleNutrients: visibleNutrients
+        }}
+        contextType="food_history"
+      />
     </Card>
   );
 }
