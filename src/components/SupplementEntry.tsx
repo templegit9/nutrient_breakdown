@@ -62,6 +62,8 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
   const [searchLoading, setSearchLoading] = useState(false);
   const [recentEntries, setRecentEntries] = useState<SupplementEntry[]>([]);
   const [showAddCustom, setShowAddCustom] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<CreateSupplementEntryData>({
@@ -82,18 +84,57 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
   const [success, setSuccess] = useState<string>('');
 
   useEffect(() => {
-    loadSupplements();
+    loadInitialSupplements();
     loadRecentEntries();
   }, []);
 
-  const loadSupplements = async () => {
+  // Debounced search effect
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    if (searchTerm.length >= 2) {
+      const timeout = setTimeout(() => {
+        searchSupplements(searchTerm);
+      }, 300); // 300ms delay
+      setSearchTimeout(timeout);
+    } else if (searchTerm.length === 0) {
+      loadInitialSupplements();
+    }
+
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTerm]);
+
+  const loadInitialSupplements = async () => {
     setSearchLoading(true);
     try {
-      const data = await DatabaseService.searchSupplements({});
+      // Load popular/common supplements initially
+      const data = await DatabaseService.searchSupplements({ limit: 20 });
       setSupplements(data || []);
     } catch (error) {
-      console.error('Error loading supplements:', error);
+      console.error('Error loading initial supplements:', error);
       setErrors({ submit: 'Failed to load supplements. Please check your database connection.' });
+      setSupplements([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const searchSupplements = async (query: string) => {
+    setSearchLoading(true);
+    try {
+      const data = await DatabaseService.searchSupplements({ 
+        search_term: query,
+        limit: 50 
+      });
+      setSupplements(data || []);
+    } catch (error) {
+      console.error('Error searching supplements:', error);
       setSupplements([]);
     } finally {
       setSearchLoading(false);
@@ -118,6 +159,10 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
         unit_taken: supplement.serving_unit,
         amount_taken: supplement.serving_size
       }));
+      // Keep the search term showing the selected supplement name
+      setSearchTerm(`${supplement.name} ${supplement.brand ? `(${supplement.brand})` : ''}`);
+    } else {
+      setSearchTerm('');
     }
   };
 
@@ -285,14 +330,25 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
                     )}
                     value={selectedSupplement}
                     onChange={(_, value) => handleSupplementSelect(value)}
+                    inputValue={searchTerm}
+                    onInputChange={(_, newInputValue) => {
+                      setSearchTerm(newInputValue);
+                    }}
                     loading={searchLoading}
+                    noOptionsText={
+                      searchTerm.length < 2 
+                        ? "Type at least 2 characters to search" 
+                        : searchLoading 
+                        ? "Searching..." 
+                        : "No supplements found"
+                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Search supplements/medications"
                         placeholder="Type to search..."
                         error={!!errors.supplement}
-                        helperText={errors.supplement}
+                        helperText={errors.supplement || (searchTerm.length === 1 ? "Type at least 2 characters to search" : "")}
                         InputProps={{
                           ...params.InputProps,
                           endAdornment: (

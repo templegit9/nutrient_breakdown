@@ -778,7 +778,8 @@ export class DatabaseService {
       query = query.or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
     }
 
-    const { data, error } = await query.limit(50)
+    const limit = filters.limit || 50
+    const { data, error } = await query.limit(limit)
 
     if (error) {
       console.error('Error searching supplements:', error)
