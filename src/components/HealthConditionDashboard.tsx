@@ -653,14 +653,14 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                 conditionId,
                 condition ? {
                   name: condition.name,
-                  score: calculateConditionScore(condition, filteredEntries, userProfile),
-                  recommendations: getConditionRecommendations(condition, filteredEntries, userProfile)
+                  score: calculateConditionScore(condition, dateFilteredEntries, userProfile),
+                  recommendations: getConditionRecommendations(condition, dateFilteredEntries, userProfile)
                 } : null
               ];
             }).filter(([_, data]) => data !== null)
           ),
           dateRange: dateRange.label,
-          entriesCount: filteredEntries.length,
+          entriesCount: dateFilteredEntries.length,
           userProfile
         }}
         contextType="health_conditions"
