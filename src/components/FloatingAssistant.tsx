@@ -265,12 +265,13 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
           }}
         >
           <img 
-            src="/ai_button.png" 
+            src="/ai_button.svg" 
             alt="AI Assistant" 
             style={{
               width: 32,
               height: 32,
-              objectFit: 'contain'
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
             }}
             onError={(e) => {
               // Fallback to AI icon if image fails to load
@@ -321,7 +322,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }}>
               <img 
-                src="/ai_button.png" 
+                src="/ai_button.svg" 
                 alt="AI" 
                 style={{
                   width: 24,
@@ -377,7 +378,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar sx={{ bgcolor: 'primary.main', mr: 1, width: 32, height: 32 }}>
                       <img 
-                        src="/ai_button.png" 
+                        src="/ai_button.svg" 
                         alt="AI" 
                         style={{
                           width: 20,
@@ -500,7 +501,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               <UserIcon fontSize="small" />
             ) : (
               <img 
-                src="/ai_button.png" 
+                src="/ai_button.svg" 
                 alt="AI" 
                 style={{
                   width: 20,
