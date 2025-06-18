@@ -26,7 +26,8 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  Alert
+  Collapse,
+  Tooltip
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -39,7 +40,9 @@ import {
   HelpOutline as HelpOutlineIcon,
   Info as InfoIcon,
   Medication as MedicationIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  ExpandLess as ExpandLessIcon,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material';
 import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
 import {
@@ -60,10 +63,391 @@ import SupplementEntry from './SupplementEntry';
 import DateRangeSelector from './DateRangeSelector';
 import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils';
 import { SupplementEntry as SupplementEntryType, SupplementAnalysis } from '../types/supplements';
+import { GroupedFoodEntry } from '../types';
 
 interface HealthConditionDashboardProps {
   userId: string;
 }
+
+// Adherence Score Breakdown Component
+interface ScoreBreakdownProps {
+  condition: HealthConditionData;
+  entries: GroupedFoodEntry[];
+  userProfile?: UserProfile;
+  supplementEntries?: SupplementEntryType[];
+  totalScore: number;
+}
+
+const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({ 
+  condition, 
+  entries, 
+  userProfile, 
+  supplementEntries, 
+  totalScore 
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const theme = useTheme();
+
+  // Calculate breakdown components
+  const calculateScoreBreakdown = () => {
+    let nutrientScore = 0;
+    let nutrientMaxScore = 0;
+    let foodScore = 0;
+    let foodMaxScore = 0;
+    let supplementScore = 0;
+    let supplementMaxScore = 0;
+    const profileAdjustments: { description: string; multiplier: number }[] = [];
+    
+    // Nutrient scoring breakdown
+    const nutrientBreakdown = condition.keyNutrients.map(nutrient => {
+      const dailyIntake = entries.reduce((sum, entry) => {
+        return sum + (entry.totalNutrients[nutrient.nutrient as keyof typeof entry.totalNutrients] || 0);
+      }, 0);
+
+      nutrientMaxScore += 10;
+      let points = 0;
+      
+      if (nutrient.nutrient === 'sodium' || nutrient.nutrient === 'saturated_fat') {
+        points = dailyIntake <= nutrient.target ? 10 : Math.max(0, 10 - (dailyIntake - nutrient.target) / nutrient.target * 5);
+      } else {
+        const percentage = dailyIntake / nutrient.target;
+        points = Math.min(10, percentage * 10);
+      }
+      
+      nutrientScore += points;
+      
+      return {
+        name: nutrient.nutrient.replace('_', ' ').toUpperCase(),
+        current: roundToOneDecimal(dailyIntake),
+        target: nutrient.target,
+        unit: nutrient.unit,
+        points: roundToOneDecimal(points),
+        maxPoints: 10,
+        isLimitNutrient: nutrient.nutrient === 'sodium' || nutrient.nutrient === 'saturated_fat'
+      };
+    });
+
+    // Food recommendation scoring breakdown
+    const foodBreakdown = condition.foodRecommendations.map(rec => {
+      foodMaxScore += 10;
+      let recScore = 0;
+      let matchedFoods: string[] = [];
+      let totalFoodsInCategory = rec.foods.length;
+
+      rec.foods.forEach(food => {
+        const hasFood = entries.some(entry => 
+          entry.combinedName.toLowerCase().includes(food.toLowerCase())
+        );
+
+        if (hasFood) {
+          matchedFoods.push(food);
+        }
+
+        if (rec.type === 'encourage' && hasFood) {
+          recScore += 2;
+        } else if ((rec.type === 'limit' || rec.type === 'avoid') && !hasFood) {
+          recScore += 2;
+        }
+      });
+
+      const points = Math.min(10, recScore);
+      foodScore += points;
+
+      return {
+        type: rec.type,
+        category: rec.type === 'encourage' ? '✅ Encourage' : 
+                 rec.type === 'limit' ? '⚠️ Limit' : '❌ Avoid',
+        matchedFoods,
+        totalFoods: totalFoodsInCategory,
+        points: roundToOneDecimal(points),
+        maxPoints: 10,
+        reasoning: rec.reasoning
+      };
+    });
+
+    // Supplement scoring breakdown
+    if (supplementEntries && supplementEntries.length > 0) {
+      supplementMaxScore = 20;
+      
+      const conditionSupplements = supplementEntries.filter(entry => 
+        entry.supplement?.category // Using category as proxy for condition-specific
+      );
+      
+      if (conditionSupplements.length > 0) {
+        supplementScore += Math.min(15, conditionSupplements.length * 3);
+        
+        const recentEntries = supplementEntries.filter(entry => {
+          const entryDate = new Date(entry.time_taken);
+          const daysDiff = (new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
+          return daysDiff <= 7;
+        });
+        
+        if (recentEntries.length > 0) {
+          supplementScore += Math.min(5, recentEntries.length);
+        }
+      }
+    }
+
+    // Profile adjustments
+    let finalMultiplier = 1.0;
+    if (userProfile) {
+      const bmi = userProfile.height && userProfile.weight 
+        ? userProfile.weight / Math.pow(userProfile.height / 100, 2) 
+        : null;
+
+      if (userProfile.age) {
+        if (condition.id === 'type2_diabetes' && userProfile.age > 65) {
+          finalMultiplier *= 0.95;
+          profileAdjustments.push({ description: 'Age >65 with diabetes (stricter control)', multiplier: 0.95 });
+        }
+        if (condition.id === 'hypertension' && userProfile.age > 60) {
+          finalMultiplier *= 0.95;
+          profileAdjustments.push({ description: 'Age >60 with hypertension', multiplier: 0.95 });
+        }
+      }
+
+      if (bmi) {
+        if (condition.id === 'type2_diabetes' && bmi > 25) {
+          finalMultiplier *= 0.9;
+          profileAdjustments.push({ description: `BMI ${bmi.toFixed(1)} with diabetes`, multiplier: 0.9 });
+        }
+        if (condition.id === 'hypertension' && bmi > 25) {
+          finalMultiplier *= 0.92;
+          profileAdjustments.push({ description: `BMI ${bmi.toFixed(1)} with hypertension`, multiplier: 0.92 });
+        }
+        if (condition.id === 'pcos' && bmi > 25) {
+          finalMultiplier *= 0.9;
+          profileAdjustments.push({ description: `BMI ${bmi.toFixed(1)} with PCOS`, multiplier: 0.9 });
+        }
+      }
+    }
+
+    const baseScore = nutrientScore + foodScore + supplementScore;
+    const maxTotalScore = nutrientMaxScore + foodMaxScore + supplementMaxScore;
+    const basePercentage = (baseScore / maxTotalScore) * 100;
+    const finalScore = basePercentage * finalMultiplier;
+
+    return {
+      nutrientBreakdown,
+      foodBreakdown,
+      nutrientScore: roundToOneDecimal(nutrientScore),
+      nutrientMaxScore,
+      foodScore: roundToOneDecimal(foodScore),
+      foodMaxScore,
+      supplementScore: roundToOneDecimal(supplementScore),
+      supplementMaxScore,
+      baseScore: roundToOneDecimal(baseScore),
+      maxTotalScore,
+      basePercentage: roundToOneDecimal(basePercentage),
+      profileAdjustments,
+      finalMultiplier: roundToOneDecimal(finalMultiplier),
+      finalScore: roundToOneDecimal(finalScore)
+    };
+  };
+
+  const breakdown = calculateScoreBreakdown();
+
+  const getScoreColor = (score: number, maxScore: number) => {
+    const percentage = (score / maxScore) * 100;
+    if (percentage >= 80) return theme.palette.success.main;
+    if (percentage >= 60) return theme.palette.warning.main;
+    return theme.palette.error.main;
+  };
+
+  return (
+    <Box>
+      <Button
+        onClick={() => setExpanded(!expanded)}
+        startIcon={<AssessmentIcon />}
+        endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        variant="outlined"
+        size="small"
+        sx={{ mt: 1 }}
+      >
+        {expanded ? 'Hide' : 'Show'} Score Breakdown
+      </Button>
+      
+      <Collapse in={expanded}>
+        <Box sx={{ mt: 2 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Your adherence score is calculated from three main components: nutrient targets, food recommendations, and supplement intake, with personal adjustments based on your profile.
+            </Typography>
+          </Alert>
+
+          {/* Nutrient Scoring */}
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              🎯 Nutrient Targets 
+              <Chip 
+                label={`${breakdown.nutrientScore}/${breakdown.nutrientMaxScore} points`} 
+                color={breakdown.nutrientScore / breakdown.nutrientMaxScore >= 0.8 ? 'success' : 
+                       breakdown.nutrientScore / breakdown.nutrientMaxScore >= 0.6 ? 'warning' : 'error'}
+                size="small"
+              />
+            </Typography>
+            <Grid container spacing={1}>
+              {breakdown.nutrientBreakdown.map((nutrient, index) => (
+                <Grid item xs={12} sm={6} key={index}>
+                  <Box sx={{ 
+                    p: 1.5, 
+                    border: 1, 
+                    borderColor: 'divider', 
+                    borderRadius: 1,
+                    bgcolor: nutrient.points / nutrient.maxPoints >= 0.8 ? 'success.light' :
+                             nutrient.points / nutrient.maxPoints >= 0.6 ? 'warning.light' : 'error.light'
+                  }}>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      {nutrient.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Current: {nutrient.current}{nutrient.unit} | 
+                      Target: {nutrient.isLimitNutrient ? '≤' : '≥'}{nutrient.target}{nutrient.unit}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={(nutrient.points / nutrient.maxPoints) * 100}
+                        sx={{ flexGrow: 1, mr: 1 }}
+                        color={nutrient.points / nutrient.maxPoints >= 0.8 ? 'success' : 
+                               nutrient.points / nutrient.maxPoints >= 0.6 ? 'warning' : 'error'}
+                      />
+                      <Typography variant="caption" fontWeight="bold">
+                        {nutrient.points}/{nutrient.maxPoints}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+
+          {/* Food Recommendations Scoring */}
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              🍎 Food Recommendations
+              <Chip 
+                label={`${breakdown.foodScore}/${breakdown.foodMaxScore} points`} 
+                color={breakdown.foodScore / breakdown.foodMaxScore >= 0.8 ? 'success' : 
+                       breakdown.foodScore / breakdown.foodMaxScore >= 0.6 ? 'warning' : 'error'}
+                size="small"
+              />
+            </Typography>
+            <Grid container spacing={1}>
+              {breakdown.foodBreakdown.map((food, index) => (
+                <Grid item xs={12} key={index}>
+                  <Box sx={{ 
+                    p: 1.5, 
+                    border: 1, 
+                    borderColor: 'divider', 
+                    borderRadius: 1,
+                    bgcolor: food.points / food.maxPoints >= 0.8 ? 'success.light' :
+                             food.points / food.maxPoints >= 0.6 ? 'warning.light' : 'error.light'
+                  }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {food.category}
+                      </Typography>
+                      <Typography variant="caption" fontWeight="bold">
+                        {food.points}/{food.maxPoints} points
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {food.reasoning}
+                    </Typography>
+                    {food.matchedFoods.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                        <Typography variant="caption" sx={{ mr: 1 }}>Found in your diet:</Typography>
+                        {food.matchedFoods.slice(0, 3).map((matchedFood, idx) => (
+                          <Chip key={idx} label={matchedFood} size="small" color="primary" />
+                        ))}
+                        {food.matchedFoods.length > 3 && (
+                          <Chip label={`+${food.matchedFoods.length - 3} more`} size="small" />
+                        )}
+                      </Box>
+                    )}
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={(food.points / food.maxPoints) * 100}
+                      color={food.points / food.maxPoints >= 0.8 ? 'success' : 
+                             food.points / food.maxPoints >= 0.6 ? 'warning' : 'error'}
+                    />
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+
+          {/* Supplement Scoring */}
+          {breakdown.supplementMaxScore > 0 && (
+            <Paper sx={{ p: 2, mb: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                💊 Supplement Support
+                <Chip 
+                  label={`${breakdown.supplementScore}/${breakdown.supplementMaxScore} points`} 
+                  color={breakdown.supplementScore / breakdown.supplementMaxScore >= 0.8 ? 'success' : 
+                         breakdown.supplementScore / breakdown.supplementMaxScore >= 0.6 ? 'warning' : 'error'}
+                  size="small"
+                />
+              </Typography>
+              <Box sx={{ p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'info.light' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Points earned from taking supplements that support {condition.name}.
+                  {supplementEntries && supplementEntries.length > 0 
+                    ? ` You're taking ${supplementEntries.length} supplements.`
+                    : ' No supplements logged for this period.'}
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(breakdown.supplementScore / breakdown.supplementMaxScore) * 100}
+                  sx={{ mt: 1 }}
+                  color={breakdown.supplementScore / breakdown.supplementMaxScore >= 0.8 ? 'success' : 
+                         breakdown.supplementScore / breakdown.supplementMaxScore >= 0.6 ? 'warning' : 'error'}
+                />
+              </Box>
+            </Paper>
+          )}
+
+          {/* Score Calculation Summary */}
+          <Paper sx={{ p: 2, bgcolor: 'primary.light' }}>
+            <Typography variant="h6" gutterBottom color="primary.dark">
+              📊 Final Score Calculation
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2">
+                  <strong>Base Score:</strong> {breakdown.baseScore}/{breakdown.maxTotalScore} points
+                  ({breakdown.basePercentage}%)
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2">
+                  <strong>Profile Adjustment:</strong> ×{breakdown.finalMultiplier}
+                </Typography>
+              </Grid>
+            </Grid>
+            
+            {breakdown.profileAdjustments.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary">Adjustments:</Typography>
+                {breakdown.profileAdjustments.map((adj, index) => (
+                  <Typography key={index} variant="caption" display="block" color="text.secondary">
+                    • {adj.description}: ×{adj.multiplier}
+                  </Typography>
+                ))}
+              </Box>
+            )}
+            
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="h6" color="primary.dark">
+              <strong>Final Score: {breakdown.finalScore}%</strong>
+            </Typography>
+          </Paper>
+        </Box>
+      </Collapse>
+    </Box>
+  );
+};
 
 // Help content for each component
 const HELP_CONTENT = {
@@ -388,6 +772,14 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                   <Typography variant="caption" color="text.secondary">
                     {getScoreDescription(conditionScore)}
                   </Typography>
+                  
+                  <AdherenceScoreBreakdown 
+                    condition={currentCondition}
+                    entries={dateFilteredEntries}
+                    userProfile={userProfile || undefined}
+                    supplementEntries={supplementEntries}
+                    totalScore={conditionScore}
+                  />
                 </Paper>
 
                 {/* Key Nutrients */}

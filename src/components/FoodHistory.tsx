@@ -40,7 +40,11 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import SettingsIcon from '@mui/icons-material/Settings';
+import MedicationIcon from '@mui/icons-material/Medication';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import type { GroupedFoodEntry } from '../types/food';
+import { SupplementEntry } from '../types/supplements';
 import { getTimeOfDayLabel, getTimeOfDayIcon, getTimeOfDayColor } from '../utils/timeOfDay';
 import { DatabaseService } from '../services/database';
 import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
@@ -83,6 +87,13 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   
+  // View mode: 'foods', 'supplements', or 'all'
+  const [viewMode, setViewMode] = useState<'foods' | 'supplements' | 'all'>('all');
+  
+  // Supplement state
+  const [supplementEntries, setSupplementEntries] = useState<SupplementEntry[]>([]);
+  const [loadingSupplements, setLoadingSupplements] = useState(false);
+  
   // Nutrient selection state
   const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
   const [nutrientSettingsOpen, setNutrientSettingsOpen] = useState(false);
@@ -90,10 +101,33 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   
   useEffect(() => {
     loadUserPreferences();
+    loadSupplementData();
     if (refreshTrigger) {
       refreshData(); // Use global refresh when refreshTrigger changes
     }
   }, [refreshTrigger, refreshData]);
+
+  const loadSupplementData = async () => {
+    if (!userProfile?.id && !userProfile) return;
+    
+    setLoadingSupplements(true);
+    try {
+      // Get last 30 days of supplement entries
+      const dateFrom = new Date();
+      dateFrom.setDate(dateFrom.getDate() - 30);
+      
+      const entries = await DatabaseService.getSupplementEntries(userProfile?.id || '', {
+        date_from: dateFrom,
+        date_to: new Date()
+      });
+      
+      setSupplementEntries(entries);
+    } catch (error) {
+      console.error('Error loading supplement data:', error);
+    } finally {
+      setLoadingSupplements(false);
+    }
+  };
 
   const loadUserPreferences = async () => {
     try {
@@ -108,6 +142,11 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
         if (validNutrients.length > 0) {
           setVisibleNutrients(validNutrients);
         }
+      }
+
+      // Load supplement data after profile is loaded
+      if (profile) {
+        loadSupplementData();
       }
     } catch (error) {
       console.error('Error loading user preferences:', error);
@@ -265,8 +304,28 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     return Math.round(value).toString();
   };
 
-  // Filter and sort grouped entries
-  const filteredAndSortedEntries = groupedEntries
+  // Create combined entries based on view mode
+  const allEntries = viewMode === 'foods' ? groupedEntries.map(entry => ({ ...entry, type: 'food' as const })) :
+                     viewMode === 'supplements' ? supplementEntries.map(entry => ({ 
+                       ...entry, 
+                       type: 'supplement' as const,
+                       combinedName: entry.supplement?.name || 'Unknown Supplement',
+                       dateAdded: new Date(entry.time_taken),
+                       totalCalories: 0 // Supplements don't have calories in food context
+                     })) :
+                     [
+                       ...groupedEntries.map(entry => ({ ...entry, type: 'food' as const })),
+                       ...supplementEntries.map(entry => ({ 
+                         ...entry, 
+                         type: 'supplement' as const,
+                         combinedName: entry.supplement?.name || 'Unknown Supplement',
+                         dateAdded: new Date(entry.time_taken),
+                         totalCalories: 0
+                       }))
+                     ];
+
+  // Filter and sort entries
+  const filteredAndSortedEntries = allEntries
     .filter(entry => {
       const matchesSearch = entry.combinedName.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
@@ -348,6 +407,28 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
               </IconButton>
             </Tooltip>
           </Box>
+        </Box>
+
+        {/* View Mode Toggle */}
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, newValue) => newValue && setViewMode(newValue)}
+            aria-label="view mode"
+            size="small"
+          >
+            <ToggleButton value="all" aria-label="all entries">
+              All
+            </ToggleButton>
+            <ToggleButton value="foods" aria-label="food entries">
+              Foods
+            </ToggleButton>
+            <ToggleButton value="supplements" aria-label="supplement entries">
+              <MedicationIcon sx={{ mr: 1 }} />
+              Supplements
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         <Collapse in={showFilters}>
@@ -464,16 +545,35 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                       </IconButton>
                     </TableCell>
                     <TableCell component="th" scope="row">
-                      <Typography variant="body2" fontWeight="medium">
-                        {entry.combinedName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {entry.individualItems.length} item{entry.individualItems.length !== 1 ? 's' : ''}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {(entry as any).type === 'supplement' && <MedicationIcon color="primary" />}
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            {entry.combinedName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {(entry as any).type === 'supplement' 
+                              ? `${(entry as any).amount_taken} ${(entry as any).unit_taken}`
+                              : `${(entry as any).individualItems?.length || 0} item${(entry as any).individualItems?.length !== 1 ? 's' : ''}`
+                            }
+                          </Typography>
+                        </Box>
+                      </Box>
                     </TableCell>
                     {visibleNutrients.map(nutrientKey => {
                       const nutrient = AVAILABLE_NUTRIENTS.find(n => n.key === nutrientKey);
                       if (!nutrient) return null;
+                      
+                      // Supplements don't have nutrition data, show N/A
+                      if ((entry as any).type === 'supplement') {
+                        return (
+                          <TableCell key={nutrientKey} align="right">
+                            <Typography variant="body2" color="text.secondary">
+                              N/A
+                            </Typography>
+                          </TableCell>
+                        );
+                      }
                       
                       const value = getNutrientValue(entry, nutrientKey);
                       const isFirstNutrient = nutrientKey === visibleNutrients[0];
@@ -525,12 +625,41 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                     </TableCell>
                   </TableRow>
                   
-                  {/* Expanded row showing individual items */}
+                  {/* Expanded row showing individual items or supplement details */}
                   <TableRow>
                     <TableCell colSpan={visibleNutrients.length + 5} sx={{ py: 0, borderBottom: expandedRows.has(entry.id) ? 1 : 0 }}>
                       <Collapse in={expandedRows.has(entry.id)} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-                          <Typography variant="subtitle2" sx={{ mb: 2 }}>Individual Food Items:</Typography>
+                          {(entry as any).type === 'supplement' ? (
+                            <>
+                              <Typography variant="subtitle2" sx={{ mb: 2 }}>Supplement Details:</Typography>
+                              <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                                <Typography variant="body2"><strong>Brand:</strong> {(entry as any).supplement?.brand || 'N/A'}</Typography>
+                                <Typography variant="body2"><strong>Type:</strong> {(entry as any).supplement?.type?.replace('_', ' ') || 'N/A'}</Typography>
+                                <Typography variant="body2"><strong>Form:</strong> {(entry as any).supplement?.form || 'N/A'}</Typography>
+                                <Typography variant="body2"><strong>Time of Day:</strong> {(entry as any).time_of_day?.replace('_', ' ') || 'N/A'}</Typography>
+                                <Typography variant="body2"><strong>With Food:</strong> {(entry as any).taken_with_food ? 'Yes' : 'No'}</Typography>
+                                {(entry as any).meal_context && (
+                                  <Typography variant="body2"><strong>Meal:</strong> {(entry as any).meal_context}</Typography>
+                                )}
+                                {(entry as any).effectiveness_rating && (
+                                  <Typography variant="body2"><strong>Effectiveness:</strong> {(entry as any).effectiveness_rating}/5</Typography>
+                                )}
+                              </Box>
+                              {(entry as any).notes && (
+                                <Box sx={{ mt: 2 }}>
+                                  <Typography variant="body2"><strong>Notes:</strong> {(entry as any).notes}</Typography>
+                                </Box>
+                              )}
+                              {(entry as any).side_effects && (
+                                <Box sx={{ mt: 1 }}>
+                                  <Typography variant="body2" color="warning.main"><strong>Side Effects:</strong> {(entry as any).side_effects}</Typography>
+                                </Box>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <Typography variant="subtitle2" sx={{ mb: 2 }}>Individual Food Items:</Typography>
                           <Table size="small">
                             <TableHead>
                               <TableRow>
@@ -614,6 +743,8 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                               ))}
                             </TableBody>
                           </Table>
+                            </>
+                          )}
                         </Box>
                       </Collapse>
                     </TableCell>
@@ -746,19 +877,32 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
       <FloatingAssistant
         contextData={{
           totalEntries: groupedEntries.length,
+          totalSupplements: supplementEntries.length,
           filteredEntries: filteredAndSortedEntries.length,
+          viewMode: viewMode,
           recentEntries: filteredAndSortedEntries.slice(0, 10).map(entry => ({
             name: entry.combinedName,
+            type: (entry as any).type,
             calories: entry.totalCalories,
             date: entry.dateAdded,
-            timeOfDay: entry.timeOfDay,
-            mealType: entry.mealType
+            timeOfDay: (entry as any).type === 'supplement' ? (entry as any).time_of_day : entry.timeOfDay,
+            mealType: (entry as any).type === 'supplement' ? (entry as any).meal_context : entry.mealType,
+            amount: (entry as any).type === 'supplement' ? `${(entry as any).amount_taken} ${(entry as any).unit_taken}` : undefined
           })),
           searchTerm: searchTerm,
           sortBy: sortBy,
           sortOrder: sortOrder,
           selectedEntriesCount: selectedEntries.size,
-          visibleNutrients: visibleNutrients
+          visibleNutrients: visibleNutrients,
+          supplementData: {
+            totalSupplements: supplementEntries.length,
+            recentSupplements: supplementEntries.slice(0, 5).map(entry => ({
+              name: entry.supplement?.name || 'Unknown',
+              amount: `${entry.amount_taken} ${entry.unit_taken}`,
+              date: entry.time_taken,
+              effectiveness: entry.effectiveness_rating
+            }))
+          }
         }}
         contextType="food_history"
       />
