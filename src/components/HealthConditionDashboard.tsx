@@ -37,7 +37,9 @@ import {
   Warning as WarningIcon,
   Favorite as HeartIcon,
   HelpOutline as HelpOutlineIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  Medication as MedicationIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { useGroupedFoodData } from '../hooks/useGroupedFoodData';
 import {
@@ -54,8 +56,10 @@ import { DatabaseService } from '../services/database';
 import { UserProfile } from '../types';
 import FloatingAssistant from './FloatingAssistant';
 import HealthConditionSettings from './HealthConditionSettings';
+import SupplementEntry from './SupplementEntry';
 import DateRangeSelector from './DateRangeSelector';
 import { roundToInteger, roundToOneDecimal } from '../utils/roundingUtils';
+import { SupplementEntry as SupplementEntryType, SupplementAnalysis } from '../types/supplements';
 
 interface HealthConditionDashboardProps {
   userId: string;
@@ -101,10 +105,16 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   const [selectedCategory, setSelectedCategory] = useState<string>('Metabolic');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSupplementEntry, setShowSupplementEntry] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedDateRange, setSelectedDateRange] = useState<DateRangeType>('today');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  
+  // Supplement tracking state
+  const [supplementEntries, setSupplementEntries] = useState<SupplementEntry[]>([]);
+  const [supplementAnalysis, setSupplementAnalysis] = useState<SupplementAnalysis | null>(null);
+  const [loadingSupplements, setLoadingSupplements] = useState(false);
   
   // Help dialog state
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
@@ -116,6 +126,13 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   useEffect(() => {
     loadUserProfile();
   }, []);
+
+  // Load supplement data when date range changes
+  useEffect(() => {
+    if (userId) {
+      loadSupplementData();
+    }
+  }, [userId, selectedDateRange, customStartDate, customEndDate]);
 
   const loadUserProfile = async () => {
     try {
@@ -140,6 +157,38 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
       console.error('Error loading user profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSupplementData = async () => {
+    setLoadingSupplements(true);
+    try {
+      // Calculate date range for supplement data
+      const { dateRange: range } = filterEntriesByDateRangeType(
+        [], // We don't need food entries here, just the date range
+        selectedDateRange,
+        customStartDate,
+        customEndDate
+      );
+
+      const dateFrom = new Date(range.startDate);
+      const dateTo = new Date(range.endDate);
+
+      // Load supplement entries for the date range
+      const entries = await DatabaseService.getSupplementEntries(userId, {
+        date_from: dateFrom,
+        date_to: dateTo
+      });
+
+      // Load supplement analysis
+      const analysis = await DatabaseService.analyzeSupplementIntake(userId, dateFrom, dateTo);
+
+      setSupplementEntries(entries);
+      setSupplementAnalysis(analysis);
+    } catch (error) {
+      console.error('Error loading supplement data:', error);
+    } finally {
+      setLoadingSupplements(false);
     }
   };
 
@@ -498,6 +547,169 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
             </Card>
           </Grid>
 
+          {/* Supplement Tracking */}
+          <Grid item xs={12} sx={{ mt: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <MedicationIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    <Typography variant="h5" fontWeight="semibold">
+                      {dateRange.label} Supplement & Medication Tracking
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => setShowSupplementEntry(true)}
+                    size="small"
+                  >
+                    Log Supplement
+                  </Button>
+                </Box>
+
+                {loadingSupplements ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : supplementAnalysis ? (
+                  <Grid container spacing={3}>
+                    {/* Supplement Overview */}
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.light' }}>
+                        <Typography variant="h4" fontWeight="bold" color="info.main">
+                          {supplementAnalysis.totalSupplements}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Different Supplements
+                        </Typography>
+                      </Paper>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
+                        <Typography variant="h4" fontWeight="bold" color="success.main">
+                          {Math.round(supplementAnalysis.complianceRate)}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Compliance Rate
+                        </Typography>
+                      </Paper>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.light' }}>
+                        <Typography variant="h4" fontWeight="bold" color="secondary.main">
+                          {supplementEntries.length}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Total Entries
+                        </Typography>
+                      </Paper>
+                    </Grid>
+
+                    {/* Supplements by Type */}
+                    {Object.keys(supplementAnalysis.supplementsByType).length > 0 && (
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="h6" gutterBottom>
+                          Supplements by Type
+                        </Typography>
+                        <Box>
+                          {Object.entries(supplementAnalysis.supplementsByType).map(([type, count]) => (
+                            <Box key={type} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                              <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                {type.replace('_', ' ')}
+                              </Typography>
+                              <Chip label={count} size="small" color="primary" />
+                            </Box>
+                          ))}
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* Condition-Specific Supplements */}
+                    {currentCondition && supplementAnalysis.supplementsByCondition[selectedCondition] && (
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="h6" gutterBottom>
+                          Supplements for {currentCondition.name}
+                        </Typography>
+                        <Box>
+                          {supplementAnalysis.supplementsByCondition[selectedCondition].map((supplement, index) => (
+                            <Chip
+                              key={index}
+                              label={supplement.name}
+                              size="small"
+                              sx={{ mr: 1, mb: 1 }}
+                              color="secondary"
+                            />
+                          ))}
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* Recommendations and Warnings */}
+                    {(supplementAnalysis.recommendations.length > 0 || supplementAnalysis.warnings.length > 0) && (
+                      <Grid item xs={12}>
+                        {supplementAnalysis.recommendations.length > 0 && (
+                          <Alert severity="info" sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" fontWeight="semibold" gutterBottom>
+                              Supplement Recommendations
+                            </Typography>
+                            <List dense>
+                              {supplementAnalysis.recommendations.map((rec, index) => (
+                                <ListItem key={index} sx={{ py: 0 }}>
+                                  <ListItemText 
+                                    primary={`• ${rec}`} 
+                                    primaryTypographyProps={{ variant: 'body2' }} 
+                                  />
+                                </ListItem>
+                              ))}
+                            </List>
+                          </Alert>
+                        )}
+
+                        {supplementAnalysis.warnings.length > 0 && (
+                          <Alert severity="warning">
+                            <Typography variant="subtitle2" fontWeight="semibold" gutterBottom>
+                              ⚠️ Important Warnings
+                            </Typography>
+                            <List dense>
+                              {supplementAnalysis.warnings.map((warning, index) => (
+                                <ListItem key={index} sx={{ py: 0 }}>
+                                  <ListItemText 
+                                    primary={`• ${warning}`} 
+                                    primaryTypographyProps={{ variant: 'body2' }} 
+                                  />
+                                </ListItem>
+                              ))}
+                            </List>
+                          </Alert>
+                        )}
+                      </Grid>
+                    )}
+                  </Grid>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <MedicationIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                      No supplement data for {dateRange.label.toLowerCase()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" paragraph>
+                      Start tracking your supplements and medications to see how they support your health conditions.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={() => setShowSupplementEntry(true)}
+                    >
+                      Log Your First Supplement
+                    </Button>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
           {/* Health Statistics */}
           <Grid item xs={12} sx={{ mt: 3 }}>
             <Card>
@@ -642,6 +854,23 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
         </DialogActions>
       </Dialog>
 
+      {/* Supplement Entry Dialog */}
+      <Dialog
+        open={showSupplementEntry}
+        onClose={() => setShowSupplementEntry(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <SupplementEntry 
+          userId={userId}
+          onClose={() => setShowSupplementEntry(false)}
+          onSave={() => {
+            setShowSupplementEntry(false);
+            loadSupplementData(); // Refresh supplement data
+          }}
+        />
+      </Dialog>
+
       {/* Floating AI Assistant */}
       <FloatingAssistant
         contextData={{
@@ -661,6 +890,12 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
           ),
           dateRange: dateRange.label,
           entriesCount: dateFilteredEntries.length,
+          supplementData: {
+            entries: supplementEntries,
+            analysis: supplementAnalysis,
+            totalSupplements: supplementAnalysis?.totalSupplements || 0,
+            complianceRate: supplementAnalysis?.complianceRate || 0
+          },
           userProfile
         }}
         contextType="health_conditions"

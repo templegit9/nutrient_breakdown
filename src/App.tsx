@@ -5,6 +5,7 @@ import LLMFoodEntry from './components/LLMFoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
+import SupplementEntry from './components/SupplementEntry'
 import OnboardingWizard from './components/OnboardingWizard'
 import UserProfileSettings from './components/UserProfileSettings'
 import { AuthProvider, useAuth } from './components/AuthProvider'
@@ -235,6 +236,7 @@ function AppContent() {
             <Tab label={isMobile ? "Add" : "Add Food"} />
             <Tab label="Dashboard" />
             <Tab label={isMobile ? "Health" : "Health Conditions"} />
+            <Tab label={isMobile ? "Supps" : "Supplements"} />
             <Tab label="History" />
           </Tabs>
         </Box>
@@ -252,6 +254,10 @@ function AppContent() {
         </TabPanel>
         
         <TabPanel value={tabValue} index={3}>
+          <SupplementEntry userId={user?.id || ''} />
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={4}>
           <FoodHistory refreshTrigger={refreshTrigger} />
         </TabPanel>
         </Box>

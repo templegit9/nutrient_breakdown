@@ -28,14 +28,13 @@ import {
 import {
   Add as AddIcon,
   Schedule as ScheduleIcon,
+  Close as CloseIcon,
   Medication as MedicationIcon,
   Search as SearchIcon,
   History as HistoryIcon,
   Warning as WarningIcon
 } from '@mui/icons-material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// Note: Using TextField for date/time input to avoid additional dependencies
 import { 
   Supplement, 
   CreateSupplementEntryData, 
@@ -46,11 +45,15 @@ import { DatabaseService } from '../services/database';
 
 interface SupplementEntryProps {
   onSupplementAdded?: (entry: SupplementEntry) => void;
+  onClose?: () => void;
+  onSave?: () => void;
   userId: string;
 }
 
 const SupplementEntry: React.FC<SupplementEntryProps> = ({
   onSupplementAdded,
+  onClose,
+  onSave,
   userId
 }) => {
   const [supplements, setSupplements] = useState<Supplement[]>([]);
@@ -174,6 +177,10 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
       if (onSupplementAdded) {
         onSupplementAdded(entry);
       }
+      
+      if (onSave) {
+        onSave();
+      }
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
@@ -204,6 +211,9 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
       if (onSupplementAdded) {
         onSupplementAdded(entry);
       }
+      if (onSave) {
+        onSave();
+      }
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error with quick add:', error);
@@ -212,12 +222,18 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box maxWidth="lg" sx={{ mx: 'auto', p: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
-          <MedicationIcon sx={{ mr: 2, verticalAlign: 'middle' }} />
-          Log Supplements & Medications
-        </Typography>
+    <Box maxWidth="lg" sx={{ mx: 'auto', p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center' }}>
+            <MedicationIcon sx={{ mr: 2 }} />
+            Log Supplements & Medications
+          </Typography>
+          {onClose && (
+            <IconButton onClick={onClose} size="large">
+              <CloseIcon />
+            </IconButton>
+          )}
+        </Box>
 
         {success && (
           <Alert severity="success" sx={{ mb: 3 }}>
@@ -331,14 +347,14 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
                 {/* Timing Information */}
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                   <Grid item xs={12} sm={6}>
-                    <DateTimePicker
+                    <TextField
+                      fullWidth
                       label="Time Taken"
-                      value={formData.time_taken}
-                      onChange={(date) => setFormData(prev => ({ ...prev, time_taken: date || new Date() }))}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true
-                        }
+                      type="datetime-local"
+                      value={formData.time_taken ? formData.time_taken.toISOString().slice(0, 16) : ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, time_taken: new Date(e.target.value) }))}
+                      InputLabelProps={{
+                        shrink: true,
                       }}
                     />
                   </Grid>
@@ -577,7 +593,6 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
           </DialogActions>
         </Dialog>
       </Box>
-    </LocalizationProvider>
   );
 };
 
