@@ -1046,9 +1046,10 @@ export class DatabaseService {
 
     // Group supplements by health condition
     const supplementsByCondition = entries.reduce((acc, entry) => {
-      entry.supplement?.health_conditions.forEach(condition => {
+      const healthConditions = entry.supplement?.health_conditions || []
+      healthConditions.forEach(condition => {
         if (!acc[condition]) acc[condition] = []
-        if (!acc[condition].find(s => s.id === entry.supplement!.id)) {
+        if (entry.supplement && !acc[condition].find(s => s.id === entry.supplement!.id)) {
           acc[condition].push(entry.supplement!)
         }
       })

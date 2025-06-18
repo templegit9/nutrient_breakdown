@@ -315,12 +315,12 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
                             <Typography variant="body1">{option.name}</Typography>
                             {option.brand && (
                               <Typography variant="caption" color="text.secondary">
-                                {option.brand} • {option.serving_size} {option.serving_unit}
+                                {option.brand}{option.serving_size && option.serving_unit ? ` • ${option.serving_size} ${option.serving_unit}` : ''}
                               </Typography>
                             )}
                           </Box>
                           <Chip
-                            label={option.type.replace('_', ' ')}
+                            label={option.type ? option.type.replace('_', ' ') : 'Supplement'}
                             size="small"
                             color="primary"
                             variant="outlined"
