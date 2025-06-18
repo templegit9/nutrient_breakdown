@@ -5,6 +5,7 @@ import LLMFoodEntry from './components/LLMFoodEntry'
 import NutritionDashboard from './components/NutritionDashboard'
 import FoodHistory from './components/FoodHistory'
 import HealthConditionDashboard from './components/HealthConditionDashboard'
+import OnboardingWizard from './components/OnboardingWizard'
 import UserProfileSettings from './components/UserProfileSettings'
 import { AuthProvider, useAuth } from './components/AuthProvider'
 import { LoginForm } from './components/LoginForm'
@@ -260,25 +261,24 @@ function AppContent() {
       <UserProfileSettings 
         open={profileOpen} 
         onClose={() => setProfileOpen(false)}
-        onSave={(profile) => {
+        onSave={(profile: any) => {
           console.log('Profile saved:', profile);
           // Refresh dashboards if needed
           setRefreshTrigger(prev => prev + 1);
         }}
       />
 
-      {/* Onboarding Profile Setup Dialog */}
-      <UserProfileSettings 
+      {/* Onboarding Wizard */}
+      <OnboardingWizard 
         open={needsOnboarding}
         onClose={() => {
           // Don't allow closing during onboarding - user must complete it
         }}
-        onSave={(profile) => {
-          console.log('Onboarding profile completed:', profile);
+        onComplete={(profile) => {
+          console.log('Onboarding completed:', profile);
           completeOnboarding();
           setRefreshTrigger(prev => prev + 1);
         }}
-        isOnboarding={true}
       />
     </>
   )
