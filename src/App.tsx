@@ -31,7 +31,14 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ 
+          p: { xs: 2, sm: 3 },
+          animation: 'fadeIn 0.3s ease-in-out',
+          '@keyframes fadeIn': {
+            from: { opacity: 0, transform: 'translateY(10px)' },
+            to: { opacity: 1, transform: 'translateY(0)' }
+          }
+        }}>
           {children}
         </Box>
       )}
@@ -78,10 +85,23 @@ function AppContent() {
 
   return (
     <>
-      <AppBar position="static" elevation={1} sx={{ backgroundColor: 'white', color: 'text.primary' }}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 'bold' }}>
-            Nutrient Tracker
+      <AppBar position="static" elevation={0} sx={{ 
+        backgroundColor: 'white', 
+        color: 'text.primary',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        boxShadow: '0 1px 3px rgba(46, 125, 50, 0.1)'
+      }}>
+        <Toolbar sx={{ minHeight: '70px !important' }}>
+          <Typography variant="h5" component="div" sx={{ 
+            flexGrow: 1, 
+            color: 'primary.main', 
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}>
+            🥗 Nutrient Tracker
           </Typography>
           {user && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -119,7 +139,8 @@ function AppContent() {
       >
         <Box sx={{ 
           my: { xs: 2, sm: 3, md: 4 },
-          flex: 1
+          flex: 1,
+          position: 'relative'
         }}>
           <Typography 
             variant={isMobile ? "h4" : "h3"} 
@@ -176,7 +197,10 @@ function AppContent() {
         <Box sx={{ 
           borderBottom: 1, 
           borderColor: 'divider',
-          mb: { xs: 1, sm: 2, md: 3 }
+          mb: { xs: 1, sm: 2, md: 3 },
+          boxShadow: '0 2px 4px rgba(46, 125, 50, 0.05)',
+          backgroundColor: 'background.paper',
+          borderRadius: '8px 8px 0 0'
         }}>
           <Tabs 
             value={tabValue} 
@@ -188,8 +212,22 @@ function AppContent() {
               '& .MuiTab-root': {
                 minHeight: { xs: 48, sm: 48, md: 48 },
                 fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                fontWeight: 500,
-                minWidth: { xs: 'auto', md: 120 }
+                fontWeight: 600,
+                minWidth: { xs: 'auto', md: 120 },
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: 'rgba(46, 125, 50, 0.04)',
+                  color: 'primary.main'
+                },
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  fontWeight: 700
+                }
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: 'primary.main',
+                height: 3,
+                borderRadius: '3px 3px 0 0'
               }
             }}
           >

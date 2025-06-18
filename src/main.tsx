@@ -113,6 +113,34 @@ const theme = createTheme({
         },
       },
     },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          '@media (min-width: 600px)': {
+            paddingLeft: 24,
+            paddingRight: 24,
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        },
+      },
+    },
+    MuiFab: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 4px 12px rgba(46, 125, 50, 0.3)',
+          '&:hover': {
+            boxShadow: '0 6px 16px rgba(46, 125, 50, 0.4)',
+          },
+        },
+      },
+    },
   },
 });
 

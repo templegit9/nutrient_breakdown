@@ -256,30 +256,17 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
             bottom: 24,
             right: 24,
             zIndex: 1000,
-            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
             '&:hover': {
-              background: 'linear-gradient(45deg, #1976D2 30%, #1CB5D3 90%)',
+              transform: 'scale(1.05)',
+              boxShadow: '0 6px 16px rgba(46, 125, 50, 0.4)'
             },
             width: 56,
-            height: 56
+            height: 56,
+            boxShadow: '0 4px 12px rgba(46, 125, 50, 0.3)',
+            transition: 'all 0.3s ease'
           }}
         >
-          <img 
-            src="/ai_button.svg" 
-            alt="AI Assistant" 
-            style={{
-              width: 32,
-              height: 32,
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-            }}
-            onError={(e) => {
-              // Fallback to AI icon if image fails to load
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              target.parentElement!.innerHTML = '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="SmartToyIcon" style="font-size: 24px; color: white;"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"></path></svg>';
-            }}
-          />
+          <AIIcon sx={{ fontSize: 28 }} />
         </Fab>
       )}
 
@@ -299,8 +286,9 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
             margin: 0,
             width: isMobile ? 'calc(100vw - 32px)' : 400,
             maxHeight: isMinimized ? 60 : 500,
-            borderRadius: 3,
-            boxShadow: theme.shadows[8],
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(46, 125, 50, 0.2)',
+            border: '1px solid rgba(46, 125, 50, 0.1)',
             transition: 'all 0.3s ease-in-out'
           }
         }}
@@ -315,31 +303,29 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
             alignItems: 'center', 
             justifyContent: 'space-between',
             p: 2,
-            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-            color: 'white'
+            bgcolor: 'primary.main',
+            color: 'white',
+            background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }}>
-              <img 
-                src="/ai_button.svg" 
-                alt="AI" 
-                style={{
-                  width: 24,
-                  height: 24,
-                  objectFit: 'contain'
-                }}
-                onError={(e) => {
-                  // Fallback to AI icon if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.parentElement!.innerHTML = '<svg class="MuiSvgIcon-root" focusable="false" aria-hidden="true" viewBox="0 0 24 24" style="font-size: 24px; color: white;"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"></path></svg>';
-                }}
-              />
+            <Avatar sx={{ 
+              bgcolor: 'rgba(255,255,255,0.2)', 
+              mr: 1,
+              border: '2px solid rgba(255,255,255,0.3)'
+            }}>
+              <AIIcon sx={{ fontSize: 20 }} />
             </Avatar>
-            <Typography variant="h6">
-              Nutrition Assistant
-            </Typography>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Nutrition Assistant
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                {contextType === 'dashboard' ? 'Dashboard Analysis' : 
+                 contextType === 'health_conditions' ? 'Health Insights' : 
+                 'Food History Patterns'}
+              </Typography>
+            </Box>
           </Box>
           <Box>
             <IconButton 
@@ -367,7 +353,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
               height: 280, 
               overflowY: 'auto', 
               p: 2,
-              backgroundColor: 'grey.50'
+              backgroundColor: '#f8fdf8'
             }}>
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} />
@@ -376,22 +362,14 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
               {isProcessing && (
                 <Fade in={isProcessing}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 1, width: 32, height: 32 }}>
-                      <img 
-                        src="/ai_button.svg" 
-                        alt="AI" 
-                        style={{
-                          width: 20,
-                          height: 20,
-                          objectFit: 'contain'
-                        }}
-                        onError={(e) => {
-                          // Fallback to AI icon if image fails to load
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.parentElement!.innerHTML = '<svg class="MuiSvgIcon-root" focusable="false" aria-hidden="true" viewBox="0 0 24 24" style="font-size: 20px; color: white;"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"></path></svg>';
-                        }}
-                      />
+                    <Avatar sx={{ 
+                      bgcolor: 'primary.main', 
+                      mr: 1, 
+                      width: 32, 
+                      height: 32,
+                      boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)'
+                    }}>
+                      <AIIcon fontSize="small" />
                     </Avatar>
                     <Paper sx={{ p: 1.5, backgroundColor: 'white', borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -425,7 +403,11 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
                         fontSize: '0.7rem',
                         height: 24,
                         cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'primary.light', color: 'white' }
+                        '&:hover': { 
+                          backgroundColor: 'primary.main', 
+                          color: 'white',
+                          transform: 'scale(1.02)'
+                        }
                       }}
                     />
                   ))}
@@ -491,41 +473,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         }}>
           <Avatar 
             sx={{ 
-              bgcolor: isUser ? 'secondary.main' : 'primary.main',
+              bgcolor: isUser ? '#2e7d32' : 'primary.main',
+              boxShadow: '0 2px 8px rgba(46, 125, 50, 0.2)',
               width: 32,
               height: 32,
               mx: 1
             }}
           >
-            {isUser ? (
-              <UserIcon fontSize="small" />
-            ) : (
-              <img 
-                src="/ai_button.svg" 
-                alt="AI" 
-                style={{
-                  width: 20,
-                  height: 20,
-                  objectFit: 'contain'
-                }}
-                onError={(e) => {
-                  // Fallback to AI icon if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.parentElement!.innerHTML = '<svg class="MuiSvgIcon-root" focusable="false" aria-hidden="true" viewBox="0 0 24 24" style="font-size: 20px; color: white;"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"></path></svg>';
-                }}
-              />
-            )}
+            {isUser ? <UserIcon fontSize="small" /> : <AIIcon fontSize="small" />}
           </Avatar>
           
           <Paper 
             elevation={1}
             sx={{ 
               p: 1.5,
-              backgroundColor: isUser ? 'primary.main' : 'white',
+              backgroundColor: isUser ? '#2e7d32' : 'white',
               color: isUser ? 'white' : 'text.primary',
+              background: isUser ? 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)' : 'white',
               borderRadius: 2,
-              maxWidth: '100%'
+              maxWidth: '100%',
+              border: isUser ? 'none' : '1px solid rgba(46, 125, 50, 0.1)'
             }}
           >
             <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
