@@ -1045,11 +1045,11 @@ export class DatabaseService {
     const complianceRate = totalScheduled > 0 ? (totalTaken / totalScheduled) * 100 : 0
 
     // Group supplements by health condition
-    const supplementsByCondition = entries.reduce((acc, entry) => {
+    const supplementsByCondition = entries.reduce((acc: any, entry: any) => {
       const healthConditions = entry.supplement?.health_conditions || []
-      healthConditions.forEach(condition => {
+      healthConditions.forEach((condition: any) => {
         if (!acc[condition]) acc[condition] = []
-        if (entry.supplement && !acc[condition].find(s => s.id === entry.supplement!.id)) {
+        if (entry.supplement && !acc[condition].find((s: any) => s.id === entry.supplement!.id)) {
           acc[condition].push(entry.supplement!)
         }
       })

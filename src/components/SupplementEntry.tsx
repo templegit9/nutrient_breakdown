@@ -38,13 +38,13 @@ import {
 import { 
   Supplement, 
   CreateSupplementEntryData, 
-  SupplementEntry,
+  SupplementEntry as SupplementEntryType,
   SupplementSearchFilters 
 } from '../types/supplements';
 import { DatabaseService } from '../services/database';
 
 interface SupplementEntryProps {
-  onSupplementAdded?: (entry: SupplementEntry) => void;
+  onSupplementAdded?: (entry: SupplementEntryType) => void;
   onClose?: () => void;
   onSave?: () => void;
   userId: string;
@@ -60,7 +60,7 @@ const SupplementEntry: React.FC<SupplementEntryProps> = ({
   const [selectedSupplement, setSelectedSupplement] = useState<Supplement | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [recentEntries, setRecentEntries] = useState<SupplementEntry[]>([]);
+  const [recentEntries, setRecentEntries] = useState<SupplementEntryType[]>([]);
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);

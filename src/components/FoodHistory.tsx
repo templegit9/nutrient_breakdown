@@ -24,14 +24,8 @@ import {
   InputAdornment,
   TableSortLabel,
   Checkbox,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   FormGroup,
-  FormControlLabel,
-  ListItemText
+  FormControlLabel
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -74,10 +68,10 @@ const DEFAULT_VISIBLE_NUTRIENTS = AVAILABLE_NUTRIENTS.filter(n => n.default).map
 
 export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   // Use global hook instead of local state for food entries
-  const { groupedEntries, loading, error, deleteEntry, refreshData } = useGroupedFoodData();
+  const { groupedEntries, loading, error, deleteEntry, refreshEntries } = useGroupedFoodData();
   
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; entry: GroupedFoodEntry | null }>({
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; entry: any | null }>({
     open: false,
     entry: null
   });
@@ -92,7 +86,6 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   
   // Supplement state
   const [supplementEntries, setSupplementEntries] = useState<SupplementEntry[]>([]);
-  const [loadingSupplements, setLoadingSupplements] = useState(false);
   
   // Nutrient selection state
   const [visibleNutrients, setVisibleNutrients] = useState<string[]>(DEFAULT_VISIBLE_NUTRIENTS);
@@ -102,12 +95,11 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   useEffect(() => {
     loadUserPreferences();
     if (refreshTrigger) {
-      refreshData(); // Use global refresh when refreshTrigger changes
+      refreshEntries(); // Use global refresh when refreshTrigger changes
     }
-  }, [refreshTrigger, refreshData]);
+  }, [refreshTrigger, refreshEntries]);
 
   const loadSupplementData = async () => {
-    setLoadingSupplements(true);
     try {
       // Get current authenticated user
       const currentUser = await DatabaseService.getCurrentUser();
@@ -128,8 +120,6 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
       setSupplementEntries(entries);
     } catch (error) {
       console.error('Error loading supplement data:', error);
-    } finally {
-      setLoadingSupplements(false);
     }
   };
 
@@ -171,7 +161,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     }
   };
 
-  const handleDeleteClick = (entry: GroupedFoodEntry) => {
+  const handleDeleteClick = (entry: any) => {
     setDeleteDialog({ open: true, entry });
   };
 
@@ -221,7 +211,10 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     if (selectedEntries.size === filteredAndSortedEntries.length) {
       setSelectedEntries(new Set());
     } else {
-      setSelectedEntries(new Set(filteredAndSortedEntries.map(entry => entry.id)));
+      const validIds = filteredAndSortedEntries
+        .map(entry => entry.id)
+        .filter((id): id is string => id !== undefined);
+      setSelectedEntries(new Set(validIds));
     }
   };
 
@@ -269,7 +262,11 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
     saveNutrientPreferences(DEFAULT_VISIBLE_NUTRIENTS);
   };
 
-  const getNutrientValue = (entry: GroupedFoodEntry, nutrientKey: string): number => {
+  const getNutrientValue = (entry: any, nutrientKey: string): number => {
+    // Handle supplements which don't have nutrition data
+    if (entry.type === 'supplement') {
+      return 0; // Supplements don't contribute to food nutrition metrics
+    }
     switch (nutrientKey) {
       case 'total_calories':
         return entry.totalCalories || 0;
@@ -369,7 +366,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
             {error}
           </Typography>
           <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Button onClick={refreshData} variant="outlined">
+            <Button onClick={refreshEntries} variant="outlined">
               Retry
             </Button>
           </Box>
@@ -529,21 +526,23 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
             </TableHead>
             <TableBody>
               {filteredAndSortedEntries.map((entry) => (
-                <React.Fragment key={entry.id}>
-                  <TableRow hover selected={selectedEntries.has(entry.id)}>
+                <React.Fragment key={entry.id || 'no-id'}>
+                  <TableRow hover selected={entry.id ? selectedEntries.has(entry.id) : false}>
                     <TableCell padding="checkbox">
                       <Checkbox
-                        checked={selectedEntries.has(entry.id)}
-                        onChange={() => handleSelectEntry(entry.id)}
+                        checked={entry.id ? selectedEntries.has(entry.id) : false}
+                        onChange={() => entry.id && handleSelectEntry(entry.id)}
+                        disabled={!entry.id}
                       />
                     </TableCell>
                     <TableCell>
                       <IconButton 
                         size="small" 
-                        onClick={() => toggleRowExpansion(entry.id)}
+                        onClick={() => entry.id && toggleRowExpansion(entry.id)}
                         sx={{ mr: 1 }}
+                        disabled={!entry.id}
                       >
-                        {expandedRows.has(entry.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        {entry.id && expandedRows.has(entry.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </IconButton>
                     </TableCell>
                     <TableCell component="th" scope="row">
@@ -592,22 +591,28 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                       );
                     })}
                     <TableCell align="center">
-                      {entry.timeOfDay ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                          <Typography component="span">{getTimeOfDayIcon(entry.timeOfDay)}</Typography>
-                          <Chip
-                            label={getTimeOfDayLabel(entry.timeOfDay)}
-                            size="small"
-                            sx={{
-                              backgroundColor: getTimeOfDayColor(entry.timeOfDay),
-                              color: 'white',
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">-</Typography>
-                      )}
+                      {(() => {
+                        const timeOfDay = (entry as any).type === 'supplement' 
+                          ? (entry as any).time_of_day 
+                          : (entry as any).timeOfDay;
+                        
+                        return timeOfDay ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                            <Typography component="span">{getTimeOfDayIcon(timeOfDay)}</Typography>
+                            <Chip
+                              label={getTimeOfDayLabel(timeOfDay)}
+                              size="small"
+                              sx={{
+                                backgroundColor: getTimeOfDayColor(timeOfDay),
+                                color: 'white',
+                                fontSize: '0.75rem'
+                              }}
+                            />
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">-</Typography>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
@@ -629,8 +634,8 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                   
                   {/* Expanded row showing individual items or supplement details */}
                   <TableRow>
-                    <TableCell colSpan={visibleNutrients.length + 5} sx={{ py: 0, borderBottom: expandedRows.has(entry.id) ? 1 : 0 }}>
-                      <Collapse in={expandedRows.has(entry.id)} timeout="auto" unmountOnExit>
+                    <TableCell colSpan={visibleNutrients.length + 5} sx={{ py: 0, borderBottom: entry.id && expandedRows.has(entry.id) ? 1 : 0 }}>
+                      <Collapse in={entry.id ? expandedRows.has(entry.id) : false} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
                           {(entry as any).type === 'supplement' ? (
                             <>
@@ -679,7 +684,7 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {entry.individualItems.map((item, index) => (
+                              {(entry as any).individualItems?.map((item: any, index: number) => (
                                 <TableRow key={index}>
                                   <TableCell>
                                     <Typography variant="body2">
@@ -691,7 +696,6 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
                                     if (!nutrient) return null;
                                     
                                     // Map nutrient keys to item properties with correct mapping
-                                    let itemKey: string;
                                     let value: number;
                                     
                                     switch (nutrientKey) {
@@ -887,8 +891,8 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
             type: (entry as any).type,
             calories: entry.totalCalories,
             date: entry.dateAdded,
-            timeOfDay: (entry as any).type === 'supplement' ? (entry as any).time_of_day : entry.timeOfDay,
-            mealType: (entry as any).type === 'supplement' ? (entry as any).meal_context : entry.mealType,
+            timeOfDay: (entry as any).type === 'supplement' ? (entry as any).time_of_day : (entry as any).timeOfDay,
+            mealType: (entry as any).type === 'supplement' ? (entry as any).meal_context : (entry as any).mealType,
             amount: (entry as any).type === 'supplement' ? `${(entry as any).amount_taken} ${(entry as any).unit_taken}` : undefined
           })),
           searchTerm: searchTerm,
