@@ -16,6 +16,46 @@ export interface LLMResponse {
   csvData?: string;
 }
 
+// Medical nutrition guidelines for health condition-specific analysis
+const MEDICAL_NUTRITION_GUIDELINES = {
+  pcos: {
+    focus: ['anti-inflammatory foods', 'low glycemic index', 'omega-3 fatty acids', 'high fiber'],
+    avoid: ['refined sugars', 'processed foods', 'trans fats', 'high glycemic foods'],
+    micronutrients: ['inositol', 'vitamin D', 'chromium', 'omega-3', 'magnesium'],
+    targets: 'Glycemic load <10 per meal, Omega-3 >1g daily, Fiber >25g daily'
+  },
+  type2_diabetes: {
+    focus: ['precise carbohydrate counting', 'low glycemic load', 'high fiber', 'lean proteins'],
+    avoid: ['simple sugars', 'refined carbohydrates', 'sugary beverages'],
+    micronutrients: ['chromium', 'magnesium', 'alpha-lipoic acid', 'vitamin D'],
+    targets: 'Carbs 45-65% total calories, Fiber >25g daily, Sodium <2300mg'
+  },
+  hypertension: {
+    focus: ['DASH diet principles', 'potassium-rich foods', 'low sodium', 'magnesium-rich foods'],
+    avoid: ['high sodium foods', 'processed meats', 'canned foods with salt'],
+    micronutrients: ['potassium', 'magnesium', 'calcium', 'omega-3'],
+    targets: 'Sodium <2300mg daily, Potassium >3500mg daily'
+  },
+  osteoporosis: {
+    focus: ['calcium-rich foods', 'vitamin D sources', 'protein for bone health'],
+    avoid: ['excessive caffeine', 'high sodium', 'alcohol'],
+    micronutrients: ['calcium', 'vitamin D', 'magnesium', 'vitamin K'],
+    targets: 'Calcium >1000mg daily, Vitamin D >800 IU daily'
+  },
+  hypothyroidism: {
+    focus: ['iodine-rich foods', 'selenium sources', 'iron-rich foods'],
+    avoid: ['goitrogens in excess', 'soy if interfering with medication'],
+    micronutrients: ['iodine', 'selenium', 'zinc', 'iron'],
+    targets: 'Iodine 150mcg daily, Selenium 55mcg daily'
+  },
+  fertility: {
+    focus: ['folate-rich foods', 'antioxidant foods', 'healthy fats', 'iron sources'],
+    avoid: ['trans fats', 'excessive caffeine', 'alcohol'],
+    micronutrients: ['folate', 'iron', 'zinc', 'omega-3', 'vitamin E'],
+    targets: 'Folate >400mcg daily, Iron >18mg daily'
+  }
+} as const;
+
 export class LLMFoodBrain {
   private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
   private readonly API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -28,11 +68,11 @@ export class LLMFoodBrain {
   }
 
   /**
-   * Main function to process food input using LLM
+   * Main function to process food input using LLM with optional health condition context
    */
-  async processFoodInput(input: string, timeOfDay?: string): Promise<LLMResponse> {
+  async processFoodInput(input: string, timeOfDay?: string, healthConditions?: string[]): Promise<LLMResponse> {
     try {
-      const prompt = this.createNutritionPrompt(input);
+      const prompt = this.createNutritionPrompt(input, healthConditions);
       const response = await this.callLLMAPI(prompt);
       
       if (response.success && response.data) {
@@ -53,12 +93,57 @@ export class LLMFoodBrain {
     }
   }
 
-  private createNutritionPrompt(input: string): string {
-    return `You are a precise nutrition expert. Analyze this food input and return ONLY a valid JSON response.
+  /**
+   * Generate medical context and guidelines based on user's health conditions
+   */
+  private generateMedicalContext(healthConditions?: string[]): string {
+    if (!healthConditions || healthConditions.length === 0) {
+      return 'MEDICAL CONTEXT: General population nutrition analysis with clinical accuracy.';
+    }
+
+    const medicalGuidelines: string[] = [];
+    
+    healthConditions.forEach(conditionId => {
+      const guidelines = MEDICAL_NUTRITION_GUIDELINES[conditionId as keyof typeof MEDICAL_NUTRITION_GUIDELINES];
+      if (guidelines) {
+        medicalGuidelines.push(
+          `${conditionId.toUpperCase().replace('_', ' ')}:
+- Focus areas: ${guidelines.focus.join(', ')}
+- Avoid/limit: ${guidelines.avoid.join(', ')}
+- Key micronutrients: ${guidelines.micronutrients.join(', ')}
+- Clinical targets: ${guidelines.targets}`
+        );
+      }
+    });
+
+    if (medicalGuidelines.length === 0) {
+      return 'MEDICAL CONTEXT: General population nutrition analysis with clinical accuracy.';
+    }
+
+    return `PATIENT HEALTH CONDITIONS: ${healthConditions.join(', ')}
+
+MEDICAL NUTRITION THERAPY GUIDELINES:
+${medicalGuidelines.join('\n\n')}
+
+CLINICAL CONSIDERATIONS:
+- Prioritize accuracy for medical tracking and condition management
+- Consider nutrient-drug interactions if applicable
+- Account for bioavailability and absorption factors
+- Include glycemic impact assessment for metabolic conditions
+- Note anti-inflammatory vs pro-inflammatory food properties`;
+  }
+
+  private createNutritionPrompt(input: string, healthConditions?: string[]): string {
+    // Generate medical context based on health conditions
+    const medicalContext = this.generateMedicalContext(healthConditions);
+    
+    return `You are a board-certified nutritionist with clinical experience in medical nutrition therapy.
+
+${medicalContext}
 
 INPUT: "${input}"
 
-TASK: Break down into individual food items with complete nutrition data per item.
+TASK: Break down into individual food items with complete nutrition data per item, considering medical dietary requirements.
 
 REQUIRED JSON FORMAT:
 {
@@ -84,12 +169,22 @@ REQUIRED JSON FORMAT:
   ]
 }
 
+MEDICAL ACCURACY REQUIREMENTS:
+- Use USDA Food Data Central values (gold standard for clinical nutrition)
+- Account for food preparation effects on bioavailability
+- Consider nutrient interactions affecting absorption
+- Include bioavailable forms of nutrients (e.g., heme vs non-heme iron)
+- Flag potential food-drug interactions if relevant
+- Consider glycemic impact for diabetes management
+- Account for sodium content for hypertension management
+- Include anti-inflammatory properties for chronic conditions
+
 NUTRITION CALCULATION RULES:
-- Calculate nutrition per actual quantity specified
-- Use USDA database values when possible
+- Calculate nutrition per actual quantity specified with clinical precision
 - All values in grams except: calories (kcal), sodium/potassium (mg), vitamin_c/vitamin_d (mg)
-- Be precise with quantities (4 slices bread = 4 × slice nutrition)
+- Be precise with quantities for medical tracking accuracy
 - Include all micronutrients listed above
+- Consider cooking methods' impact on nutrition (e.g., steaming vs frying)
 
 EXAMPLES:
 Input: "4 slices of bread and scrambled eggs (3 eggs)"

@@ -36,6 +36,7 @@ import { saveGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
 import { parseConversationalInput } from '../utils/conversationalParser';
 import SupplementEntry from './SupplementEntry';
 import { DatabaseService } from '../services/database';
+import { UserProfile } from '../types';
 
 console.log('=== COMPONENT FILE LOADING ===');
 
@@ -88,6 +89,9 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
   // Supplement schedule states
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [userSchedules, setUserSchedules] = useState<any[]>([]);
+  
+  // User profile and health conditions
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const handleAnalyze = async () => {
     if (!input.trim()) {
@@ -107,8 +111,12 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
       
       console.log('Extracted timeOfDay from input:', timeOfDay);
       
-      // Pass the extracted timeOfDay to the LLM Food Brain
-      const result = await llmFoodBrain.processFoodInput(input.trim(), timeOfDay);
+      // Get user's health conditions for medical context
+      const healthConditions = userProfile?.healthConditions || [];
+      console.log('User health conditions for LLM:', healthConditions);
+      
+      // Pass the extracted timeOfDay and health conditions to the LLM Food Brain
+      const result = await llmFoodBrain.processFoodInput(input.trim(), timeOfDay, healthConditions);
       
       if (result.success && result.groupedEntry) {
         setPreviewEntry(result.groupedEntry);
@@ -240,6 +248,16 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     setTimeout(() => setSuccess(''), 3000);
   };
 
+  const loadUserProfile = async () => {
+    try {
+      const profile = await DatabaseService.getUserProfile();
+      console.log('LLMFoodEntry: Loaded user profile:', profile);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
   const loadUserSchedules = async () => {
     try {
       const currentUser = await DatabaseService.getCurrentUser();
@@ -252,8 +270,9 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     }
   };
 
-  // Load schedules on component mount
+  // Load user profile and schedules on component mount
   React.useEffect(() => {
+    loadUserProfile();
     loadUserSchedules();
   }, []);
 
