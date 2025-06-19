@@ -80,13 +80,18 @@ interface ScoreBreakdownProps {
 
 const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({ 
   condition, 
-  entries, 
+  entries = [], 
   userProfile, 
-  supplementEntries, 
+  supplementEntries = [], 
   totalScore 
 }) => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
+
+  // Add safety checks
+  if (!condition || !condition.keyNutrients || !condition.foodRecommendations) {
+    return null;
+  }
 
   // Calculate breakdown components
   const calculateScoreBreakdown = () => {
@@ -99,7 +104,7 @@ const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
     const profileAdjustments: { description: string; multiplier: number }[] = [];
     
     // Nutrient scoring breakdown
-    const nutrientBreakdown = condition.keyNutrients.map(nutrient => {
+    const nutrientBreakdown = (condition.keyNutrients || []).map(nutrient => {
       const dailyIntake = entries.reduce((sum, entry) => {
         return sum + (entry.totalNutrients[nutrient.nutrient as keyof typeof entry.totalNutrients] || 0);
       }, 0);
@@ -128,13 +133,13 @@ const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
     });
 
     // Food recommendation scoring breakdown
-    const foodBreakdown = condition.foodRecommendations.map(rec => {
+    const foodBreakdown = (condition.foodRecommendations || []).map(rec => {
       foodMaxScore += 10;
       let recScore = 0;
       let matchedFoods: string[] = [];
-      let totalFoodsInCategory = rec.foods.length;
+      let totalFoodsInCategory = (rec.foods || []).length;
 
-      rec.foods.forEach(food => {
+      (rec.foods || []).forEach(food => {
         const hasFood = entries.some(entry => 
           entry.combinedName.toLowerCase().includes(food.toLowerCase())
         );
@@ -773,13 +778,15 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                     {getScoreDescription(conditionScore)}
                   </Typography>
                   
-                  <AdherenceScoreBreakdown 
-                    condition={currentCondition}
-                    entries={dateFilteredEntries}
-                    userProfile={userProfile || undefined}
-                    supplementEntries={supplementEntries}
-                    totalScore={conditionScore}
-                  />
+                  {currentCondition && (
+                    <AdherenceScoreBreakdown 
+                      condition={currentCondition}
+                      entries={dateFilteredEntries || []}
+                      userProfile={userProfile || undefined}
+                      supplementEntries={supplementEntries || []}
+                      totalScore={conditionScore}
+                    />
+                  )}
                 </Paper>
 
                 {/* Key Nutrients */}
