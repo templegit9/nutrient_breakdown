@@ -168,11 +168,20 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const handleDeleteConfirm = async () => {
     if (deleteDialog.entry) {
       try {
-        // Use global deleteEntry function instead of local deletion
-        await deleteEntry(deleteDialog.entry.id!);
+        const entry = deleteDialog.entry;
+        
+        if (entry.type === 'supplement') {
+          // Delete supplement entry using DatabaseService
+          await DatabaseService.deleteSupplementEntry(entry.id);
+          // Remove from local state
+          setSupplementEntries(prev => prev.filter(e => e.id !== entry.id));
+        } else {
+          // Delete food entry using global hook function
+          await deleteEntry(entry.id!);
+        }
       } catch (err) {
         console.error('Error deleting entry:', err);
-        // Error handling is now managed by the global hook
+        // Could add user notification here
       }
     }
     setDeleteDialog({ open: false, entry: null });
@@ -221,15 +230,33 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   const handleBulkDelete = async () => {
     if (selectedEntries.size > 0) {
       try {
-        // Delete each entry individually using global deleteEntry function
-        const deletePromises = Array.from(selectedEntries).map(id => deleteEntry(id));
-        await Promise.all(deletePromises);
+        // Separate food and supplement entries for deletion
+        const entriesToDelete = Array.from(selectedEntries).map(id => 
+          filteredAndSortedEntries.find(entry => entry.id === id)
+        ).filter(entry => entry !== undefined);
+        
+        const foodEntries = entriesToDelete.filter(entry => entry.type === 'food');
+        const supplementEntries = entriesToDelete.filter(entry => entry.type === 'supplement');
+        
+        // Delete food entries using global hook function
+        const foodDeletePromises = foodEntries.map(entry => deleteEntry(entry.id!));
+        
+        // Delete supplement entries using DatabaseService
+        const supplementDeletePromises = supplementEntries.map(entry => 
+          DatabaseService.deleteSupplementEntry(entry.id)
+        );
+        
+        await Promise.all([...foodDeletePromises, ...supplementDeletePromises]);
+        
+        // Update local supplement state
+        if (supplementEntries.length > 0) {
+          const deletedSupplementIds = supplementEntries.map(e => e.id);
+          setSupplementEntries(prev => prev.filter(e => !deletedSupplementIds.includes(e.id)));
+        }
         
         setSelectedEntries(new Set());
-        // No need to manually refresh - global hook handles state updates
       } catch (err) {
         console.error('Error deleting entries:', err);
-        // Error handling is now managed by the global hook
       }
     }
   };

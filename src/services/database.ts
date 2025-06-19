@@ -149,6 +149,19 @@ export class DatabaseService {
     if (error) throw error
   }
 
+  static async deleteSupplementEntry(id: string) {
+    const user = await supabase.auth.getUser()
+    if (!user.data.user) throw new Error('User not authenticated')
+
+    const { error } = await supabase
+      .from('supplement_entries')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.data.user.id) // Ensure user can only delete their own entries
+
+    if (error) throw error
+  }
+
   // Blood Glucose Readings
   static async saveBloodGlucoseReading(reading: Omit<BloodGlucoseReading, 'id'>) {
     const { data, error } = await supabase
