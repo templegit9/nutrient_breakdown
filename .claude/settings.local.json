@@ -28,7 +28,8 @@
       "Bash(touch:*)",
       "Bash(sed:*)",
       "Bash([ -f .env ])",
-      "Bash([ -f .env.local ])"
+      "Bash([ -f .env.local ])",
+      "WebFetch(domain:ai.google.dev)"
     ],
     "deny": []
   }

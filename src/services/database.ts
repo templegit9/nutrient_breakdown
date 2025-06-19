@@ -895,58 +895,76 @@ export class DatabaseService {
   }
 
   static async createSupplementSchedule(schedule: any) {
-    const user = await supabase.auth.getUser()
-    if (!user.data.user) throw new Error('User not authenticated')
+    try {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) throw new Error('User not authenticated')
 
-    const { data, error } = await supabase
-      .from('user_supplement_schedules')
-      .insert({
-        user_id: user.data.user.id,
-        supplement_id: schedule.supplement_id,
-        frequency: schedule.frequency,
-        times_per_day: schedule.times_per_day,
-        days_of_week: schedule.days_of_week,
-        dose_amount: schedule.dose_amount,
-        dose_unit: schedule.dose_unit,
-        preferred_times: schedule.preferred_times,
-        take_with_food: schedule.take_with_food,
-        start_date: schedule.start_date?.toISOString().split('T')[0],
-        end_date: schedule.end_date?.toISOString().split('T')[0],
-        health_goal: schedule.health_goal,
-        reminder_enabled: schedule.reminder_enabled,
-        reminder_times: schedule.reminder_times
-      })
-      .select(`
-        *,
-        supplement:supplements(*)
-      `)
-      .single()
+      const { data, error } = await supabase
+        .from('user_supplement_schedules')
+        .insert({
+          user_id: user.data.user.id,
+          supplement_id: schedule.supplement_id,
+          frequency: schedule.frequency,
+          times_per_day: schedule.times_per_day,
+          days_of_week: schedule.days_of_week,
+          dose_amount: schedule.dose_amount,
+          dose_unit: schedule.dose_unit,
+          preferred_times: schedule.preferred_times,
+          take_with_food: schedule.take_with_food,
+          start_date: schedule.start_date?.toISOString().split('T')[0],
+          end_date: schedule.end_date?.toISOString().split('T')[0],
+          health_goal: schedule.health_goal,
+          reminder_enabled: schedule.reminder_enabled,
+          reminder_times: schedule.reminder_times
+        })
+        .select(`
+          *,
+          supplement:supplements(*)
+        `)
+        .single()
 
-    if (error) {
-      console.error('Error creating supplement schedule:', error)
+      if (error) {
+        if (error.code === 'PGRST200' || error.message.includes('user_supplement_schedules')) {
+          throw new Error('Supplement schedules feature is not available. Please run the database migration.')
+        }
+        console.error('Error creating supplement schedule:', error)
+        throw error
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in createSupplementSchedule:', error)
       throw error
     }
-
-    return data
   }
 
   static async getUserSupplementSchedules(userId: string) {
-    const { data, error } = await supabase
-      .from('user_supplement_schedules')
-      .select(`
-        *,
-        supplement:supplements(*)
-      `)
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('user_supplement_schedules')
+        .select(`
+          *,
+          supplement:supplements(*)
+        `)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching supplement schedules:', error)
-      throw error
+      if (error) {
+        // Check if the error is about the table not existing or foreign key relationship
+        if (error.code === 'PGRST200' || error.message.includes('user_supplement_schedules')) {
+          console.warn('user_supplement_schedules table not found or foreign key missing, returning empty array')
+          return []
+        }
+        console.error('Error fetching supplement schedules:', error)
+        throw error
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Unexpected error in getUserSupplementSchedules:', error)
+      return [] // Graceful fallback
     }
-
-    return data || []
   }
 
   static async updateSupplementSchedule(scheduleId: string, updates: any) {
