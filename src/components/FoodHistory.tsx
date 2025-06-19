@@ -101,22 +101,26 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
   
   useEffect(() => {
     loadUserPreferences();
-    loadSupplementData();
     if (refreshTrigger) {
       refreshData(); // Use global refresh when refreshTrigger changes
     }
   }, [refreshTrigger, refreshData]);
 
   const loadSupplementData = async () => {
-    if (!userProfile?.id && !userProfile) return;
-    
     setLoadingSupplements(true);
     try {
+      // Get current authenticated user
+      const currentUser = await DatabaseService.getCurrentUser();
+      if (!currentUser) {
+        console.log('No authenticated user found');
+        return;
+      }
+      
       // Get last 30 days of supplement entries
       const dateFrom = new Date();
       dateFrom.setDate(dateFrom.getDate() - 30);
       
-      const entries = await DatabaseService.getSupplementEntries(userProfile?.id || '', {
+      const entries = await DatabaseService.getSupplementEntries(currentUser.id, {
         date_from: dateFrom,
         date_to: new Date()
       });
@@ -144,10 +148,8 @@ export default function FoodHistory({ refreshTrigger }: FoodHistoryProps) {
         }
       }
 
-      // Load supplement data after profile is loaded
-      if (profile) {
-        loadSupplementData();
-      }
+      // Load supplement data
+      loadSupplementData();
     } catch (error) {
       console.error('Error loading user preferences:', error);
     }
