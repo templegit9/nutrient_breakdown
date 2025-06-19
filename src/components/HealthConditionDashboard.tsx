@@ -75,6 +75,7 @@ interface ScoreBreakdownProps {
   entries: GroupedFoodEntry[];
   userProfile?: UserProfile;
   supplementEntries?: SupplementEntryType[];
+  supplementSchedules?: any[];
   totalScore: number;
 }
 
@@ -83,6 +84,7 @@ const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
   entries = [], 
   userProfile, 
   supplementEntries = [], 
+  supplementSchedules = [],
   totalScore 
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -170,26 +172,37 @@ const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
       };
     });
 
-    // Supplement scoring breakdown
-    if (supplementEntries && supplementEntries.length > 0) {
-      supplementMaxScore = 20;
+    // Supplement scoring breakdown (including scheduled supplements)
+    supplementMaxScore = 20;
+    
+    // Count scheduled supplements for this condition
+    const activeSchedules = supplementSchedules.filter(schedule => 
+      schedule.is_active && 
+      schedule.supplement?.health_conditions?.includes(condition.id)
+    );
+    
+    // Count logged supplements
+    const conditionSupplements = supplementEntries.filter(entry => 
+      entry.supplement?.category // Using category as proxy for condition-specific
+    );
+    
+    // Scheduled supplements get significant points
+    if (activeSchedules.length > 0) {
+      supplementScore += Math.min(15, activeSchedules.length * 5);
+    }
+    
+    // Logged supplements get additional points
+    if (conditionSupplements.length > 0) {
+      supplementScore += Math.min(10, conditionSupplements.length * 3);
       
-      const conditionSupplements = supplementEntries.filter(entry => 
-        entry.supplement?.category // Using category as proxy for condition-specific
-      );
+      const recentEntries = supplementEntries.filter(entry => {
+        const entryDate = new Date(entry.time_taken);
+        const daysDiff = (new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff <= 7;
+      });
       
-      if (conditionSupplements.length > 0) {
-        supplementScore += Math.min(15, conditionSupplements.length * 3);
-        
-        const recentEntries = supplementEntries.filter(entry => {
-          const entryDate = new Date(entry.time_taken);
-          const daysDiff = (new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
-          return daysDiff <= 7;
-        });
-        
-        if (recentEntries.length > 0) {
-          supplementScore += Math.min(5, recentEntries.length);
-        }
+      if (recentEntries.length > 0) {
+        supplementScore += Math.min(5, recentEntries.length);
       }
     }
 
@@ -235,6 +248,7 @@ const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
     return {
       nutrientBreakdown,
       foodBreakdown,
+      activeSchedules,
       nutrientScore: roundToOneDecimal(nutrientScore),
       nutrientMaxScore,
       foodScore: roundToOneDecimal(foodScore),
@@ -397,11 +411,27 @@ const AdherenceScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
               </Typography>
               <Box sx={{ p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'info.light' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Points earned from taking supplements that support {condition.name}.
-                  {supplementEntries && supplementEntries.length > 0 
-                    ? ` You're taking ${supplementEntries.length} supplements.`
-                    : ' No supplements logged for this period.'}
+                  Points earned from supplements that support {condition.name}.
                 </Typography>
+                
+                {breakdown.activeSchedules && breakdown.activeSchedules.length > 0 && (
+                  <Typography variant="body2" color="primary.main" sx={{ mt: 1 }}>
+                    📅 {breakdown.activeSchedules.length} scheduled supplement{breakdown.activeSchedules.length > 1 ? 's' : ''} 
+                    ({breakdown.activeSchedules.map(s => s.supplement?.name).join(', ')})
+                  </Typography>
+                )}
+                
+                {supplementEntries && supplementEntries.length > 0 && (
+                  <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
+                    ✅ {supplementEntries.length} supplement{supplementEntries.length > 1 ? 's' : ''} logged this period
+                  </Typography>
+                )}
+                
+                {(!supplementEntries || supplementEntries.length === 0) && (!breakdown.activeSchedules || breakdown.activeSchedules.length === 0) && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    No supplements logged or scheduled for this condition.
+                  </Typography>
+                )}
                 <LinearProgress 
                   variant="determinate" 
                   value={(breakdown.supplementScore / breakdown.supplementMaxScore) * 100}
@@ -503,6 +533,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   // Supplement tracking state
   const [supplementEntries, setSupplementEntries] = useState<SupplementEntry[]>([]);
   const [supplementAnalysis, setSupplementAnalysis] = useState<SupplementAnalysis | null>(null);
+  const [supplementSchedules, setSupplementSchedules] = useState<any[]>([]);
   const [loadingSupplements, setLoadingSupplements] = useState(false);
   
   // Help dialog state
@@ -571,9 +602,13 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
 
       // Load supplement analysis
       const analysis = await DatabaseService.analyzeSupplementIntake(userId, dateFrom, dateTo);
+      
+      // Load supplement schedules
+      const schedules = await DatabaseService.getUserSupplementSchedules(userId);
 
       setSupplementEntries(entries);
       setSupplementAnalysis(analysis);
+      setSupplementSchedules(schedules);
     } catch (error) {
       console.error('Error loading supplement data:', error);
     } finally {
@@ -625,7 +660,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
   }, {} as Record<string, HealthConditionData[]>);
 
   const currentCondition = getHealthConditionById(selectedCondition);
-  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, dateFilteredEntries, userProfile, supplementEntries) : 0;
+  const conditionScore = currentCondition ? calculateConditionScore(currentCondition, dateFilteredEntries, userProfile, supplementEntries, supplementSchedules) : 0;
   const recommendations = currentCondition ? getConditionRecommendations(currentCondition, dateFilteredEntries, userProfile) : [];
   
   // Calculate statistics for selected date range entries
@@ -784,6 +819,7 @@ const HealthConditionDashboard: React.FC<HealthConditionDashboardProps> = ({ use
                       entries={dateFilteredEntries || []}
                       userProfile={userProfile || undefined}
                       supplementEntries={supplementEntries || []}
+                      supplementSchedules={supplementSchedules || []}
                       totalScore={conditionScore}
                     />
                   )}

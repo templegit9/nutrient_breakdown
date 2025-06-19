@@ -1030,7 +1030,7 @@ export const EXPANDED_HEALTH_CONDITIONS: HealthConditionData[] = [
   }
 ];
 
-export function calculateConditionScore(condition: HealthConditionData, entries: GroupedFoodEntry[], userProfile?: any, supplementEntries?: any[]): number {
+export function calculateConditionScore(condition: HealthConditionData, entries: GroupedFoodEntry[], userProfile?: any, supplementEntries?: any[], supplementSchedules?: any[]): number {
   let score = 0;
   let maxScore = 0;
 
@@ -1072,22 +1072,49 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
     score += Math.min(10, recScore);
   });
 
-  // Supplement adherence scoring
-  if (supplementEntries && supplementEntries.length > 0) {
-    maxScore += 20; // Add weight for supplement adherence
-    let supplementScore = 0;
+  // Supplement adherence scoring (both actual entries and scheduled supplements)
+  maxScore += 20; // Add weight for supplement adherence
+  let supplementScore = 0;
+  
+  // Combine actual supplement entries with scheduled supplements
+  const allSupplementData = [...(supplementEntries || [])];
+  
+  // Add points for active scheduled supplements (these count as daily adherence)
+  if (supplementSchedules && supplementSchedules.length > 0) {
+    const activeSchedules = supplementSchedules.filter(schedule => 
+      schedule.is_active && 
+      schedule.supplement?.health_conditions?.includes(condition.id)
+    );
     
-    // Check for condition-specific supplements
-    const conditionSupplements = supplementEntries.filter(entry => 
+    // Give significant points for having scheduled condition-specific supplements
+    supplementScore += Math.min(15, activeSchedules.length * 5);
+    
+    // Add the scheduled supplements to our evaluation
+    activeSchedules.forEach(schedule => {
+      allSupplementData.push({
+        supplement: schedule.supplement,
+        time_taken: new Date(), // Current date for scheduling purposes
+        isScheduled: true
+      });
+    });
+  }
+  
+  if (allSupplementData.length > 0) {
+    // Check for condition-specific supplements (both logged and scheduled)
+    const conditionSupplements = allSupplementData.filter(entry => 
       entry.supplement?.health_conditions?.includes(condition.id)
     );
     
     if (conditionSupplements.length > 0) {
       // Give points for taking condition-specific supplements
-      supplementScore += Math.min(15, conditionSupplements.length * 3);
+      const loggedSupplements = conditionSupplements.filter(entry => !entry.isScheduled);
+      const scheduledSupplements = conditionSupplements.filter(entry => entry.isScheduled);
+      
+      // More points for actually logged supplements
+      supplementScore += Math.min(10, loggedSupplements.length * 3);
       
       // Bonus points for consistent supplementation (recent entries)
-      const recentEntries = supplementEntries.filter(entry => {
+      const recentEntries = (supplementEntries || []).filter(entry => {
         const entryDate = new Date(entry.time_taken);
         const daysDiff = (new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
         return daysDiff <= 7; // Within last week
@@ -1099,7 +1126,7 @@ export function calculateConditionScore(condition: HealthConditionData, entries:
     }
     
     // Check for general health supplements that benefit this condition
-    const beneficialSupplements = supplementEntries.filter(entry => {
+    const beneficialSupplements = allSupplementData.filter(entry => {
       const supplementName = entry.supplement?.name?.toLowerCase() || '';
       
       // Condition-specific beneficial supplements

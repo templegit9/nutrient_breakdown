@@ -14,18 +14,28 @@ import {
   List,
   ListItem,
   ListItemText,
-  Paper
+  Paper,
+  Tabs,
+  Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Restaurant as FoodIcon,
   SmartToy as AIIcon,
   Check as CheckIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  Medication as SupplementIcon,
+  Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import { llmFoodBrain } from '../services/llmFoodBrain';
 import type { GroupedFoodEntry } from '../types/food';
 import { saveGroupedFoodEntry } from '../services/groupedFoodDatabaseUtils';
 import { parseConversationalInput } from '../utils/conversationalParser';
+import SupplementEntry from './SupplementEntry';
+import { DatabaseService } from '../services/database';
 
 console.log('=== COMPONENT FILE LOADING ===');
 
@@ -33,17 +43,51 @@ interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
 }
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`intake-tabpanel-${index}`}
+      aria-labelledby={`intake-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 0 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
 export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
   console.log('=== COMPONENT INITIALIZING ===');
   console.log('onFoodAdded prop received:', onFoodAdded);
   console.log('typeof onFoodAdded prop:', typeof onFoodAdded);
   
+  // Tab management
+  const [tabValue, setTabValue] = useState(0);
+  
+  // Food entry states
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [previewEntry, setPreviewEntry] = useState<GroupedFoodEntry | null>(null);
   const [csvData, setCsvData] = useState<string>('');
+  
+  // Supplement schedule states
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [userSchedules, setUserSchedules] = useState<any[]>([]);
 
   const handleAnalyze = async () => {
     if (!input.trim()) {
@@ -187,13 +231,87 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     }
   };
 
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  const handleSupplementAdded = () => {
+    setSuccess('Supplement logged successfully!');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const loadUserSchedules = async () => {
+    try {
+      const currentUser = await DatabaseService.getCurrentUser();
+      if (currentUser) {
+        const schedules = await DatabaseService.getUserSupplementSchedules(currentUser.id);
+        setUserSchedules(schedules);
+      }
+    } catch (error) {
+      console.error('Error loading supplement schedules:', error);
+    }
+  };
+
+  // Load schedules on component mount
+  React.useEffect(() => {
+    loadUserSchedules();
+  }, []);
+
   return (
     <Card sx={{ maxWidth: 800, mx: 'auto', mt: 2 }}>
       <CardContent>
+        {/* Tab Navigation */}
+        <Box sx={{ mb: 3 }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange} 
+            aria-label="intake logging tabs"
+            variant="fullWidth"
+            sx={{
+              '& .MuiTab-root': {
+                minHeight: 48,
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: 'rgba(46, 125, 50, 0.04)',
+                  color: 'primary.main'
+                },
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  fontWeight: 700
+                }
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: 'primary.main',
+                height: 3,
+                borderRadius: '3px 3px 0 0'
+              }
+            }}
+          >
+            <Tab 
+              icon={<FoodIcon />} 
+              label="Log Food" 
+              iconPosition="start"
+            />
+            <Tab 
+              icon={<SupplementIcon />} 
+              label="Log Supplements" 
+              iconPosition="start"
+            />
+            <Tab 
+              icon={<ScheduleIcon />} 
+              label="Supplement Schedule" 
+              iconPosition="start"
+            />
+          </Tabs>
+        </Box>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Describe what you ate in natural language. The AI will analyze and break it down into individual foods with complete nutrition data.
-        </Typography>
+        {/* Food Logging Tab */}
+        <TabPanel value={tabValue} index={0}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Describe what you ate in natural language. The AI will analyze and break it down into individual foods with complete nutrition data.
+          </Typography>
 
         {/* Input Section */}
         <Box sx={{ mb: 3 }}>
@@ -302,15 +420,103 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
           </Paper>
         )}
 
-        {/* Example */}
-        <Paper sx={{ p: 2, backgroundColor: 'primary.50', borderLeft: 4, borderColor: 'primary.main' }}>
-          <Typography variant="subtitle2" color="primary" gutterBottom>
-            💡 Example Input:
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            "I ate 4 slices of bread and scrambled eggs (3 eggs)" → Returns individual nutrition for bread and eggs
-          </Typography>
-        </Paper>
+          {/* Example */}
+          <Paper sx={{ p: 2, backgroundColor: 'primary.50', borderLeft: 4, borderColor: 'primary.main' }}>
+            <Typography variant="subtitle2" color="primary" gutterBottom>
+              💡 Example Input:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              "I ate 4 slices of bread and scrambled eggs (3 eggs)" → Returns individual nutrition for bread and eggs
+            </Typography>
+          </Paper>
+        </TabPanel>
+
+        {/* Supplement Logging Tab */}
+        <TabPanel value={tabValue} index={1}>
+          <Box>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SupplementIcon color="primary" />
+              Log Supplements & Medications
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Log supplements, vitamins, and medications you've taken today. You can also set them as recurring.
+            </Typography>
+            <SupplementEntry 
+              userId=""
+              onSupplementAdded={handleSupplementAdded}
+              onSave={loadUserSchedules}
+            />
+          </Box>
+        </TabPanel>
+
+        {/* Supplement Schedule Tab */}
+        <TabPanel value={tabValue} index={2}>
+          <Box>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ScheduleIcon color="primary" />
+              Recurring Supplement Schedule
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Set up recurring supplements that you take regularly. These will automatically count towards your health condition adherence scores.
+            </Typography>
+
+            {userSchedules.length > 0 ? (
+              <Stack spacing={2}>
+                {userSchedules.map((schedule, index) => (
+                  <Paper key={index} sx={{ p: 2, border: 1, borderColor: 'divider' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {schedule.supplement?.name || 'Unknown Supplement'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {schedule.dose_amount} {schedule.dose_unit} • {schedule.frequency} • {schedule.times_per_day}x per day
+                        </Typography>
+                        {schedule.preferred_times && schedule.preferred_times.length > 0 && (
+                          <Typography variant="caption" color="text.secondary">
+                            Times: {schedule.preferred_times.join(', ')}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Chip 
+                        label={schedule.is_active ? "Active" : "Inactive"} 
+                        color={schedule.is_active ? "success" : "default"}
+                        size="small"
+                      />
+                    </Box>
+                  </Paper>
+                ))}
+              </Stack>
+            ) : (
+              <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>
+                <ScheduleIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No recurring supplements scheduled
+                </Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  Add supplements from the "Log Supplements" tab and set them as recurring to have them automatically count towards your health scores.
+                </Typography>
+              </Paper>
+            )}
+
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Button
+                variant="outlined"
+                onClick={() => setScheduleDialogOpen(true)}
+                startIcon={<ScheduleIcon />}
+              >
+                Add Recurring Supplement
+              </Button>
+            </Box>
+          </Box>
+        </TabPanel>
+
+        {/* Global Success/Error Messages */}
+        {success && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            {success}
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

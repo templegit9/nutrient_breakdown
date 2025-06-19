@@ -233,10 +233,9 @@ function AppContent() {
               }
             }}
           >
-            <Tab label={isMobile ? "Add" : "Add Food"} />
+            <Tab label={isMobile ? "Log" : "Log Intake"} />
             <Tab label="Dashboard" />
             <Tab label={isMobile ? "Health" : "Health Conditions"} />
-            <Tab label={isMobile ? "Supps" : "Supplements"} />
             <Tab label="History" />
           </Tabs>
         </Box>
@@ -254,10 +253,6 @@ function AppContent() {
         </TabPanel>
         
         <TabPanel value={tabValue} index={3}>
-          <SupplementEntry userId={user?.id || ''} />
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={4}>
           <FoodHistory refreshTrigger={refreshTrigger} />
         </TabPanel>
         </Box>
