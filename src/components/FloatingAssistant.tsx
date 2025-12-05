@@ -86,17 +86,17 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
 
   const getContextPrompt = (): string => {
     const basePrompt = "You are a helpful nutrition assistant analyzing user data. Be conversational, encouraging, and provide actionable insights. Keep responses concise but informative.";
-    
+
     switch (contextType) {
       case 'dashboard':
         return `${basePrompt}\n\nDASHBOARD DATA: ${JSON.stringify(contextData)}\n\nHelp the user understand their nutrition dashboard, daily progress, nutrient intake, and provide personalized advice based on their current data.`;
-      
+
       case 'health_conditions':
         return `${basePrompt}\n\nHEALTH CONDITIONS DATA: ${JSON.stringify(contextData)}\n\nHelp the user understand their health condition analysis, explain scores and recommendations, and provide guidance on nutrition for their specific health conditions.`;
-      
+
       case 'food_history':
         return `${basePrompt}\n\nFOOD HISTORY DATA: ${JSON.stringify(contextData)}\n\nAnalyze the user's eating patterns, identify trends, suggest improvements, and answer questions about their food history and meal patterns.`;
-      
+
       default:
         return basePrompt;
     }
@@ -104,7 +104,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
 
   const analyzeWithGemini = async (userMessage: string): Promise<string> => {
     try {
-      const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+      const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
       const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
       if (!API_KEY) {
@@ -142,7 +142,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
       }
 
       const data = await response.json();
-      
+
       if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
         return data.candidates[0].content.parts[0].text;
       } else {
@@ -171,7 +171,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
 
     try {
       const aiResponse = await analyzeWithGemini(userMessage.content);
-      
+
       const assistantMessage: ChatMessage = {
         id: Date.now().toString() + '_assistant',
         type: 'assistant',
@@ -182,14 +182,14 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error processing message:', error);
-      
+
       const errorMessage: ChatMessage = {
         id: Date.now().toString() + '_error',
         type: 'assistant',
         content: "I'm sorry, I encountered an error. Please try again.",
         timestamp: new Date()
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
@@ -297,10 +297,10 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
         }}
       >
         {/* Header */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
             p: 2,
             bgcolor: 'primary.main',
@@ -309,8 +309,8 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar sx={{ 
-              bgcolor: 'rgba(255,255,255,0.2)', 
+            <Avatar sx={{
+              bgcolor: 'rgba(255,255,255,0.2)',
               mr: 1,
               border: '2px solid rgba(255,255,255,0.3)'
             }}>
@@ -321,22 +321,22 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
                 Nutrition Assistant
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                {contextType === 'dashboard' ? 'Dashboard Analysis' : 
-                 contextType === 'health_conditions' ? 'Health Insights' : 
-                 'Food History Patterns'}
+                {contextType === 'dashboard' ? 'Dashboard Analysis' :
+                  contextType === 'health_conditions' ? 'Health Insights' :
+                    'Food History Patterns'}
               </Typography>
             </Box>
           </Box>
           <Box>
-            <IconButton 
-              onClick={handleMinimize} 
+            <IconButton
+              onClick={handleMinimize}
               sx={{ color: 'white', mr: 1 }}
               size="small"
             >
               <MinimizeIcon />
             </IconButton>
-            <IconButton 
-              onClick={handleClose} 
+            <IconButton
+              onClick={handleClose}
               sx={{ color: 'white' }}
               size="small"
             >
@@ -349,23 +349,23 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
         {!isMinimized && (
           <DialogContent sx={{ p: 0, height: 350 }}>
             {/* Messages */}
-            <Box sx={{ 
-              height: 280, 
-              overflowY: 'auto', 
+            <Box sx={{
+              height: 280,
+              overflowY: 'auto',
               p: 2,
               backgroundColor: '#f8fdf8'
             }}>
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} />
               ))}
-              
+
               {isProcessing && (
                 <Fade in={isProcessing}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar sx={{ 
-                      bgcolor: 'primary.main', 
-                      mr: 1, 
-                      width: 32, 
+                    <Avatar sx={{
+                      bgcolor: 'primary.main',
+                      mr: 1,
+                      width: 32,
                       height: 32,
                       boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)'
                     }}>
@@ -382,7 +382,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
                   </Box>
                 </Fade>
               )}
-              
+
               <div ref={messagesEndRef} />
             </Box>
 
@@ -399,12 +399,12 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
                       label={suggestion}
                       size="small"
                       onClick={() => setInputText(suggestion)}
-                      sx={{ 
+                      sx={{
                         fontSize: '0.7rem',
                         height: 24,
                         cursor: 'pointer',
-                        '&:hover': { 
-                          backgroundColor: 'primary.main', 
+                        '&:hover': {
+                          backgroundColor: 'primary.main',
                           color: 'white',
                           transform: 'scale(1.02)'
                         }
@@ -416,9 +416,9 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
             )}
 
             {/* Input Area */}
-            <Box sx={{ 
-              p: 2, 
-              borderTop: '1px solid', 
+            <Box sx={{
+              p: 2,
+              borderTop: '1px solid',
               borderColor: 'divider',
               backgroundColor: 'white'
             }}>
@@ -460,19 +460,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
   return (
     <Fade in={true}>
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
         mb: 2
       }}>
-        <Box sx={{ 
+        <Box sx={{
           display: 'flex',
           alignItems: 'flex-start',
           maxWidth: '85%',
           flexDirection: isUser ? 'row-reverse' : 'row'
         }}>
-          <Avatar 
-            sx={{ 
+          <Avatar
+            sx={{
               bgcolor: isUser ? '#2e7d32' : 'primary.main',
               boxShadow: '0 2px 8px rgba(46, 125, 50, 0.2)',
               width: 32,
@@ -482,10 +482,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           >
             {isUser ? <UserIcon fontSize="small" /> : <AIIcon fontSize="small" />}
           </Avatar>
-          
-          <Paper 
+
+          <Paper
             elevation={1}
-            sx={{ 
+            sx={{
               p: 1.5,
               backgroundColor: isUser ? '#2e7d32' : 'white',
               color: isUser ? 'white' : 'text.primary',

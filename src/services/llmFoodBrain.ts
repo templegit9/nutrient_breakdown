@@ -57,7 +57,7 @@ const MEDICAL_NUTRITION_GUIDELINES = {
 } as const;
 
 export class LLMFoodBrain {
-  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
   private readonly API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
   constructor() {

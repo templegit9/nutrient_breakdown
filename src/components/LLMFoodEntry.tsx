@@ -38,7 +38,7 @@ import SupplementEntry from './SupplementEntry';
 import { DatabaseService } from '../services/database';
 import { UserProfile } from '../types';
 
-console.log('=== COMPONENT FILE LOADING ===');
+// Debug logs removed for production - component loaded successfully
 
 interface LLMFoodEntryProps {
   onFoodAdded: (entry: GroupedFoodEntry) => void;
@@ -71,13 +71,11 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
-  console.log('=== COMPONENT INITIALIZING ===');
-  console.log('onFoodAdded prop received:', onFoodAdded);
-  console.log('typeof onFoodAdded prop:', typeof onFoodAdded);
-  
+  // Debug logs removed for production
+
   // Tab management
   const [tabValue, setTabValue] = useState(0);
-  
+
   // Food entry states
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,11 +83,11 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
   const [success, setSuccess] = useState('');
   const [previewEntry, setPreviewEntry] = useState<GroupedFoodEntry | null>(null);
   const [csvData, setCsvData] = useState<string>('');
-  
+
   // Supplement schedule states
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [userSchedules, setUserSchedules] = useState<any[]>([]);
-  
+
   // User profile and health conditions
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -108,16 +106,16 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
       // Extract timeOfDay from the input using conversational parser
       const conversationalResult = await parseConversationalInput(input.trim());
       const timeOfDay = conversationalResult.timeOfDay;
-      
+
       console.log('Extracted timeOfDay from input:', timeOfDay);
-      
+
       // Get user's health conditions for medical context
       const healthConditions = userProfile?.healthConditions || [];
       console.log('User health conditions for LLM:', healthConditions);
-      
+
       // Pass the extracted timeOfDay and health conditions to the LLM Food Brain
       const result = await llmFoodBrain.processFoodInput(input.trim(), timeOfDay, healthConditions);
-      
+
       if (result.success && result.groupedEntry) {
         setPreviewEntry(result.groupedEntry);
         setCsvData(result.csvData || '');
@@ -135,7 +133,7 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
 
   const handleConfirm = async () => {
     console.log('=== HANDLE CONFIRM CALLED ===');
-    
+
     if (!previewEntry) {
       console.log('No preview entry, returning');
       return;
@@ -148,25 +146,25 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
     try {
       console.log('=== INSIDE TRY BLOCK ===');
       console.log('previewEntry:', previewEntry);
-      
+
       console.log('About to call saveGroupedFoodEntry...');
       const { data, error: dbError } = await saveGroupedFoodEntry(previewEntry);
       console.log('Database save completed:', { data, dbError });
-      
+
       if (dbError) {
         setError('Failed to save food entry to database');
         console.error('Database error:', dbError);
       } else {
         console.log('Success! Setting success message...');
         setSuccess('Food entry saved successfully!');
-        
+
         console.log('Calling onFoodAdded callback...');
-        
+
         try {
           console.log('Step 1: About to check onFoodAdded');
           const callbackType = typeof onFoodAdded;
           console.log('Step 2: onFoodAdded type is:', callbackType);
-          
+
           if (callbackType === 'function') {
             console.log('Step 3: onFoodAdded is a function, calling it...');
             onFoodAdded(previewEntry);
@@ -179,26 +177,26 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
           console.error('Error in callback section:', callbackError);
           throw callbackError;
         }
-        
+
         console.log('Resetting form...');
-        
+
         try {
           console.log('Form reset step 1: setInput');
           setInput('');
-          
+
           console.log('Form reset step 2: setPreviewEntry');
           setPreviewEntry(null);
-          
+
           console.log('Form reset step 3: setCsvData');
           setCsvData('');
-          
+
           console.log('Form reset step 4: setTimeout');
           setTimeout(() => {
             console.log('Timeout callback executing...');
             setSuccess('');
             console.log('Timeout callback completed');
           }, 3000);
-          
+
           console.log('Form reset completed successfully');
         } catch (resetError) {
           console.error('Error during form reset:', resetError);
@@ -281,9 +279,9 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
       <CardContent>
         {/* Tab Navigation */}
         <Box sx={{ mb: 3 }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
             aria-label="intake logging tabs"
             variant="fullWidth"
             sx={{
@@ -308,19 +306,19 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
               }
             }}
           >
-            <Tab 
-              icon={<FoodIcon />} 
-              label="Log Food" 
+            <Tab
+              icon={<FoodIcon />}
+              label="Log Food"
               iconPosition="start"
             />
-            <Tab 
-              icon={<SupplementIcon />} 
-              label="Log Supplements" 
+            <Tab
+              icon={<SupplementIcon />}
+              label="Log Supplements"
               iconPosition="start"
             />
-            <Tab 
-              icon={<ScheduleIcon />} 
-              label="Supplement Schedule" 
+            <Tab
+              icon={<ScheduleIcon />}
+              label="Supplement Schedule"
               iconPosition="start"
             />
           </Tabs>
@@ -332,112 +330,112 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
             Describe what you ate in natural language. The AI will analyze and break it down into individual foods with complete nutrition data.
           </Typography>
 
-        {/* Input Section */}
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="What did you eat?"
-            placeholder="e.g., I ate 4 slices of bread and scrambled eggs (3 eggs)"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={loading}
-            sx={{ mb: 2 }}
-          />
-          
-          <Button
-            variant="contained"
-            onClick={handleAnalyze}
-            disabled={loading || !input.trim()}
-            startIcon={loading ? <CircularProgress size={20} /> : <AIIcon />}
-            size="large"
-          >
-            {loading ? 'Analyzing...' : 'Analyze Food'}
-          </Button>
-        </Box>
+          {/* Input Section */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="What did you eat?"
+              placeholder="e.g., I ate 4 slices of bread and scrambled eggs (3 eggs)"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={loading}
+              sx={{ mb: 2 }}
+            />
 
-        {/* Alerts */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
+            <Button
+              variant="contained"
+              onClick={handleAnalyze}
+              disabled={loading || !input.trim()}
+              startIcon={loading ? <CircularProgress size={20} /> : <AIIcon />}
+              size="large"
+            >
+              {loading ? 'Analyzing...' : 'Analyze Food'}
+            </Button>
+          </Box>
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-            {success}
-          </Alert>
-        )}
+          {/* Alerts */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
 
-        {/* Preview Section */}
-        {previewEntry && (
-          <Paper elevation={2} sx={{ p: 3, mb: 2, backgroundColor: 'grey.50' }}>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-              <FoodIcon sx={{ mr: 1 }} />
-              {previewEntry.combinedName}
-            </Typography>
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+              {success}
+            </Alert>
+          )}
 
-            {/* Total Nutrition Summary */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>Total Nutrition:</Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Chip label={`${previewEntry.totalCalories} calories`} color="primary" />
-                <Chip label={`${previewEntry.totalNutrients.protein.toFixed(1)}g protein`} />
-                <Chip label={`${previewEntry.totalNutrients.carbohydrates.toFixed(1)}g carbs`} />
-                <Chip label={`${previewEntry.totalNutrients.fat.toFixed(1)}g fat`} />
-                <Chip label={`${previewEntry.totalNutrients.fiber.toFixed(1)}g fiber`} />
-              </Stack>
-            </Box>
+          {/* Preview Section */}
+          {previewEntry && (
+            <Paper elevation={2} sx={{ p: 3, mb: 2, backgroundColor: 'grey.50' }}>
+              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <FoodIcon sx={{ mr: 1 }} />
+                {previewEntry.combinedName}
+              </Typography>
 
-            <Divider sx={{ my: 2 }} />
+              {/* Total Nutrition Summary */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>Total Nutrition:</Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip label={`${previewEntry.totalCalories} calories`} color="primary" />
+                  <Chip label={`${previewEntry.totalNutrients.protein.toFixed(1)}g protein`} />
+                  <Chip label={`${previewEntry.totalNutrients.carbohydrates.toFixed(1)}g carbs`} />
+                  <Chip label={`${previewEntry.totalNutrients.fat.toFixed(1)}g fat`} />
+                  <Chip label={`${previewEntry.totalNutrients.fiber.toFixed(1)}g fiber`} />
+                </Stack>
+              </Box>
 
-            {/* Individual Items */}
-            <Typography variant="subtitle2" gutterBottom>Individual Food Items:</Typography>
-            <List dense>
-              {previewEntry.individualItems.map((item, index) => (
-                <ListItem key={index} sx={{ py: 1 }}>
-                  <ListItemText
-                    primary={
-                      <Typography variant="body1" fontWeight={500}>
-                        {item.quantity} {item.unit} {item.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography variant="body2" color="text.secondary">
-                        {item.calories} cal • {item.protein.toFixed(1)}g protein • {item.carbohydrates.toFixed(1)}g carbs • {item.fat.toFixed(1)}g fat
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+              <Divider sx={{ my: 2 }} />
 
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-              <Button
-                variant="contained"
-                onClick={handleConfirm}
-                disabled={loading}
-                startIcon={<CheckIcon />}
-                size="large"
-              >
-                Confirm & Add to Log
-              </Button>
-              
-              {csvData && (
+              {/* Individual Items */}
+              <Typography variant="subtitle2" gutterBottom>Individual Food Items:</Typography>
+              <List dense>
+                {previewEntry.individualItems.map((item, index) => (
+                  <ListItem key={index} sx={{ py: 1 }}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body1" fontWeight={500}>
+                          {item.quantity} {item.unit} {item.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography variant="body2" color="text.secondary">
+                          {item.calories} cal • {item.protein.toFixed(1)}g protein • {item.carbohydrates.toFixed(1)}g carbs • {item.fat.toFixed(1)}g fat
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+
+              {/* Action Buttons */}
+              <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
                 <Button
-                  variant="outlined"
-                  onClick={handleDownloadCSV}
-                  startIcon={<DownloadIcon />}
+                  variant="contained"
+                  onClick={handleConfirm}
+                  disabled={loading}
+                  startIcon={<CheckIcon />}
+                  size="large"
                 >
-                  Download CSV
+                  Confirm & Add to Log
                 </Button>
-              )}
-            </Box>
-          </Paper>
-        )}
+
+                {csvData && (
+                  <Button
+                    variant="outlined"
+                    onClick={handleDownloadCSV}
+                    startIcon={<DownloadIcon />}
+                  >
+                    Download CSV
+                  </Button>
+                )}
+              </Box>
+            </Paper>
+          )}
 
           {/* Example */}
           <Paper sx={{ p: 2, backgroundColor: 'primary.50', borderLeft: 4, borderColor: 'primary.main' }}>
@@ -460,7 +458,7 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Log supplements, vitamins, and medications you've taken today. You can also set them as recurring.
             </Typography>
-            <SupplementEntry 
+            <SupplementEntry
               userId=""
               onSupplementAdded={handleSupplementAdded}
               onSave={loadUserSchedules}
@@ -497,8 +495,8 @@ export default function LLMFoodEntry({ onFoodAdded }: LLMFoodEntryProps) {
                           </Typography>
                         )}
                       </Box>
-                      <Chip 
-                        label={schedule.is_active ? "Active" : "Inactive"} 
+                      <Chip
+                        label={schedule.is_active ? "Active" : "Inactive"}
                         color={schedule.is_active ? "success" : "default"}
                         size="small"
                       />
