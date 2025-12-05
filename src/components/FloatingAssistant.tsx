@@ -104,7 +104,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
 
   const analyzeWithGemini = async (userMessage: string): Promise<string> => {
     try {
-      const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+      const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
       const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
       if (!API_KEY) {

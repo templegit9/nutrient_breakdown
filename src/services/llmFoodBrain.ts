@@ -57,7 +57,7 @@ const MEDICAL_NUTRITION_GUIDELINES = {
 } as const;
 
 export class LLMFoodBrain {
-  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  private readonly API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
   private readonly API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
   constructor() {
@@ -74,7 +74,7 @@ export class LLMFoodBrain {
     try {
       const prompt = this.createNutritionPrompt(input, healthConditions);
       const response = await this.callLLMAPI(prompt);
-      
+
       if (response.success && response.data) {
         const parsedData = this.parseLLMResponse(response.data, input, timeOfDay);
         return parsedData;
@@ -102,7 +102,7 @@ export class LLMFoodBrain {
     }
 
     const medicalGuidelines: string[] = [];
-    
+
     healthConditions.forEach(conditionId => {
       const guidelines = MEDICAL_NUTRITION_GUIDELINES[conditionId as keyof typeof MEDICAL_NUTRITION_GUIDELINES];
       if (guidelines) {
@@ -136,7 +136,7 @@ CLINICAL CONSIDERATIONS:
   private createNutritionPrompt(input: string, healthConditions?: string[]): string {
     // Generate medical context based on health conditions
     const medicalContext = this.generateMedicalContext(healthConditions);
-    
+
     return `You are a board-certified nutritionist with clinical experience in medical nutrition therapy.
 
 ${medicalContext}
@@ -231,7 +231,7 @@ Output: {
 RESPOND WITH JSON ONLY:`;
   }
 
-  private async callLLMAPI(prompt: string): Promise<{success: boolean, data?: string, error?: string}> {
+  private async callLLMAPI(prompt: string): Promise<{ success: boolean, data?: string, error?: string }> {
     try {
       const response = await fetch(`${this.API_URL}?key=${this.API_KEY}`, {
         method: 'POST',
@@ -263,7 +263,7 @@ RESPOND WITH JSON ONLY:`;
       }
 
       const data = await response.json();
-      
+
       if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
         return {
           success: true,
@@ -292,7 +292,7 @@ RESPOND WITH JSON ONLY:`;
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      
+
       if (!parsed.individualItems || !Array.isArray(parsed.individualItems)) {
         throw new Error('Invalid response format - missing individualItems');
       }
@@ -334,7 +334,7 @@ RESPOND WITH JSON ONLY:`;
   private calculateTotalNutrients(items: FoodItem[]): GroupedFoodEntry['totalNutrients'] {
     return items.reduce((total, item) => ({
       protein: total.protein + (item.protein || 0),
-      carbohydrates: total.carbohydrates + (item.carbohydrates || 0), 
+      carbohydrates: total.carbohydrates + (item.carbohydrates || 0),
       fat: total.fat + (item.fat || 0),
       fiber: total.fiber + (item.fiber || 0),
       sugar: total.sugar + (item.sugar || 0),
@@ -361,7 +361,7 @@ RESPOND WITH JSON ONLY:`;
 
   private generateCSV(items: FoodItem[]): string {
     const headers = 'Name,Quantity,Unit,Calories,Protein(g),Carbs(g),Fat(g),Fiber(g),Sugar(g),Sodium(mg),Calcium(mg),Iron(mg),VitaminC(mg),VitaminD(mg),Potassium(mg)';
-    
+
     const rows = items.map(item => [
       item.name,
       item.quantity,
@@ -411,7 +411,7 @@ RESPOND WITH JSON ONLY:`;
     if (lowerInput.includes('lunch') || lowerInput.includes('noon')) return 'lunch';
     if (lowerInput.includes('dinner') || lowerInput.includes('supper') || lowerInput.includes('evening')) return 'dinner';
     if (lowerInput.includes('snack')) return 'snack';
-    
+
     // Determine by time if not specified
     const hour = new Date().getHours();
     if (hour < 11) return 'breakfast';
